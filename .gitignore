@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+
+# Environment
+.env
+
+# AWS SAM
+.aws-sam/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Docker
+pgdata/
+
+# Node (dummy-portal, frontend)
+node_modules/
+
+# uv
+requirements.txt
+
+# Adding docs, plans and .kiro
+docs/
+plans/
+.kiro/
