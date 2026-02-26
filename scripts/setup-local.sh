@@ -62,31 +62,10 @@ fi
 
 echo ""
 echo "🐳 Starting Docker services..."
-docker compose up -d
+docker compose up -d --wait
 
 echo ""
-echo "⏳ Waiting for services to be healthy..."
-sleep 5
-
-# Check PostgreSQL
-echo -n "Checking PostgreSQL... "
-if docker compose ps postgres | grep -q "Up"; then
-    echo "✓"
-else
-    echo "❌ PostgreSQL failed to start"
-    docker compose logs postgres
-    exit 1
-fi
-
-# Check DynamoDB Local
-echo -n "Checking DynamoDB Local... "
-if docker compose ps dynamodb | grep -q "Up"; then
-    echo "✓"
-else
-    echo "❌ DynamoDB Local failed to start"
-    docker compose logs dynamodb
-    exit 1
-fi
+echo "✅ Docker services are healthy!"
 
 echo ""
 echo "✅ Local development environment setup complete!"

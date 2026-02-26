@@ -9,12 +9,24 @@ services:
       POSTGRES_PASSWORD: localdev
     volumes:
       - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tripcortex -d tripcortex"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   dynamodb:
     image: amazon/dynamodb-local
     ports:
       - "8000:8000"
     command: "-jar DynamoDBLocal.jar -sharedDb"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:8000 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pgdata:
