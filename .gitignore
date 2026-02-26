@@ -37,6 +37,5 @@ node_modules/
 requirements.txt
 
 # Adding docs, plans and .kiro
-docs/
 plans/
 .kiro/

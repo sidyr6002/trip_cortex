@@ -103,7 +103,6 @@ trip-cortex/
 │   └── e2e/               # End-to-end canary tests
 ├── statemachine/          # Step Functions ASL definitions
 ├── docs/                  # Architecture and design documentation
-└── plans/                 # Implementation plans and epics
 ```
 
 **Key Principle:** Handlers are thin (10-20 lines) — all logic lives in `core/`.
