@@ -14,6 +14,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "alembic>=1.18.4",
     "moto>=5.1.21",
     "mypy>=1.19.1",
     "pytest>=9.0.2",
