@@ -1,0 +1,81 @@
+version = 0.1
+
+[default]
+[default.global.parameters]
+stack_name = "trip-cortex-local"
+resolve_s3 = true
+s3_prefix = "trip-cortex"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=local"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.validate.parameters]
+lint = true
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+resolve_s3 = true
+
+[dev]
+[dev.global.parameters]
+stack_name = "trip-cortex-dev"
+resolve_s3 = true
+s3_prefix = "trip-cortex-dev"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=dev"
+
+[dev.build.parameters]
+cached = true
+parallel = true
+
+[dev.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+resolve_s3 = true
+
+[staging]
+[staging.global.parameters]
+stack_name = "trip-cortex-staging"
+resolve_s3 = true
+s3_prefix = "trip-cortex-staging"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=staging"
+
+[staging.build.parameters]
+cached = true
+parallel = true
+
+[staging.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+resolve_s3 = true
+
+[prod]
+[prod.global.parameters]
+stack_name = "trip-cortex-prod"
+resolve_s3 = true
+s3_prefix = "trip-cortex-prod"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=prod"
+
+[prod.build.parameters]
+cached = true
+parallel = true
+
+[prod.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+resolve_s3 = true
+disable_rollback = false
