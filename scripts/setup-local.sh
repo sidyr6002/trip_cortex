@@ -68,6 +68,27 @@ echo ""
 echo "✅ Docker services are healthy!"
 
 echo ""
+echo "🗄️  Setting up databases..."
+
+# Run PostgreSQL migrations
+echo "Running PostgreSQL migrations..."
+if uv run alembic upgrade head; then
+    echo "✓ PostgreSQL migrations complete"
+else
+    echo "❌ PostgreSQL migrations failed"
+    exit 1
+fi
+
+# Create DynamoDB tables
+echo "Creating DynamoDB tables..."
+if uv run python scripts/create_local_tables.py; then
+    echo "✓ DynamoDB tables ready"
+else
+    echo "❌ DynamoDB table creation failed"
+    exit 1
+fi
+
+echo ""
 echo "✅ Local development environment setup complete!"
 echo ""
 echo "Next steps:"
