@@ -1,0 +1,137 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main      # Deploys to dev
+      - staging   # Deploys to staging
+      - prod      # Deploys to prod
+
+permissions:
+  id-token: write   # Required for OIDC
+  contents: read    # Required for checkout
+
+jobs:
+  deploy-dev:
+    name: Deploy to Dev
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: dev
+      url: https://dev.tripcortex.example.com
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      
+      - name: Set up Python
+        run: uv python install 3.12
+      
+      - name: Install dependencies
+        run: uv sync
+      
+      - name: Set up AWS SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_DEV }}
+          aws-region: us-east-1
+          role-session-name: GitHubActions-Deploy-Dev
+      
+      - name: SAM Build
+        run: sam build
+      
+      - name: SAM Deploy
+        run: sam deploy --config-env dev --no-confirm-changeset
+
+  deploy-staging:
+    name: Deploy to Staging
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.tripcortex.example.com
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      
+      - name: Set up Python
+        run: uv python install 3.12
+      
+      - name: Install dependencies
+        run: uv sync
+      
+      - name: Set up AWS SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_STAGING }}
+          aws-region: us-east-1
+          role-session-name: GitHubActions-Deploy-Staging
+      
+      - name: SAM Build
+        run: sam build
+      
+      - name: SAM Deploy
+        run: sam deploy --config-env staging --no-confirm-changeset
+
+  deploy-prod:
+    name: Deploy to Production
+    if: github.ref == 'refs/heads/prod'
+    runs-on: ubuntu-latest
+    environment:
+      name: prod
+      url: https://tripcortex.example.com
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      
+      - name: Set up Python
+        run: uv python install 3.12
+      
+      - name: Install dependencies
+        run: uv sync
+      
+      - name: Set up AWS SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PROD }}
+          aws-region: us-east-1
+          role-session-name: GitHubActions-Deploy-Prod
+      
+      - name: SAM Build
+        run: sam build
+      
+      - name: SAM Deploy
+        run: sam deploy --config-env prod --no-confirm-changeset
+      
+      - name: Notify deployment
+        if: success()
+        run: echo "✅ Production deployment successful"
