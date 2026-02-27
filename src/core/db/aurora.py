@@ -6,6 +6,7 @@ import boto3
 import psycopg
 
 from core.config import Config
+from core.errors import TripCortexError
 from core.models.retrieval import PolicyChunkResult
 
 _SIMILARITY_SEARCH_SQL = """
@@ -54,9 +55,16 @@ class AuroraClient:
             self._conn.close()
         self._conn = None
 
+    def _require_connection(self) -> psycopg.Connection:
+        """Return the active connection or raise if not connected."""
+        if self._conn is None or self._conn.closed:
+            raise TripCortexError("AuroraClient is not connected. Call connect() first.")
+        return self._conn
+
     def health_check(self) -> bool:
         try:
-            with self._conn.cursor() as cur:  # type: ignore[union-attr]
+            conn = self._require_connection()
+            with conn.cursor() as cur:
                 cur.execute("SELECT 1")
             return True
         except Exception:
@@ -68,8 +76,9 @@ class AuroraClient:
         threshold: float = 0.65,
         top_k: int = 5,
     ) -> list[PolicyChunkResult]:
+        conn = self._require_connection()
         vec = "[" + ",".join(str(v) for v in query_embedding) + "]"
-        with self._conn.cursor() as cur:  # type: ignore[union-attr]
+        with conn.cursor() as cur:
             cur.execute(_SIMILARITY_SEARCH_SQL, (vec, vec, threshold, vec, top_k))
             rows = cur.fetchall()
         return [

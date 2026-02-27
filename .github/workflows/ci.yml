@@ -108,6 +108,23 @@ jobs:
       - name: Install dependencies
         run: uv sync
       
+      - name: Run Alembic migrations
+        run: uv run alembic upgrade head
+        env:
+          AURORA_HOST: localhost
+          AURORA_PORT: 5432
+          AURORA_DATABASE: tripcortex
+          AURORA_USER: tripcortex
+          AURORA_PASSWORD: testpass
+      
+      - name: Create DynamoDB Local tables
+        run: uv run python scripts/create_local_tables.py
+        env:
+          DYNAMODB_ENDPOINT: http://localhost:8000
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+      
       - name: Run integration tests
         run: uv run pytest tests/integration/ -v -m integration --tb=short
         env:
@@ -116,6 +133,7 @@ jobs:
           AURORA_DATABASE: tripcortex
           AURORA_USER: tripcortex
           AURORA_PASSWORD: testpass
+          DYNAMODB_ENDPOINT: http://localhost:8000
           AWS_DEFAULT_REGION: us-east-1
           AWS_ACCESS_KEY_ID: test
           AWS_SECRET_ACCESS_KEY: test
