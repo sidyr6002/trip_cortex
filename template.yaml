@@ -25,6 +25,28 @@ Parameters:
 
 Resources:
 
+  # ── Network (VPC) ────────────────────────────────────────────────────────────
+
+  NetworkStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: infra/network.yaml
+      Parameters:
+        Environment: !Ref Environment
+        StackPrefix: !Ref AWS::StackName
+
+  # ── Aurora Serverless v2 ──────────────────────────────────────────────────────
+
+  AuroraStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: infra/aurora.yaml
+      Parameters:
+        Environment: !Ref Environment
+        StackPrefix: !Ref AWS::StackName
+        PrivateSubnetIds: !GetAtt NetworkStack.Outputs.PrivateSubnetIds
+        AuroraSecurityGroupId: !GetAtt NetworkStack.Outputs.AuroraSecurityGroupId
+
   # ── DynamoDB Tables ──────────────────────────────────────────────────────────
 
   TablesStack:
@@ -74,6 +96,12 @@ Resources:
         AuditLogTableName: !GetAtt TablesStack.Outputs.AuditLogTableName
         PolicyDocumentsBucketName: !GetAtt StorageStack.Outputs.PolicyDocumentsBucketName
         NovaActArtifactsBucketName: !GetAtt StorageStack.Outputs.NovaActArtifactsBucketName
+        AuroraClusterEndpoint: !GetAtt AuroraStack.Outputs.AuroraClusterEndpoint
+        AuroraSecretArn: !GetAtt AuroraStack.Outputs.AuroraSecretArn
+        AuroraDatabaseName: !GetAtt AuroraStack.Outputs.AuroraDatabaseName
+        AuroraPort: !GetAtt AuroraStack.Outputs.AuroraPort
+        LambdaSecurityGroupId: !GetAtt NetworkStack.Outputs.LambdaSecurityGroupId
+        PrivateSubnetIds: !GetAtt NetworkStack.Outputs.PrivateSubnetIds
 
 Outputs:
   StackName:
