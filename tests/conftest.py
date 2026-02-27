@@ -25,20 +25,39 @@ def pg_connection():
     """Provide a PostgreSQL connection for integration tests."""
     import psycopg
     from core.config import get_config
-    
+
     config = get_config()
     conn_str = (
         f"host={config.aurora_host} port={config.aurora_port} "
         f"dbname={config.aurora_database} user={config.aurora_user} "
         f"password={config.aurora_password}"
     )
-    
+
     conn = psycopg.connect(conn_str)
     yield conn
-    
+
     # Rollback any uncommitted changes
     conn.rollback()
     conn.close()
+
+
+@pytest.fixture
+def pg_policy_id(pg_connection):
+    """Insert a parent policies row and yield its id; cascade-deletes chunks on teardown."""
+    with pg_connection.cursor() as cur:
+        cur.execute("""
+            INSERT INTO policies (source_s3_uri, file_name, uploaded_by)
+            VALUES ('s3://test/policy.pdf', 'policy.pdf', 'test-user')
+            RETURNING id
+        """)
+        policy_id = cur.fetchone()[0]
+        pg_connection.commit()
+
+    yield policy_id
+
+    with pg_connection.cursor() as cur:
+        cur.execute("DELETE FROM policies WHERE id = %s", (policy_id,))
+        pg_connection.commit()
 
 
 # DynamoDB fixtures

@@ -1,9 +1,12 @@
 """
-Database clients for Trip Cortex.
+Database ORM models and clients for Trip Cortex.
 
-This package will contain:
-- aurora.py: Aurora PostgreSQL client with pgvector queries
-- dynamo.py: DynamoDB client for bookings, connections, audit logs
+Importing this package registers all models on Base.metadata,
+which Alembic needs for autogenerate.
 """
 
-__all__: list[str] = []
+from core.db.schemas.base import Base
+from core.db.schemas.policy import Policy
+from core.db.schemas.policy_chunk import PolicyChunk
+
+__all__ = ["Base", "Policy", "PolicyChunk"]

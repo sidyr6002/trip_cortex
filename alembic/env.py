@@ -8,10 +8,11 @@ from sqlalchemy import pool
 
 from alembic import context
 
-# Add src to path for config import
+# Add src to path for config and model imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from core.config import get_config
+from core.db import Base  # noqa: E402 — registers all ORM models for autogenerate
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -30,16 +31,24 @@ config.set_main_option("sqlalchemy.url", database_url)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+# Point Alembic at the ORM metadata so --autogenerate can diff models vs DB
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+
+# Indexes managed via raw op.execute() that autogenerate cannot represent
+_UNMANAGED_INDEXES = {"idx_policy_chunks_embedding"}
+
+
+def _include_object(obj, name, type_, reflected, compare_to):
+    """Exclude indexes that are managed manually (e.g. HNSW vector index)."""
+    if type_ == "index" and name in _UNMANAGED_INDEXES:
+        return False
+    return True
 
 
 def run_migrations_offline() -> None:
@@ -60,6 +69,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=_include_object,
     )
 
     with context.begin_transaction():
@@ -81,7 +91,9 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
+            include_object=_include_object,
         )
 
         with context.begin_transaction():
