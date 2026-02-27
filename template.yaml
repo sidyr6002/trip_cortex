@@ -30,16 +30,102 @@ Globals:
         AWS_REGION: !Ref AWS::Region
         POWERTOOLS_SERVICE_NAME: trip-cortex
         LOG_LEVEL: INFO
+        BOOKINGS_TABLE: !Ref BookingsTable
+        CONNECTIONS_TABLE: !Ref ConnectionsTable
+        AUDIT_LOG_TABLE: !Ref AuditLogTable
+
+Conditions:
+  IsNotDev: !Not [!Equals [!Ref Environment, dev]]
 
 Resources:
-  # Placeholder - Resources will be added in Story 1.4
-  # This section will contain:
-  # - DynamoDB tables (Bookings, Connections, AuditLog)
-  # - S3 buckets (PolicyDocuments, NovaActArtifacts)
-  # - Lambda functions
-  # - Step Functions state machine
-  # - API Gateway WebSocket API
-  # - IAM roles and policies
+
+  # ── DynamoDB Tables ──────────────────────────────────────────────────────────
+
+  BookingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-bookings"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: employeeId
+          AttributeType: S
+        - AttributeName: bookingId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: employeeId
+          KeyType: HASH
+        - AttributeName: bookingId
+          KeyType: RANGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsNotDev, true, false]
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  ConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-connections"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: connectionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: connectionId
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  AuditLogTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-audit-log"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: bookingId
+          AttributeType: S
+        - AttributeName: auditId
+          AttributeType: S
+        - AttributeName: employeeId
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: bookingId
+          KeyType: HASH
+        - AttributeName: auditId
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: employeeId-timestamp-index
+          KeySchema:
+            - AttributeName: employeeId
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
 
 Outputs:
   StackName:
@@ -53,3 +139,39 @@ Outputs:
   Region:
     Description: AWS Region
     Value: !Ref AWS::Region
+
+  BookingsTableName:
+    Description: Bookings DynamoDB table name
+    Value: !Ref BookingsTable
+    Export:
+      Name: !Sub "${AWS::StackName}-BookingsTableName"
+
+  BookingsTableArn:
+    Description: Bookings DynamoDB table ARN
+    Value: !GetAtt BookingsTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-BookingsTableArn"
+
+  ConnectionsTableName:
+    Description: Connections DynamoDB table name
+    Value: !Ref ConnectionsTable
+    Export:
+      Name: !Sub "${AWS::StackName}-ConnectionsTableName"
+
+  ConnectionsTableArn:
+    Description: Connections DynamoDB table ARN
+    Value: !GetAtt ConnectionsTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-ConnectionsTableArn"
+
+  AuditLogTableName:
+    Description: AuditLog DynamoDB table name
+    Value: !Ref AuditLogTable
+    Export:
+      Name: !Sub "${AWS::StackName}-AuditLogTableName"
+
+  AuditLogTableArn:
+    Description: AuditLog DynamoDB table ARN
+    Value: !GetAtt AuditLogTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-AuditLogTableArn"
