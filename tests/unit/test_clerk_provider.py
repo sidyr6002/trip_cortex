@@ -20,17 +20,34 @@ def mock_clerk_user():
     return user
 
 
+def _signed_in_state(sub="user_123"):
+    state = MagicMock()
+    state.is_signed_in = True
+    state.payload = {"sub": sub}
+    return state
+
+
+def _signed_out_state(message="token expired"):
+    state = MagicMock()
+    state.is_signed_in = False
+    state.payload = None
+    state.message = message
+    return state
+
+
 @pytest.mark.asyncio
 async def test_verify_token_valid(mock_clerk_user):
-    with patch("core.auth.clerk_provider.Clerk") as mock_clerk_class:
+    with (
+        patch("core.auth.clerk_provider.Clerk") as mock_clerk_class,
+        patch("core.auth.clerk_provider.authenticate_request") as mock_auth,
+    ):
         mock_client = MagicMock()
         mock_client.users.get.return_value = mock_clerk_user
         mock_clerk_class.return_value = mock_client
+        mock_auth.return_value = _signed_in_state("user_123")
 
         provider = ClerkAuthProvider(secret_key="sk_test_mock")
-        token = jwt.encode({"sub": "user_123"}, "secret", algorithm="HS256")
-
-        result = await provider.verify_token(token)
+        result = await provider.verify_token("some.jwt.token")
 
         assert isinstance(result, AuthUser)
         assert result.user_id == "user_123"
@@ -38,15 +55,21 @@ async def test_verify_token_valid(mock_clerk_user):
         assert result.email == "jane@example.com"
         assert result.name == "Jane Doe"
         assert result.roles == ["employee"]
+        mock_client.users.get.assert_called_once_with(user_id="user_123")
 
 
 @pytest.mark.asyncio
 async def test_verify_token_invalid():
-    with patch("core.auth.clerk_provider.Clerk"):
+    with (
+        patch("core.auth.clerk_provider.Clerk"),
+        patch("core.auth.clerk_provider.authenticate_request") as mock_auth,
+    ):
+        mock_auth.return_value = _signed_out_state("token expired")
+
         provider = ClerkAuthProvider(secret_key="sk_test_mock")
 
         with pytest.raises(AuthenticationError, match="Token verification failed"):
-            await provider.verify_token("invalid_token")
+            await provider.verify_token("bad.jwt.token")
 
 
 @pytest.mark.asyncio
@@ -129,7 +152,9 @@ async def test_get_user_api_error():
 async def test_decode_claims_valid():
     with patch("core.auth.clerk_provider.Clerk"):
         provider = ClerkAuthProvider(secret_key="sk_test_mock")
-        token = jwt.encode({"sub": "user_123", "exp": 9999999999}, "secret", algorithm="HS256")
+        token = jwt.encode(
+            {"sub": "user_123", "exp": 9999999999}, "secret", algorithm="HS256"
+        )
 
         result = await provider.decode_claims(token)
 
