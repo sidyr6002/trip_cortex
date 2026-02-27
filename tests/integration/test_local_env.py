@@ -7,7 +7,7 @@ from psycopg.types.json import Json
 
 
 @pytest.mark.integration
-def test_full_local_environment(pg_connection, bookings_table):
+def test_full_local_environment(pg_connection, pg_policy_id, bookings_table):
     """Test complete local environment setup with both databases."""
     # Test 1: Verify PostgreSQL connection and pgvector extension
     with pg_connection.cursor() as cur:
@@ -29,8 +29,7 @@ def test_full_local_environment(pg_connection, bookings_table):
         assert table_desc["Table"]["TableStatus"] == "ACTIVE"
     
     # Test 3: Insert a policy chunk with embedding into PostgreSQL
-    policy_id = uuid.uuid4()
-    chunk_id = None
+    policy_id = pg_policy_id
     
     # Create a test vector
     test_vector = [0.5] * 1024
@@ -99,19 +98,10 @@ def test_full_local_environment(pg_connection, bookings_table):
     # The booking references the policy via policyId
     assert dynamo_response["Item"]["policyId"] == str(policy_id)
     
-    # Test 7: Clean up
-    with pg_connection.cursor() as cur:
-        cur.execute("DELETE FROM policy_chunks WHERE id = %s", (chunk_id,))
-        pg_connection.commit()
-    
+    # Test 7: Clean up (pg_policy_id fixture handles policy + chunks via CASCADE)
     bookings_table.delete_item(
         Key={"employeeId": employee_id, "bookingId": booking_id}
     )
-    
-    # Verify cleanup
-    with pg_connection.cursor() as cur:
-        cur.execute("SELECT COUNT(*) FROM policy_chunks WHERE id = %s", (chunk_id,))
-        assert cur.fetchone()[0] == 0
     
     cleanup_response = bookings_table.get_item(
         Key={"employeeId": employee_id, "bookingId": booking_id}

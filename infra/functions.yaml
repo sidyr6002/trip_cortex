@@ -113,6 +113,30 @@ Resources:
                 - dynamodb:GetItem
               Resource: !Ref BookingsTableArn
 
+  MigrateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src/
+      Handler: handlers.migrate.handler
+      Description: Runs Alembic migrations against Aurora — invoke manually after each schema change
+      Timeout: 120
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroupId
+        SubnetIds: !Split [",", !Ref PrivateSubnetIds]
+      Environment:
+        Variables:
+          AURORA_HOST: !Ref AuroraClusterEndpoint
+          AURORA_PORT: !Ref AuroraPort
+          AURORA_DATABASE: !Ref AuroraDatabaseName
+          AURORA_SECRET_ARN: !Ref AuroraSecretArn
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref AuroraSecretArn
+
   EmbedAndRetrieveFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -239,6 +263,8 @@ Resources:
               Resource: !Ref ConnectionsTableArn
 
 Outputs:
+  MigrateFunctionArn:
+    Value: !GetAtt MigrateFunction.Arn
   ConnectFunctionArn:
     Value: !GetAtt ConnectFunction.Arn
   DisconnectFunctionArn:
