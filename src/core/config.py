@@ -1,53 +1,28 @@
-"""
-Configuration management for Trip Cortex.
-
-Loads environment variables and provides typed configuration objects
-for use across all Lambda functions and services.
-
-Usage:
-    from core.config import get_config
-    
-    config = get_config()
-    bedrock_client = boto3.client('bedrock-runtime', region_name=config.aws_region)
-"""
-
-from dataclasses import dataclass
 from os import environ
 
+from pydantic import BaseModel, ConfigDict
 
-@dataclass
-class Config:
-    """Application configuration loaded from environment variables."""
-    
-    # AWS Configuration
+
+class Config(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     aws_region: str
-    
-    # Database Configuration
     aurora_host: str
     aurora_port: int
     aurora_database: str
     aurora_user: str
     aurora_password: str
-    
-    # DynamoDB Configuration
-    dynamodb_endpoint: str | None
+    dynamodb_endpoint: str | None = None
     bookings_table: str
     connections_table: str
     audit_log_table: str
-    
-    # Bedrock Configuration
     nova_lite_model_id: str
     nova_embeddings_model_id: str
-    
-    # Authentication
-    clerk_secret_key: str
-    
-    # Environment
+    clerk_secret_key: str = ""
     environment: str
 
 
 def get_config() -> Config:
-    """Load configuration from environment variables."""
     return Config(
         aws_region=environ.get("AWS_REGION", "us-east-1"),
         aurora_host=environ.get("AURORA_HOST", "localhost"),

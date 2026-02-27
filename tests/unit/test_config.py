@@ -5,7 +5,9 @@ from unittest.mock import patch
 
 import pytest
 
-from core.config import get_config
+import pydantic
+
+from core.config import Config, get_config
 
 
 def test_get_config_with_dynamodb_endpoint():
@@ -31,3 +33,17 @@ def test_get_config_defaults():
         assert config.aurora_port == 5432
         assert config.environment == "local"
         assert config.dynamodb_endpoint is None
+
+
+def test_aurora_port_string_coercion():
+    with patch.dict(os.environ, {"AURORA_PORT": "5433"}, clear=False):
+        config = get_config()
+        assert config.aurora_port == 5433
+        assert isinstance(config.aurora_port, int)
+
+
+def test_config_is_immutable():
+    with patch.dict(os.environ, {}, clear=True):
+        config = get_config()
+        with pytest.raises(pydantic.ValidationError):
+            config.aws_region = "eu-west-1"  # type: ignore[misc]
