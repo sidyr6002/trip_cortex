@@ -137,6 +137,28 @@ sam local start-api
 
 ## Deployment
 
+### Prerequisites
+
+Before deploying to AWS, you must create the Clerk secret in AWS Secrets Manager for each environment:
+
+```bash
+# Create secret for dev environment
+aws secretsmanager create-secret \
+  --name trip-cortex/dev/clerk-secret-key \
+  --description "Clerk secret key for Trip Cortex dev environment" \
+  --secret-string "sk_test_YOUR_DEV_KEY_HERE" \
+  --region us-east-1
+
+# Get the ARN and update samconfig.toml
+aws secretsmanager describe-secret \
+  --secret-id trip-cortex/dev/clerk-secret-key \
+  --region us-east-1 \
+  --query 'ARN' \
+  --output text
+```
+
+Repeat for `staging` and `prod` environments. See [docs/clerk-secret-setup.md](docs/clerk-secret-setup.md) for detailed instructions.
+
 ### Deploy to AWS
 
 ```bash

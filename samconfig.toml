@@ -30,7 +30,7 @@ s3_prefix = "trip-cortex-dev"
 region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
-parameter_overrides = "Environment=dev"
+parameter_overrides = "Environment=dev ClerkSecretKeyArn=arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:trip-cortex/dev/clerk-secret-key"
 
 [dev.build.parameters]
 cached = true
@@ -49,7 +49,7 @@ s3_prefix = "trip-cortex-staging"
 region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-parameter_overrides = "Environment=staging"
+parameter_overrides = "Environment=staging ClerkSecretKeyArn=arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:trip-cortex/staging/clerk-secret-key"
 
 [staging.build.parameters]
 cached = true
@@ -68,7 +68,7 @@ s3_prefix = "trip-cortex-prod"
 region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-parameter_overrides = "Environment=prod"
+parameter_overrides = "Environment=prod ClerkSecretKeyArn=arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:trip-cortex/prod/clerk-secret-key"
 
 [prod.build.parameters]
 cached = true
