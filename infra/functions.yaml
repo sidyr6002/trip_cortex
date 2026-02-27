@@ -41,7 +41,6 @@ Globals:
     Environment:
       Variables:
         ENVIRONMENT: !Ref Environment
-        AWS_REGION: !Ref AWS::Region
         POWERTOOLS_SERVICE_NAME: trip-cortex
         LOG_LEVEL: INFO
         BOOKINGS_TABLE: !Ref BookingsTableName
