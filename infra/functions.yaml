@@ -1,0 +1,226 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Trip Cortex - Lambda Functions
+
+Parameters:
+  Environment:
+    Type: String
+  BookingsTableArn:
+    Type: String
+  ConnectionsTableArn:
+    Type: String
+  AuditLogTableArn:
+    Type: String
+  PolicyDocumentsBucketArn:
+    Type: String
+  BookingWorkflowArn:
+    Type: String
+  WebSocketApiId:
+    Type: String
+  BookingsTableName:
+    Type: String
+  ConnectionsTableName:
+    Type: String
+  AuditLogTableName:
+    Type: String
+  PolicyDocumentsBucketName:
+    Type: String
+  NovaActArtifactsBucketName:
+    Type: String
+
+Conditions:
+  IsNotDev: !Not [!Equals [!Ref Environment, dev]]
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures:
+      - arm64
+    Timeout: 30
+    MemorySize: 512
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        AWS_REGION: !Ref AWS::Region
+        POWERTOOLS_SERVICE_NAME: trip-cortex
+        LOG_LEVEL: INFO
+        BOOKINGS_TABLE: !Ref BookingsTableName
+        CONNECTIONS_TABLE: !Ref ConnectionsTableName
+        AUDIT_LOG_TABLE: !Ref AuditLogTableName
+        POLICY_BUCKET: !Ref PolicyDocumentsBucketName
+        ARTIFACTS_BUCKET: !Ref NovaActArtifactsBucketName
+        BOOKING_WORKFLOW_ARN: !Ref BookingWorkflowArn
+
+Resources:
+
+  ConnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src/
+      Handler: handlers.connect.handler
+      Description: WebSocket $connect handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:DeleteItem
+                - dynamodb:GetItem
+              Resource: !Ref ConnectionsTableArn
+
+  DisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src/
+      Handler: handlers.disconnect.handler
+      Description: WebSocket $disconnect handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:DeleteItem
+                - dynamodb:GetItem
+              Resource: !Ref ConnectionsTableArn
+
+  BookingRequestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src/
+      Handler: handlers.booking_request.handler
+      Description: Validates booking request and starts Step Functions execution
+      ReservedConcurrentExecutions: !If [IsNotDev, 10, !Ref AWS::NoValue]
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: states:StartExecution
+              Resource: !Ref BookingWorkflowArn
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:GetItem
+              Resource: !Ref BookingsTableArn
+
+  EmbedAndRetrieveFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src/
+      Handler: handlers.embed_and_retrieve.handler
+      Description: Generates query embedding and retrieves policy chunks via pgvector
+      Environment:
+        Variables:
+          AURORA_CLUSTER_ARN: ""
+          AURORA_SECRET_ARN: ""
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/amazon.nova-2-multimodal-embeddings-v1:0"
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:ListBucket
+              Resource:
+                - !Ref PolicyDocumentsBucketArn
+                - !Sub "${PolicyDocumentsBucketArn}/*"
+            - Effect: Allow
+              Action: dynamodb:PutItem
+              Resource: !Ref AuditLogTableArn
+
+  ReasonAndPlanFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src/
+      Handler: handlers.reason_plan.handler
+      Description: Invokes Nova 2 Lite with Extended Thinking to produce a BookingPlan
+      Timeout: 180
+      Environment:
+        Variables:
+          AURORA_CLUSTER_ARN: ""
+          AURORA_SECRET_ARN: ""
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/us.amazon.nova-2-lite-v1:0"
+            - Effect: Allow
+              Action: dynamodb:PutItem
+              Resource: !Ref AuditLogTableArn
+
+  ValidatePlanFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src/
+      Handler: handlers.validate_plan.handler
+      Description: Validates BookingPlan against policy constraints
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !Ref BookingsTableArn
+
+  ResponseSenderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src/
+      Handler: handlers.response_sender.handler
+      Description: Sends WebSocket progress updates to connected clients
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: execute-api:ManageConnections
+              Resource: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApiId}/*"
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:PutItem
+                - dynamodb:Query
+              Resource:
+                - !Ref BookingsTableArn
+                - !Ref ConnectionsTableArn
+
+  HeartbeatFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src/
+      Handler: handlers.heartbeat.handler
+      Description: Pings active WebSocket connections to prevent idle disconnects
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: rate(5 minutes)
+            Enabled: true
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: execute-api:ManageConnections
+              Resource: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApiId}/*"
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:Scan
+              Resource: !Ref ConnectionsTableArn
+
+Outputs:
+  ConnectFunctionArn:
+    Value: !GetAtt ConnectFunction.Arn
+  DisconnectFunctionArn:
+    Value: !GetAtt DisconnectFunction.Arn
+  BookingRequestFunctionArn:
+    Value: !GetAtt BookingRequestFunction.Arn
+  EmbedAndRetrieveFunctionArn:
+    Value: !GetAtt EmbedAndRetrieveFunction.Arn
+  ReasonAndPlanFunctionArn:
+    Value: !GetAtt ReasonAndPlanFunction.Arn
+  ValidatePlanFunctionArn:
+    Value: !GetAtt ValidatePlanFunction.Arn
+  ResponseSenderFunctionArn:
+    Value: !GetAtt ResponseSenderFunction.Arn
+  HeartbeatFunctionArn:
+    Value: !GetAtt HeartbeatFunction.Arn

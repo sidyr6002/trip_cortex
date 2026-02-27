@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Trip Cortex - Step Functions Workflow
+
+Parameters:
+  Environment:
+    Type: String
+  StackPrefix:
+    Type: String
+
+Resources:
+
+  BookingWorkflowLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/states/${StackPrefix}-booking-workflow"
+      RetentionInDays: 30
+
+  BookingWorkflow:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub "${StackPrefix}-booking-workflow"
+      Type: STANDARD
+      DefinitionUri: ../statemachine/booking-workflow.asl.json
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt BookingWorkflowLogGroup.Arn
+        IncludeExecutionData: false
+        Level: ERROR
+      Policies:
+        - CloudWatchLogsFullAccess
+      Tags:
+        Environment: !Ref Environment
+        Project: trip-cortex
+        ManagedBy: sam
+
+Outputs:
+  BookingWorkflowArn:
+    Value: !Ref BookingWorkflow

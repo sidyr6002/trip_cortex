@@ -12,7 +12,7 @@ Parameters:
       - staging
       - prod
     Description: Deployment environment
-  
+
   ClerkSecretKeyArn:
     Type: String
     Description: ARN of Clerk secret key in Secrets Manager
@@ -23,439 +23,166 @@ Parameters:
     Description: API Gateway WebSocket API ID (set in Story 1.7)
     Default: placeholder
 
-Globals:
-  Function:
-    Runtime: python3.12
-    Architectures:
-      - arm64
-    Timeout: 30
-    MemorySize: 512
-    Environment:
-      Variables:
-        ENVIRONMENT: !Ref Environment
-        AWS_REGION: !Ref AWS::Region
-        POWERTOOLS_SERVICE_NAME: trip-cortex
-        LOG_LEVEL: INFO
-        BOOKINGS_TABLE: !Ref BookingsTable
-        CONNECTIONS_TABLE: !Ref ConnectionsTable
-        AUDIT_LOG_TABLE: !Ref AuditLogTable
-        POLICY_BUCKET: !Ref PolicyDocumentsBucket
-        ARTIFACTS_BUCKET: !Ref NovaActArtifactsBucket
-        BOOKING_WORKFLOW_ARN: !Ref BookingWorkflow
-
-Conditions:
-  IsNotDev: !Not [!Equals [!Ref Environment, dev]]
-
 Resources:
 
   # ── DynamoDB Tables ──────────────────────────────────────────────────────────
 
-  BookingsTable:
-    Type: AWS::DynamoDB::Table
+  TablesStack:
+    Type: AWS::Serverless::Application
     Properties:
-      TableName: !Sub "${AWS::StackName}-bookings"
-      BillingMode: PAY_PER_REQUEST
-      AttributeDefinitions:
-        - AttributeName: employeeId
-          AttributeType: S
-        - AttributeName: bookingId
-          AttributeType: S
-      KeySchema:
-        - AttributeName: employeeId
-          KeyType: HASH
-        - AttributeName: bookingId
-          KeyType: RANGE
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: !If [IsNotDev, true, false]
-      Tags:
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: Project
-          Value: trip-cortex
-        - Key: ManagedBy
-          Value: sam
-
-  ConnectionsTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: !Sub "${AWS::StackName}-connections"
-      BillingMode: PAY_PER_REQUEST
-      AttributeDefinitions:
-        - AttributeName: connectionId
-          AttributeType: S
-      KeySchema:
-        - AttributeName: connectionId
-          KeyType: HASH
-      TimeToLiveSpecification:
-        AttributeName: ttl
-        Enabled: true
-      Tags:
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: Project
-          Value: trip-cortex
-        - Key: ManagedBy
-          Value: sam
-
-  AuditLogTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: !Sub "${AWS::StackName}-audit-log"
-      BillingMode: PAY_PER_REQUEST
-      AttributeDefinitions:
-        - AttributeName: bookingId
-          AttributeType: S
-        - AttributeName: auditId
-          AttributeType: S
-        - AttributeName: employeeId
-          AttributeType: S
-        - AttributeName: timestamp
-          AttributeType: S
-      KeySchema:
-        - AttributeName: bookingId
-          KeyType: HASH
-        - AttributeName: auditId
-          KeyType: RANGE
-      GlobalSecondaryIndexes:
-        - IndexName: employeeId-timestamp-index
-          KeySchema:
-            - AttributeName: employeeId
-              KeyType: HASH
-            - AttributeName: timestamp
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-      TimeToLiveSpecification:
-        AttributeName: expiresAt
-        Enabled: true
-      Tags:
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: Project
-          Value: trip-cortex
-        - Key: ManagedBy
-          Value: sam
-
-  # ── Lambda Functions ─────────────────────────────────────────────────────────
-
-  ConnectFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/
-      Handler: handlers.connect.handler
-      Description: WebSocket $connect handler
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action:
-                - dynamodb:PutItem
-                - dynamodb:DeleteItem
-                - dynamodb:GetItem
-              Resource: !GetAtt ConnectionsTable.Arn
-
-  DisconnectFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/
-      Handler: handlers.disconnect.handler
-      Description: WebSocket $disconnect handler
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action:
-                - dynamodb:PutItem
-                - dynamodb:DeleteItem
-                - dynamodb:GetItem
-              Resource: !GetAtt ConnectionsTable.Arn
-
-  BookingRequestFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/
-      Handler: handlers.booking_request.handler
-      Description: Validates booking request and starts Step Functions execution
-      ReservedConcurrentExecutions: !If [IsNotDev, 10, !Ref AWS::NoValue]
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action: states:StartExecution
-              Resource: !Ref BookingWorkflow
-            - Effect: Allow
-              Action:
-                - dynamodb:PutItem
-                - dynamodb:UpdateItem
-                - dynamodb:GetItem
-              Resource: !GetAtt BookingsTable.Arn
-
-  EmbedAndRetrieveFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/
-      Handler: handlers.embed_and_retrieve.handler
-      Description: Generates query embedding and retrieves policy chunks via pgvector
-      Environment:
-        Variables:
-          AURORA_CLUSTER_ARN: ""
-          AURORA_SECRET_ARN: ""
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action: bedrock:InvokeModel
-              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/amazon.nova-2-multimodal-embeddings-v1:0"
-            - Effect: Allow
-              Action:
-                - s3:GetObject
-                - s3:ListBucket
-              Resource:
-                - !GetAtt PolicyDocumentsBucket.Arn
-                - !Sub "${PolicyDocumentsBucket.Arn}/*"
-            - Effect: Allow
-              Action: dynamodb:PutItem
-              Resource: !GetAtt AuditLogTable.Arn
-
-  ReasonAndPlanFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/
-      Handler: handlers.reason_plan.handler
-      Description: Invokes Nova 2 Lite with Extended Thinking to produce a BookingPlan
-      Timeout: 180
-      Environment:
-        Variables:
-          AURORA_CLUSTER_ARN: ""
-          AURORA_SECRET_ARN: ""
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action: bedrock:InvokeModel
-              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/us.amazon.nova-2-lite-v1:0"
-            - Effect: Allow
-              Action: dynamodb:PutItem
-              Resource: !GetAtt AuditLogTable.Arn
-
-  ValidatePlanFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/
-      Handler: handlers.validate_plan.handler
-      Description: Validates BookingPlan against policy constraints
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action:
-                - dynamodb:GetItem
-                - dynamodb:Query
-              Resource: !GetAtt BookingsTable.Arn
-
-  ResponseSenderFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/
-      Handler: handlers.response_sender.handler
-      Description: Sends WebSocket progress updates to connected clients
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action: execute-api:ManageConnections
-              Resource: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApiId}/*"
-            - Effect: Allow
-              Action:
-                - dynamodb:GetItem
-                - dynamodb:UpdateItem
-                - dynamodb:PutItem
-                - dynamodb:Query
-              Resource:
-                - !GetAtt BookingsTable.Arn
-                - !GetAtt ConnectionsTable.Arn
-
-  HeartbeatFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/
-      Handler: handlers.heartbeat.handler
-      Description: Pings active WebSocket connections to prevent idle disconnects
-      Events:
-        Schedule:
-          Type: Schedule
-          Properties:
-            Schedule: rate(5 minutes)
-            Enabled: true
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action: execute-api:ManageConnections
-              Resource: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApiId}/*"
-            - Effect: Allow
-              Action:
-                - dynamodb:GetItem
-                - dynamodb:Query
-                - dynamodb:Scan
-              Resource: !GetAtt ConnectionsTable.Arn
-
-  # ── Step Functions ───────────────────────────────────────────────────────────
-
-  BookingWorkflowLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/states/${AWS::StackName}-booking-workflow"
-      RetentionInDays: 30
-
-  BookingWorkflow:
-    Type: AWS::Serverless::StateMachine
-    Properties:
-      Name: !Sub "${AWS::StackName}-booking-workflow"
-      Type: STANDARD
-      DefinitionUri: statemachine/booking-workflow.asl.json
-      Logging:
-        Destinations:
-          - CloudWatchLogsLogGroup:
-              LogGroupArn: !GetAtt BookingWorkflowLogGroup.Arn
-        IncludeExecutionData: false
-        Level: ERROR
-      Policies:
-        - CloudWatchLogsFullAccess
-      Tags:
+      Location: infra/tables.yaml
+      Parameters:
         Environment: !Ref Environment
-        Project: trip-cortex
-        ManagedBy: sam
+        StackPrefix: !Ref AWS::StackName
 
   # ── S3 Buckets ───────────────────────────────────────────────────────────────
 
-  PolicyDocumentsBucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
+  StorageStack:
+    Type: AWS::Serverless::Application
     Properties:
-      BucketName: !Sub "${AWS::StackName}-policy-docs-${AWS::AccountId}"
-      VersioningConfiguration:
-        Status: Enabled
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: aws:kms
-            BucketKeyEnabled: true
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      LifecycleConfiguration:
-        Rules:
-          - Id: BdaOutputToIA
-            Status: Enabled
-            Prefix: bda-output/
-            Transitions:
-              - TransitionInDays: 30
-                StorageClass: STANDARD_IA
-      Tags:
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: Project
-          Value: trip-cortex
-        - Key: ManagedBy
-          Value: sam
+      Location: infra/storage.yaml
+      Parameters:
+        Environment: !Ref Environment
+        StackPrefix: !Ref AWS::StackName
 
-  NovaActArtifactsBucket:
-    Type: AWS::S3::Bucket
+  # ── Step Functions ───────────────────────────────────────────────────────────
+
+  WorkflowStack:
+    Type: AWS::Serverless::Application
     Properties:
-      BucketName: !Sub "${AWS::StackName}-nova-act-artifacts-${AWS::AccountId}"
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      LifecycleConfiguration:
-        Rules:
-          - Id: ExpireScreenshots
-            Status: Enabled
-            ExpirationInDays: 90
-      Tags:
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: Project
-          Value: trip-cortex
-        - Key: ManagedBy
-          Value: sam
+      Location: infra/workflow.yaml
+      Parameters:
+        Environment: !Ref Environment
+        StackPrefix: !Ref AWS::StackName
+
+  # ── Lambda Functions ─────────────────────────────────────────────────────────
+
+  FunctionsStack:
+    Type: AWS::Serverless::Application
+    DependsOn:
+      - TablesStack
+      - StorageStack
+      - WorkflowStack
+    Properties:
+      Location: infra/functions.yaml
+      Parameters:
+        Environment: !Ref Environment
+        BookingsTableArn: !GetAtt TablesStack.Outputs.BookingsTableArn
+        ConnectionsTableArn: !GetAtt TablesStack.Outputs.ConnectionsTableArn
+        AuditLogTableArn: !GetAtt TablesStack.Outputs.AuditLogTableArn
+        PolicyDocumentsBucketArn: !GetAtt StorageStack.Outputs.PolicyDocumentsBucketArn
+        BookingWorkflowArn: !GetAtt WorkflowStack.Outputs.BookingWorkflowArn
+        WebSocketApiId: !Ref WebSocketApiId
+        BookingsTableName: !GetAtt TablesStack.Outputs.BookingsTableName
+        ConnectionsTableName: !GetAtt TablesStack.Outputs.ConnectionsTableName
+        AuditLogTableName: !GetAtt TablesStack.Outputs.AuditLogTableName
+        PolicyDocumentsBucketName: !GetAtt StorageStack.Outputs.PolicyDocumentsBucketName
+        NovaActArtifactsBucketName: !GetAtt StorageStack.Outputs.NovaActArtifactsBucketName
 
 Outputs:
   StackName:
     Description: CloudFormation stack name
     Value: !Ref AWS::StackName
-  
+
   Environment:
     Description: Deployment environment
     Value: !Ref Environment
-  
+
   Region:
     Description: AWS Region
     Value: !Ref AWS::Region
 
   BookingsTableName:
-    Description: Bookings DynamoDB table name
-    Value: !Ref BookingsTable
+    Value: !GetAtt TablesStack.Outputs.BookingsTableName
     Export:
       Name: !Sub "${AWS::StackName}-BookingsTableName"
 
   BookingsTableArn:
-    Description: Bookings DynamoDB table ARN
-    Value: !GetAtt BookingsTable.Arn
+    Value: !GetAtt TablesStack.Outputs.BookingsTableArn
     Export:
       Name: !Sub "${AWS::StackName}-BookingsTableArn"
 
   ConnectionsTableName:
-    Description: Connections DynamoDB table name
-    Value: !Ref ConnectionsTable
+    Value: !GetAtt TablesStack.Outputs.ConnectionsTableName
     Export:
       Name: !Sub "${AWS::StackName}-ConnectionsTableName"
 
   ConnectionsTableArn:
-    Description: Connections DynamoDB table ARN
-    Value: !GetAtt ConnectionsTable.Arn
+    Value: !GetAtt TablesStack.Outputs.ConnectionsTableArn
     Export:
       Name: !Sub "${AWS::StackName}-ConnectionsTableArn"
 
   AuditLogTableName:
-    Description: AuditLog DynamoDB table name
-    Value: !Ref AuditLogTable
+    Value: !GetAtt TablesStack.Outputs.AuditLogTableName
     Export:
       Name: !Sub "${AWS::StackName}-AuditLogTableName"
 
   AuditLogTableArn:
-    Description: AuditLog DynamoDB table ARN
-    Value: !GetAtt AuditLogTable.Arn
+    Value: !GetAtt TablesStack.Outputs.AuditLogTableArn
     Export:
       Name: !Sub "${AWS::StackName}-AuditLogTableArn"
 
   PolicyDocumentsBucketName:
-    Description: Policy documents S3 bucket name
-    Value: !Ref PolicyDocumentsBucket
+    Value: !GetAtt StorageStack.Outputs.PolicyDocumentsBucketName
     Export:
       Name: !Sub "${AWS::StackName}-PolicyDocumentsBucketName"
 
   PolicyDocumentsBucketArn:
-    Description: Policy documents S3 bucket ARN
-    Value: !GetAtt PolicyDocumentsBucket.Arn
+    Value: !GetAtt StorageStack.Outputs.PolicyDocumentsBucketArn
     Export:
       Name: !Sub "${AWS::StackName}-PolicyDocumentsBucketArn"
 
   NovaActArtifactsBucketName:
-    Description: Nova Act artifacts S3 bucket name
-    Value: !Ref NovaActArtifactsBucket
+    Value: !GetAtt StorageStack.Outputs.NovaActArtifactsBucketName
     Export:
       Name: !Sub "${AWS::StackName}-NovaActArtifactsBucketName"
 
   NovaActArtifactsBucketArn:
-    Description: Nova Act artifacts S3 bucket ARN
-    Value: !GetAtt NovaActArtifactsBucket.Arn
+    Value: !GetAtt StorageStack.Outputs.NovaActArtifactsBucketArn
     Export:
       Name: !Sub "${AWS::StackName}-NovaActArtifactsBucketArn"
 
   BookingWorkflowArn:
-    Description: Booking workflow Step Functions state machine ARN
-    Value: !Ref BookingWorkflow
+    Value: !GetAtt WorkflowStack.Outputs.BookingWorkflowArn
     Export:
       Name: !Sub "${AWS::StackName}-BookingWorkflowArn"
+
+  ConnectFunctionArn:
+    Value: !GetAtt FunctionsStack.Outputs.ConnectFunctionArn
+    Export:
+      Name: !Sub "${AWS::StackName}-ConnectFunctionArn"
+
+  DisconnectFunctionArn:
+    Value: !GetAtt FunctionsStack.Outputs.DisconnectFunctionArn
+    Export:
+      Name: !Sub "${AWS::StackName}-DisconnectFunctionArn"
+
+  BookingRequestFunctionArn:
+    Value: !GetAtt FunctionsStack.Outputs.BookingRequestFunctionArn
+    Export:
+      Name: !Sub "${AWS::StackName}-BookingRequestFunctionArn"
+
+  EmbedAndRetrieveFunctionArn:
+    Value: !GetAtt FunctionsStack.Outputs.EmbedAndRetrieveFunctionArn
+    Export:
+      Name: !Sub "${AWS::StackName}-EmbedAndRetrieveFunctionArn"
+
+  ReasonAndPlanFunctionArn:
+    Value: !GetAtt FunctionsStack.Outputs.ReasonAndPlanFunctionArn
+    Export:
+      Name: !Sub "${AWS::StackName}-ReasonAndPlanFunctionArn"
+
+  ValidatePlanFunctionArn:
+    Value: !GetAtt FunctionsStack.Outputs.ValidatePlanFunctionArn
+    Export:
+      Name: !Sub "${AWS::StackName}-ValidatePlanFunctionArn"
+
+  ResponseSenderFunctionArn:
+    Value: !GetAtt FunctionsStack.Outputs.ResponseSenderFunctionArn
+    Export:
+      Name: !Sub "${AWS::StackName}-ResponseSenderFunctionArn"
+
+  HeartbeatFunctionArn:
+    Value: !GetAtt FunctionsStack.Outputs.HeartbeatFunctionArn
+    Export:
+      Name: !Sub "${AWS::StackName}-HeartbeatFunctionArn"
