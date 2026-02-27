@@ -1,0 +1,279 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Trip Cortex - VPC with public/private subnets, NAT Gateway, and security groups
+
+Parameters:
+
+  Environment:
+    Type: String
+    AllowedValues: [dev, staging, prod]
+
+  StackPrefix:
+    Type: String
+
+Resources:
+
+  # ── VPC ──────────────────────────────────────────────────────────────────────
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${StackPrefix}-vpc"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${StackPrefix}-igw"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # ── Public Subnets (for NAT Gateway) ─────────────────────────────────────────
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${StackPrefix}-public-a"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${StackPrefix}-public-b"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${StackPrefix}-public-rt"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTable
+
+  # ── NAT Gateway (single, dev cost optimization) ───────────────────────────────
+
+  NatGatewayEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${StackPrefix}-nat-eip"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+        - Key: Name
+          Value: !Sub "${StackPrefix}-nat"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  # ── Private Subnets (for Aurora + Lambda) ────────────────────────────────────
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub "${StackPrefix}-private-a"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub "${StackPrefix}-private-b"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${StackPrefix}-private-rt"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+
+  # ── Security Groups ───────────────────────────────────────────────────────────
+
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Lambda functions accessing Aurora
+      VpcId: !Ref VPC
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound (Bedrock, Secrets Manager, DynamoDB)
+      Tags:
+        - Key: Name
+          Value: !Sub "${StackPrefix}-lambda-sg"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  AuroraSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Aurora cluster - inbound from Lambda only
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+          Description: PostgreSQL from Lambda security group
+      Tags:
+        - Key: Name
+          Value: !Sub "${StackPrefix}-aurora-sg"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+Outputs:
+
+  VpcId:
+    Description: VPC ID
+    Value: !Ref VPC
+
+  PrivateSubnetIds:
+    Description: Comma-delimited list of private subnet IDs
+    Value: !Sub "${PrivateSubnetA},${PrivateSubnetB}"
+
+  AuroraSecurityGroupId:
+    Description: Aurora security group ID
+    Value: !Ref AuroraSecurityGroup
+
+  LambdaSecurityGroupId:
+    Description: Lambda security group ID
+    Value: !Ref LambdaSecurityGroup
