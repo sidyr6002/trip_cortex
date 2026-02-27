@@ -18,4 +18,3 @@ def handler(event: dict[str, Any], context: object) -> dict[str, int]:
     store_connection(connection_id, employee_id, dynamo_client, config.connections_table)
 
     return {"statusCode": 200}
-

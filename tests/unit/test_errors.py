@@ -1,11 +1,11 @@
 from core.errors import (
+    USER_MESSAGES,
     AuthenticationError,
     BookingError,
     ErrorCode,
     PolicyRetrievalError,
     ReasoningError,
     TripCortexError,
-    USER_MESSAGES,
     ValidationError,
 )
 
@@ -21,11 +21,23 @@ def test_user_message_lookup():
 
 
 def test_subclasses_inherit_user_message():
-    assert AuthenticationError("bad token", code=ErrorCode.AUTH_FAILED).user_message == USER_MESSAGES[ErrorCode.AUTH_FAILED]
-    assert PolicyRetrievalError("miss", code=ErrorCode.NO_POLICY_FOUND).user_message == USER_MESSAGES[ErrorCode.NO_POLICY_FOUND]
-    assert ReasoningError("fail", code=ErrorCode.REASONING_FAILED).user_message == USER_MESSAGES[ErrorCode.REASONING_FAILED]
+    assert (
+        AuthenticationError("bad token", code=ErrorCode.AUTH_FAILED).user_message
+        == USER_MESSAGES[ErrorCode.AUTH_FAILED]
+    )
+    assert (
+        PolicyRetrievalError("miss", code=ErrorCode.NO_POLICY_FOUND).user_message
+        == USER_MESSAGES[ErrorCode.NO_POLICY_FOUND]
+    )
+    assert (
+        ReasoningError("fail", code=ErrorCode.REASONING_FAILED).user_message
+        == USER_MESSAGES[ErrorCode.REASONING_FAILED]
+    )
     assert BookingError("fail", code=ErrorCode.BOOKING_FAILED).user_message == USER_MESSAGES[ErrorCode.BOOKING_FAILED]
-    assert ValidationError("bad", code=ErrorCode.VALIDATION_ERROR).user_message == USER_MESSAGES[ErrorCode.VALIDATION_ERROR]
+    assert (
+        ValidationError("bad", code=ErrorCode.VALIDATION_ERROR).user_message
+        == USER_MESSAGES[ErrorCode.VALIDATION_ERROR]
+    )
 
 
 def test_user_message_never_exposes_internal_message():

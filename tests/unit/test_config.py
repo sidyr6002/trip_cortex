@@ -3,11 +3,10 @@
 import os
 from unittest.mock import patch
 
+import pydantic
 import pytest
 
-import pydantic
-
-from core.config import Config, get_config
+from core.config import get_config
 
 
 def test_get_config_with_dynamodb_endpoint():

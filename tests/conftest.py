@@ -24,6 +24,7 @@ sys.path.insert(0, str(src_path))
 def pg_connection():
     """Provide a PostgreSQL connection for integration tests."""
     import psycopg
+
     from core.config import get_config
 
     config = get_config()
@@ -65,10 +66,11 @@ def pg_policy_id(pg_connection):
 def dynamodb_resource():
     """Provide a DynamoDB resource for integration tests."""
     import boto3
+
     from core.config import get_config
-    
+
     config = get_config()
-    
+
     resource = boto3.resource(
         "dynamodb",
         endpoint_url=config.dynamodb_endpoint,
@@ -76,7 +78,7 @@ def dynamodb_resource():
         aws_access_key_id="dummy",
         aws_secret_access_key="dummy",
     )
-    
+
     return resource
 
 
@@ -85,7 +87,7 @@ def bookings_table(dynamodb_resource):
     """Provide the TripCortexBookings table."""
     table = dynamodb_resource.Table("TripCortexBookings")
     yield table
-    
+
     # Cleanup: scan and delete all items created during test
     response = table.scan()
     with table.batch_writer() as batch:
@@ -103,7 +105,7 @@ def connections_table(dynamodb_resource):
     """Provide the TripCortexConnections table."""
     table = dynamodb_resource.Table("TripCortexConnections")
     yield table
-    
+
     # Cleanup: scan and delete all items created during test
     response = table.scan()
     with table.batch_writer() as batch:
@@ -116,7 +118,7 @@ def audit_log_table(dynamodb_resource):
     """Provide the TripCortexAuditLog table."""
     table = dynamodb_resource.Table("TripCortexAuditLog")
     yield table
-    
+
     # Cleanup: scan and delete all items created during test
     response = table.scan()
     with table.batch_writer() as batch:

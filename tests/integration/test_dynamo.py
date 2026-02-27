@@ -18,12 +18,10 @@ def test_put_and_get_booking(bookings_table):
             "createdAt": datetime.now(timezone.utc).isoformat(),
         }
     )
-    
+
     # Get the booking
-    response = bookings_table.get_item(
-        Key={"employeeId": "emp-001", "bookingId": "booking-001"}
-    )
-    
+    response = bookings_table.get_item(Key={"employeeId": "emp-001", "bookingId": "booking-001"})
+
     assert "Item" in response
     assert response["Item"]["employeeId"] == "emp-001"
     assert response["Item"]["bookingId"] == "booking-001"
@@ -55,13 +53,13 @@ def test_query_bookings_by_employee(bookings_table):
             "status": "cancelled",
         }
     )
-    
+
     # Query by employeeId
     response = bookings_table.query(
         KeyConditionExpression="employeeId = :emp_id",
         ExpressionAttributeValues={":emp_id": "emp-002"},
     )
-    
+
     assert response["Count"] == 3
     booking_ids = [item["bookingId"] for item in response["Items"]]
     assert "booking-001" in booking_ids
@@ -80,10 +78,10 @@ def test_put_and_get_connection(connections_table):
             "ttl": int(time.time()) + 7200,  # 2 hours from now
         }
     )
-    
+
     # Get the connection
     response = connections_table.get_item(Key={"connectionId": "conn-001"})
-    
+
     assert "Item" in response
     assert response["Item"]["connectionId"] == "conn-001"
     assert response["Item"]["employeeId"] == "emp-001"
@@ -94,17 +92,15 @@ def test_put_and_get_connection(connections_table):
 def test_delete_connection(connections_table):
     """Test deleting a connection from ConnectionsTable."""
     # Put a connection
-    connections_table.put_item(
-        Item={"connectionId": "conn-002", "employeeId": "emp-002"}
-    )
-    
+    connections_table.put_item(Item={"connectionId": "conn-002", "employeeId": "emp-002"})
+
     # Verify it exists
     response = connections_table.get_item(Key={"connectionId": "conn-002"})
     assert "Item" in response
-    
+
     # Delete the connection
     connections_table.delete_item(Key={"connectionId": "conn-002"})
-    
+
     # Verify it's gone
     response = connections_table.get_item(Key={"connectionId": "conn-002"})
     assert "Item" not in response
@@ -124,12 +120,10 @@ def test_put_and_get_audit_entry(audit_log_table):
             "details": {"result": "approved"},
         }
     )
-    
+
     # Get the audit entry
-    response = audit_log_table.get_item(
-        Key={"bookingId": "booking-001", "auditId": "audit-001"}
-    )
-    
+    response = audit_log_table.get_item(Key={"bookingId": "booking-001", "auditId": "audit-001"})
+
     assert "Item" in response
     assert response["Item"]["bookingId"] == "booking-001"
     assert response["Item"]["auditId"] == "audit-001"
@@ -144,7 +138,7 @@ def test_query_audit_by_employee_gsi(audit_log_table):
     timestamp1 = "2026-02-26T10:00:00Z"
     timestamp2 = "2026-02-26T11:00:00Z"
     timestamp3 = "2026-02-26T12:00:00Z"
-    
+
     audit_log_table.put_item(
         Item={
             "bookingId": "booking-001",
@@ -172,20 +166,20 @@ def test_query_audit_by_employee_gsi(audit_log_table):
             "action": "booking_confirmed",
         }
     )
-    
+
     # Query by employeeId using GSI
     response = audit_log_table.query(
         IndexName="employeeId-timestamp-index",
         KeyConditionExpression="employeeId = :emp_id",
         ExpressionAttributeValues={":emp_id": "emp-003"},
     )
-    
+
     assert response["Count"] == 3
     actions = [item["action"] for item in response["Items"]]
     assert "policy_check" in actions
     assert "flight_search" in actions
     assert "booking_confirmed" in actions
-    
+
     # Verify items are sorted by timestamp
     timestamps = [item["timestamp"] for item in response["Items"]]
     assert timestamps == sorted(timestamps)

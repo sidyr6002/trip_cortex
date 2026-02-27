@@ -76,24 +76,29 @@ class TripCortexError(Exception):
 
 class AuthenticationError(TripCortexError):
     """Authentication or authorization failed."""
+
     pass
 
 
 class PolicyRetrievalError(TripCortexError):
     """Policy retrieval or embedding generation failed."""
+
     pass
 
 
 class ReasoningError(TripCortexError):
     """Reasoning or plan generation failed."""
+
     pass
 
 
 class BookingError(TripCortexError):
     """Flight search or booking operation failed."""
+
     pass
 
 
 class ValidationError(TripCortexError):
     """Input validation or schema validation failed."""
+
     pass

@@ -1,5 +1,6 @@
-import pytest
 from datetime import date
+
+import pytest
 from pydantic import ValidationError
 
 from core.models import BookingParameters, BookingPlan, PolicyConstraints, PolicySource
@@ -39,6 +40,7 @@ VALID_PLAN_JSON = {
 
 # --- BookingParameters ---
 
+
 def test_booking_parameters_valid():
     p = BookingParameters(**VALID_PARAMS)
     assert p.model_dump()["origin"] == "HYD"
@@ -76,6 +78,7 @@ def test_booking_parameters_passenger_count_too_high():
 
 # --- PolicyConstraints ---
 
+
 def test_policy_constraints_valid():
     c = PolicyConstraints(**VALID_CONSTRAINTS)
     assert c.max_budget_usd == 500.0
@@ -93,6 +96,7 @@ def test_policy_constraints_budget_negative():
 
 # --- PolicySource ---
 
+
 def test_policy_source_valid():
     s = PolicySource(**VALID_SOURCE)
     assert s.similarity_score == 0.89
@@ -109,6 +113,7 @@ def test_policy_source_score_negative():
 
 
 # --- BookingPlan ---
+
 
 def test_booking_plan_valid_from_json():
     plan = BookingPlan.model_validate(VALID_PLAN_JSON)

@@ -1,19 +1,20 @@
 """Integration tests for AuroraClient and new schema constraints."""
 
-import pytest
 import psycopg.errors
+import pytest
 
 from core.config import get_config
 from core.db import AuroraClient
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _vec_str(values: list[float]) -> str:
     return "[" + ",".join(str(v) for v in values) + "]"
 
 
 # ── Schema constraint tests ───────────────────────────────────────────────────
+
 
 @pytest.mark.integration
 def test_policies_table_exists(pg_connection):
@@ -32,13 +33,17 @@ def test_policies_table_exists(pg_connection):
 @pytest.mark.integration
 def test_policy_chunks_fk_constraint(pg_connection):
     import uuid
+
     vec = _vec_str([0.1] * 1024)
     with pg_connection.cursor() as cur:
         with pytest.raises(psycopg.errors.ForeignKeyViolation):
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO policy_chunks (policy_id, content_type, embedding)
                 VALUES (%s, 'text', %s::vector)
-            """, (uuid.uuid4(), vec))
+            """,
+                (uuid.uuid4(), vec),
+            )
     pg_connection.rollback()
 
 
@@ -46,10 +51,13 @@ def test_policy_chunks_fk_constraint(pg_connection):
 def test_cascade_delete(pg_connection, pg_policy_id):
     vec = _vec_str([0.1] * 1024)
     with pg_connection.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO policy_chunks (policy_id, content_type, embedding)
             VALUES (%s, 'text', %s::vector)
-        """, (pg_policy_id, vec))
+        """,
+            (pg_policy_id, vec),
+        )
         pg_connection.commit()
 
         cur.execute("DELETE FROM policies WHERE id = %s", (pg_policy_id,))
@@ -64,14 +72,18 @@ def test_content_type_check_constraint(pg_connection, pg_policy_id):
     vec = _vec_str([0.1] * 1024)
     with pg_connection.cursor() as cur:
         with pytest.raises(psycopg.errors.CheckViolation):
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO policy_chunks (policy_id, content_type, embedding)
                 VALUES (%s, 'invalid', %s::vector)
-            """, (pg_policy_id, vec))
+            """,
+                (pg_policy_id, vec),
+            )
     pg_connection.rollback()
 
 
 # ── AuroraClient tests ────────────────────────────────────────────────────────
+
 
 @pytest.mark.integration
 def test_aurora_client_health_check():
@@ -86,12 +98,15 @@ def test_aurora_client_similarity_search(pg_connection, pg_policy_id):
     dissimilar_vec = [0.0] * 512 + [1.0] * 512
 
     with pg_connection.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO policy_chunks (policy_id, content_type, content_text, embedding)
             VALUES
                 (%s, 'text', 'relevant policy text', %s::vector),
                 (%s, 'text', 'unrelated content', %s::vector)
-        """, (pg_policy_id, _vec_str(similar_vec), pg_policy_id, _vec_str(dissimilar_vec)))
+        """,
+            (pg_policy_id, _vec_str(similar_vec), pg_policy_id, _vec_str(dissimilar_vec)),
+        )
         pg_connection.commit()
 
     with AuroraClient(get_config()) as client:
@@ -109,10 +124,13 @@ def test_aurora_client_similarity_search(pg_connection, pg_policy_id):
 def test_aurora_client_similarity_search_empty(pg_connection, pg_policy_id):
     vec = [1.0] * 512 + [0.0] * 512
     with pg_connection.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO policy_chunks (policy_id, content_type, embedding)
             VALUES (%s, 'text', %s::vector)
-        """, (pg_policy_id, _vec_str(vec)))
+        """,
+            (pg_policy_id, _vec_str(vec)),
+        )
         pg_connection.commit()
 
     # Threshold of 1.0 excludes everything except perfect matches

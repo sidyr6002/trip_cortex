@@ -20,22 +20,22 @@ def test_policy_chunks_table_exists(pg_connection):
     with pg_connection.cursor() as cur:
         # Check table exists
         cur.execute("""
-            SELECT table_name 
-            FROM information_schema.tables 
+            SELECT table_name
+            FROM information_schema.tables
             WHERE table_schema = 'public' AND table_name = 'policy_chunks'
         """)
         assert cur.fetchone() is not None
-        
+
         # Check columns
         cur.execute("""
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_name = 'policy_chunks' 
+            SELECT column_name, data_type
+            FROM information_schema.columns
+            WHERE table_name = 'policy_chunks'
             ORDER BY ordinal_position
         """)
         columns = cur.fetchall()
         column_names = [col[0] for col in columns]
-        
+
         # Verify key columns exist
         assert "id" in column_names
         assert "policy_id" in column_names
@@ -53,25 +53,31 @@ def test_insert_and_retrieve_chunk(pg_connection, pg_policy_id):
     vector_str = "[" + ",".join(str(v) for v in vector) + "]"
 
     with pg_connection.cursor() as cur:
-        cur.execute("""
-            INSERT INTO policy_chunks 
+        cur.execute(
+            """
+            INSERT INTO policy_chunks
             (policy_id, content_type, content_text, embedding, metadata)
             VALUES (%s, %s, %s, %s::vector, %s)
             RETURNING id
-        """, (
-            pg_policy_id,
-            "text",
-            "Employees must book flights at least 7 days in advance.",
-            vector_str,
-            Json({"source": "test"})
-        ))
+        """,
+            (
+                pg_policy_id,
+                "text",
+                "Employees must book flights at least 7 days in advance.",
+                vector_str,
+                Json({"source": "test"}),
+            ),
+        )
         chunk_id = cur.fetchone()[0]
         pg_connection.commit()
 
-        cur.execute("""
+        cur.execute(
+            """
             SELECT id, policy_id, content_type, content_text, metadata
             FROM policy_chunks WHERE id = %s
-        """, (chunk_id,))
+        """,
+            (chunk_id,),
+        )
         result = cur.fetchone()
 
         assert result is not None
@@ -94,25 +100,34 @@ def test_cosine_similarity_search(pg_connection, pg_policy_id):
     v3_str = "[" + ",".join(str(v) for v in vector3) + "]"
 
     with pg_connection.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO policy_chunks (policy_id, content_type, content_text, embedding)
             VALUES
                 (%s, 'text', 'Chunk 1', %s::vector),
                 (%s, 'text', 'Chunk 2', %s::vector),
                 (%s, 'text', 'Chunk 3', %s::vector)
-        """, (
-            pg_policy_id, v1_str,
-            pg_policy_id, v2_str,
-            pg_policy_id, v3_str,
-        ))
+        """,
+            (
+                pg_policy_id,
+                v1_str,
+                pg_policy_id,
+                v2_str,
+                pg_policy_id,
+                v3_str,
+            ),
+        )
         pg_connection.commit()
 
         query_str = "[" + ",".join(str(v) for v in vector1) + "]"
-        cur.execute("""
+        cur.execute(
+            """
             SELECT id, content_text, embedding <=> %s::vector AS distance
             FROM policy_chunks WHERE policy_id = %s
             ORDER BY embedding <=> %s::vector LIMIT 3
-        """, (query_str, pg_policy_id, query_str))
+        """,
+            (query_str, pg_policy_id, query_str),
+        )
         results = cur.fetchall()
 
         assert len(results) == 3
@@ -128,19 +143,25 @@ def test_hnsw_index_used(pg_connection, pg_policy_id):
     vector_str = "[" + ",".join(str(v) for v in vector) + "]"
 
     with pg_connection.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO policy_chunks (policy_id, content_type, content_text, embedding)
             VALUES (%s, 'text', 'Test chunk', %s::vector)
-        """, (pg_policy_id, vector_str))
+        """,
+            (pg_policy_id, vector_str),
+        )
         pg_connection.commit()
 
         query_str = vector_str
-        cur.execute("""
+        cur.execute(
+            """
             EXPLAIN (FORMAT TEXT)
             SELECT id FROM policy_chunks
             WHERE policy_id = %s
             ORDER BY embedding <=> %s::vector LIMIT 1
-        """, (pg_policy_id, query_str))
+        """,
+            (pg_policy_id, query_str),
+        )
 
         explain_output = "\n".join([row[0] for row in cur.fetchall()])
         assert "policy_chunks" in explain_output.lower()

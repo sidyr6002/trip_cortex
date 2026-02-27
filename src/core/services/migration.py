@@ -6,8 +6,9 @@ import logging
 import os
 
 import boto3
-from alembic import command
 from alembic.config import Config
+
+from alembic import command
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ def run_migrations() -> dict[str, str]:
     stderr_buf = io.StringIO()
     try:
         import logging
+
         handler = logging.StreamHandler(stderr_buf)
         logging.getLogger("alembic").addHandler(handler)
         command.upgrade(cfg, "head")
