@@ -117,7 +117,7 @@ uv add <package-name>
 uv add --dev <package-name>
 
 # After adding dependencies, regenerate requirements.txt for SAM
-uv pip compile pyproject.toml -o requirements.txt
+uv pip compile pyproject.toml -o src/requirements.txt
 ```
 
 ### Local Development with SAM
