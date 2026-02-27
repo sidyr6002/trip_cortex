@@ -89,4 +89,5 @@ def downgrade() -> None:
     op.drop_index("idx_policies_uploaded_by", table_name="policies")
     op.drop_index("idx_policies_status", table_name="policies")
     op.drop_table("policies")
+    op.execute("DROP EXTENSION IF EXISTS vector")
     # ### end Alembic commands ###
