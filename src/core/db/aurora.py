@@ -9,6 +9,10 @@ from core.config import Config
 from core.errors import TripCortexError
 from core.models.retrieval import PolicyChunkResult
 
+# TODO(Story 4.2): Replace manual vector string building with pgvector.psycopg
+#   register_vector() so list[float] can be passed directly as a parameter.
+# TODO(Story 4.4): Wrap similarity_search in try/except and raise PolicyRetrievalError
+#   instead of letting raw psycopg exceptions propagate to callers.
 _SIMILARITY_SEARCH_SQL = """
     SELECT id, content_text, section_title, source_page, content_type,
            bda_entity_subtype, 1 - (embedding <=> %s::vector) AS similarity

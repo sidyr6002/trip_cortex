@@ -34,7 +34,10 @@ def run_migrations() -> dict[str, str]:
 
     stderr_buf = io.StringIO()
     try:
-        import logging
+        # TODO: Remove redundant import (already at module level). Also consider
+        #   raising on failure instead of returning {"status": "error"} so callers
+        #   (CloudFormation custom resources, CI) see a real failure signal.
+        import logging  # noqa: F811
 
         handler = logging.StreamHandler(stderr_buf)
         logging.getLogger("alembic").addHandler(handler)

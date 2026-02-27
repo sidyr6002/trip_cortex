@@ -33,5 +33,6 @@ class Policy(Base):
     )
 
 
-# Avoid circular import — PolicyChunk is resolved by string reference above
+# TODO: Remove — SQLAlchemy resolves string-based relationship refs via the registry.
+#   This circular import is unnecessary but harmless.
 from core.db.schemas.policy_chunk import PolicyChunk  # noqa: E402, F401
