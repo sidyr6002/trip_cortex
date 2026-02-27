@@ -49,6 +49,13 @@ jobs:
       - name: SAM Build
         run: sam build
       
+      - name: Validate no placeholder ARNs
+        run: |
+          if grep -q 'ACCOUNT_ID\|REPLACE_WITH' samconfig.toml; then
+            echo "ERROR: samconfig.toml contains placeholder values. Replace before deploying."
+            exit 1
+          fi
+
       - name: SAM Deploy
         run: sam deploy --config-env dev --no-confirm-changeset
 
@@ -89,6 +96,13 @@ jobs:
       - name: SAM Build
         run: sam build
       
+      - name: Validate no placeholder ARNs
+        run: |
+          if grep -q 'ACCOUNT_ID\|REPLACE_WITH' samconfig.toml; then
+            echo "ERROR: samconfig.toml contains placeholder values. Replace before deploying."
+            exit 1
+          fi
+
       - name: SAM Deploy
         run: sam deploy --config-env staging --no-confirm-changeset
 
@@ -129,6 +143,13 @@ jobs:
       - name: SAM Build
         run: sam build
       
+      - name: Validate no placeholder ARNs
+        run: |
+          if grep -q 'ACCOUNT_ID\|REPLACE_WITH' samconfig.toml; then
+            echo "ERROR: samconfig.toml contains placeholder values. Replace before deploying."
+            exit 1
+          fi
+
       - name: SAM Deploy
         run: sam deploy --config-env prod --no-confirm-changeset
       

@@ -1,5 +1,6 @@
 """WebSocket Lambda authorizer — validates Clerk JWT on $connect."""
 
+import asyncio
 from typing import Any
 
 from core.auth import get_auth_provider
@@ -7,12 +8,13 @@ from core.errors import AuthenticationError
 
 
 def handler(event: dict[str, Any], context: object) -> dict[str, Any]:
+    # AuthProvider methods are async to support future providers with async HTTP clients.
+    # ClerkAuthProvider's underlying SDK calls are synchronous, so asyncio.run() bridges
+    # the gap in this sync Lambda handler. Overhead is negligible (~1ms).
     try:
         query_params = event.get("queryStringParameters") or {}
         token = query_params["token"]
         auth_provider = get_auth_provider()
-        import asyncio
-
         auth_user = asyncio.run(auth_provider.verify_token(token))
         return _allow_policy(event["methodArn"], auth_user.employee_id)
     except (KeyError, AuthenticationError):

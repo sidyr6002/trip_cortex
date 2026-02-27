@@ -30,7 +30,8 @@ s3_prefix = "trip-cortex-dev"
 region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
-parameter_overrides = "Environment=dev ClerkSecretKeyArn=arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:trip-cortex/dev/clerk-secret-key"
+# Replace suffix after running: aws secretsmanager describe-secret --secret-id trip-cortex/dev/clerk-secret-key --query ARN --output text
+parameter_overrides = "Environment=dev ClerkSecretKeyArn=arn:aws:secretsmanager:us-east-1:591618107284:secret:trip-cortex/dev/clerk-secret-key-XXXXXX"
 
 [dev.build.parameters]
 cached = true
@@ -49,7 +50,8 @@ s3_prefix = "trip-cortex-staging"
 region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-parameter_overrides = "Environment=staging ClerkSecretKeyArn=arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:trip-cortex/staging/clerk-secret-key"
+# REPLACE BEFORE FIRST DEPLOY: aws secretsmanager describe-secret --secret-id trip-cortex/staging/clerk-secret-key --query ARN --output text
+parameter_overrides = "Environment=staging ClerkSecretKeyArn=REPLACE_WITH_ACTUAL_SECRET_ARN"
 
 [staging.build.parameters]
 cached = true
@@ -68,7 +70,8 @@ s3_prefix = "trip-cortex-prod"
 region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-parameter_overrides = "Environment=prod ClerkSecretKeyArn=arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:trip-cortex/prod/clerk-secret-key"
+# REPLACE BEFORE FIRST DEPLOY: aws secretsmanager describe-secret --secret-id trip-cortex/prod/clerk-secret-key --query ARN --output text
+parameter_overrides = "Environment=prod ClerkSecretKeyArn=REPLACE_WITH_ACTUAL_SECRET_ARN"
 
 [prod.build.parameters]
 cached = true
