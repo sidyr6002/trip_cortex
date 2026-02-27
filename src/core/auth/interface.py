@@ -24,4 +24,13 @@ class AuthProvider(ABC):
 
 
 def get_auth_provider() -> AuthProvider:
-    raise NotImplementedError("Auth provider not yet implemented")
+    from core.config import get_config
+
+    config = get_config()
+    clerk_secret = config.clerk_secret_key
+    if not clerk_secret:
+        raise ValueError("CLERK_SECRET_KEY not configured")
+
+    from core.auth.clerk_provider import ClerkAuthProvider
+
+    return ClerkAuthProvider(secret_key=clerk_secret)

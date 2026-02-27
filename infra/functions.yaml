@@ -39,6 +39,9 @@ Parameters:
     Type: String
   PrivateSubnetIds:
     Type: String
+  ClerkSecretKeyArn:
+    Type: String
+    Description: ARN of the Secrets Manager secret containing the Clerk secret key
 
 Conditions:
   IsNotDev: !Not [!Equals [!Ref Environment, dev]]
@@ -63,6 +66,21 @@ Globals:
         BOOKING_WORKFLOW_ARN: !Ref BookingWorkflowArn
 
 Resources:
+
+  WebSocketAuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src/
+      Handler: handlers.ws_authorizer.handler
+      Description: WebSocket Lambda authorizer - validates Clerk JWT on $connect
+      Environment:
+        Variables:
+          CLERK_SECRET_KEY: !Sub "{{resolve:secretsmanager:${ClerkSecretKeyArn}}}"
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref ClerkSecretKeyArn
 
   ConnectFunction:
     Type: AWS::Serverless::Function
@@ -263,6 +281,8 @@ Resources:
               Resource: !Ref ConnectionsTableArn
 
 Outputs:
+  WebSocketAuthorizerFunctionArn:
+    Value: !GetAtt WebSocketAuthorizerFunction.Arn
   MigrateFunctionArn:
     Value: !GetAtt MigrateFunction.Arn
   ConnectFunctionArn:

@@ -47,6 +47,15 @@ def test_auth_provider_concrete_subclass():
     assert isinstance(provider, AuthProvider)
 
 
-def test_get_auth_provider_raises():
-    with pytest.raises(NotImplementedError):
+def test_get_auth_provider_requires_clerk_secret(monkeypatch):
+    monkeypatch.setenv("CLERK_SECRET_KEY", "")
+    with pytest.raises(ValueError, match="CLERK_SECRET_KEY not configured"):
         get_auth_provider()
+
+
+def test_get_auth_provider_returns_clerk_provider(monkeypatch):
+    monkeypatch.setenv("CLERK_SECRET_KEY", "sk_test_mock")
+    provider = get_auth_provider()
+    from core.auth.clerk_provider import ClerkAuthProvider
+
+    assert isinstance(provider, ClerkAuthProvider)

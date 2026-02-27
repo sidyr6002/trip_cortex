@@ -102,6 +102,7 @@ Resources:
         AuroraPort: !GetAtt AuroraStack.Outputs.AuroraPort
         LambdaSecurityGroupId: !GetAtt NetworkStack.Outputs.LambdaSecurityGroupId
         PrivateSubnetIds: !GetAtt NetworkStack.Outputs.PrivateSubnetIds
+        ClerkSecretKeyArn: !Ref ClerkSecretKeyArn
 
 Outputs:
   StackName:
