@@ -1,0 +1,11 @@
+{
+  "Comment": "Trip Cortex booking workflow — placeholder (Epic 7)",
+  "StartAt": "Placeholder",
+  "States": {
+    "Placeholder": {
+      "Type": "Pass",
+      "Result": {"status": "ok"},
+      "End": true
+    }
+  }
+}

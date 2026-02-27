@@ -33,6 +33,9 @@ Globals:
         BOOKINGS_TABLE: !Ref BookingsTable
         CONNECTIONS_TABLE: !Ref ConnectionsTable
         AUDIT_LOG_TABLE: !Ref AuditLogTable
+        POLICY_BUCKET: !Ref PolicyDocumentsBucket
+        ARTIFACTS_BUCKET: !Ref NovaActArtifactsBucket
+        BOOKING_WORKFLOW_ARN: !Ref BookingWorkflow
 
 Conditions:
   IsNotDev: !Not [!Equals [!Ref Environment, dev]]
@@ -127,6 +130,95 @@ Resources:
         - Key: ManagedBy
           Value: sam
 
+  # ── Step Functions ───────────────────────────────────────────────────────────
+
+  BookingWorkflowLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/states/${AWS::StackName}-booking-workflow"
+      RetentionInDays: 30
+
+  BookingWorkflow:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub "${AWS::StackName}-booking-workflow"
+      Type: STANDARD
+      DefinitionUri: statemachine/booking-workflow.asl.json
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt BookingWorkflowLogGroup.Arn
+        IncludeExecutionData: false
+        Level: ERROR
+      Policies:
+        - CloudWatchLogsFullAccess
+      Tags:
+        Environment: !Ref Environment
+        Project: trip-cortex
+        ManagedBy: sam
+
+  # ── S3 Buckets ───────────────────────────────────────────────────────────────
+
+  PolicyDocumentsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-policy-docs-${AWS::AccountId}"
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+            BucketKeyEnabled: true
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: BdaOutputToIA
+            Status: Enabled
+            Prefix: bda-output/
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: STANDARD_IA
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  NovaActArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-nova-act-artifacts-${AWS::AccountId}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireScreenshots
+            Status: Enabled
+            ExpirationInDays: 90
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
 Outputs:
   StackName:
     Description: CloudFormation stack name
@@ -175,3 +267,33 @@ Outputs:
     Value: !GetAtt AuditLogTable.Arn
     Export:
       Name: !Sub "${AWS::StackName}-AuditLogTableArn"
+
+  PolicyDocumentsBucketName:
+    Description: Policy documents S3 bucket name
+    Value: !Ref PolicyDocumentsBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-PolicyDocumentsBucketName"
+
+  PolicyDocumentsBucketArn:
+    Description: Policy documents S3 bucket ARN
+    Value: !GetAtt PolicyDocumentsBucket.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-PolicyDocumentsBucketArn"
+
+  NovaActArtifactsBucketName:
+    Description: Nova Act artifacts S3 bucket name
+    Value: !Ref NovaActArtifactsBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-NovaActArtifactsBucketName"
+
+  NovaActArtifactsBucketArn:
+    Description: Nova Act artifacts S3 bucket ARN
+    Value: !GetAtt NovaActArtifactsBucket.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-NovaActArtifactsBucketArn"
+
+  BookingWorkflowArn:
+    Description: Booking workflow Step Functions state machine ARN
+    Value: !Ref BookingWorkflow
+    Export:
+      Name: !Sub "${AWS::StackName}-BookingWorkflowArn"
