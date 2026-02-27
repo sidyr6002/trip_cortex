@@ -13,6 +13,7 @@ class Config(BaseModel):
     aurora_user: str
     aurora_password: str
     dynamodb_endpoint: str | None = None
+    aurora_secret_arn: str | None = None
     bookings_table: str
     connections_table: str
     audit_log_table: str
@@ -31,6 +32,7 @@ def get_config() -> Config:
         aurora_user=environ.get("AURORA_USER", "tripcortex"),
         aurora_password=environ.get("AURORA_PASSWORD", "localdev"),
         dynamodb_endpoint=environ.get("DYNAMODB_ENDPOINT"),
+        aurora_secret_arn=environ.get("AURORA_SECRET_ARN"),
         bookings_table=environ.get("BOOKINGS_TABLE", "Bookings"),
         connections_table=environ.get("CONNECTIONS_TABLE", "Connections"),
         audit_log_table=environ.get("AUDIT_LOG_TABLE", "AuditLog"),
