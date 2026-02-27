@@ -59,10 +59,6 @@ Resources:
 
   FunctionsStack:
     Type: AWS::Serverless::Application
-    DependsOn:
-      - TablesStack
-      - StorageStack
-      - WorkflowStack
     Properties:
       Location: infra/functions.yaml
       Parameters:
