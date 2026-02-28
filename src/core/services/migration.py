@@ -33,19 +33,17 @@ def run_migrations() -> dict[str, str]:
     cfg.set_main_option("script_location", "/var/task/alembic")
 
     stderr_buf = io.StringIO()
-    try:
-        # TODO: Remove redundant import (already at module level). Also consider
-        #   raising on failure instead of returning {"status": "error"} so callers
-        #   (CloudFormation custom resources, CI) see a real failure signal.
-        import logging  # noqa: F811
+    stream_handler = logging.StreamHandler(stderr_buf)
+    alembic_logger = logging.getLogger("alembic")
+    alembic_logger.addHandler(stream_handler)
 
-        handler = logging.StreamHandler(stderr_buf)
-        logging.getLogger("alembic").addHandler(handler)
+    try:
         command.upgrade(cfg, "head")
-        logging.getLogger("alembic").removeHandler(handler)
         output = stderr_buf.getvalue()
         logger.info("Migration complete: %s", output)
         return {"status": "success", "output": output}
     except Exception as e:
         logger.error("Migration failed: %s", e)
-        return {"status": "error", "error": str(e), "output": stderr_buf.getvalue()}
+        raise
+    finally:
+        alembic_logger.removeHandler(stream_handler)
