@@ -1,6 +1,31 @@
 from os import environ
 
+import boto3
 from pydantic import BaseModel, ConfigDict
+
+_cached_clerk_secret: str | None = None
+
+
+def _resolve_clerk_secret() -> str:
+    """Fetch Clerk secret from Secrets Manager at runtime, with caching."""
+    global _cached_clerk_secret
+    if _cached_clerk_secret is not None:
+        return _cached_clerk_secret
+
+    # Local dev: use env var directly
+    direct = environ.get("CLERK_SECRET_KEY", "")
+    if direct:
+        _cached_clerk_secret = direct
+        return direct
+
+    # Deployed: fetch from Secrets Manager by ARN
+    arn = environ.get("CLERK_SECRET_ARN", "")
+    if not arn:
+        return ""
+
+    client = boto3.client("secretsmanager")
+    _cached_clerk_secret = client.get_secret_value(SecretId=arn)["SecretString"]
+    return _cached_clerk_secret
 
 
 class Config(BaseModel):
@@ -39,7 +64,7 @@ def get_config() -> Config:
         audit_log_table=environ.get("AUDIT_LOG_TABLE", "AuditLog"),
         nova_lite_model_id=environ.get("NOVA_LITE_MODEL_ID", "us.amazon.nova-2-lite-v1:0"),
         nova_embeddings_model_id=environ.get("NOVA_EMBEDDINGS_MODEL_ID", "amazon.nova-2-multimodal-embeddings-v1:0"),
-        clerk_secret_key=environ.get("CLERK_SECRET_KEY", ""),
+        clerk_secret_key=_resolve_clerk_secret(),
         environment=environ.get("ENVIRONMENT", "local"),
         websocket_endpoint=environ.get("WEBSOCKET_ENDPOINT", ""),
     )

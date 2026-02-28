@@ -76,7 +76,7 @@ Resources:
       Description: WebSocket Lambda authorizer - validates Clerk JWT on $connect
       Environment:
         Variables:
-          CLERK_SECRET_KEY: !Sub "{{resolve:secretsmanager:${ClerkSecretKeyArn}}}"
+          CLERK_SECRET_ARN: !Ref ClerkSecretKeyArn
       Policies:
         - Statement:
             - Effect: Allow
