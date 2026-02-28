@@ -182,7 +182,9 @@ jobs:
       - name: Check requirements.txt is up to date
         run: |
           uv export --no-dev --no-hashes --frozen -o /tmp/requirements.txt
-          diff src/requirements.txt /tmp/requirements.txt || \
+          tail -n +3 src/requirements.txt > /tmp/req_current.txt
+          tail -n +3 /tmp/requirements.txt > /tmp/req_fresh.txt
+          diff /tmp/req_current.txt /tmp/req_fresh.txt || \
             (echo "ERROR: src/requirements.txt is out of sync."; \
              echo "Run: uv export --no-dev --no-hashes --frozen -o src/requirements.txt"; exit 1)
 
