@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: uv sync
       
+      - name: Check uv.lock is up to date
+        run: uv lock --check
+
       - name: Run ruff check
         run: uv run ruff check src/ tests/
       
@@ -176,9 +179,21 @@ jobs:
         with:
           use-installer: true
       
+      - name: Check requirements.txt is up to date
+        run: |
+          uv pip compile pyproject.toml -o /tmp/requirements.txt
+          diff src/requirements.txt /tmp/requirements.txt || \
+            (echo "ERROR: src/requirements.txt is out of sync."; \
+             echo "Run: uv pip compile pyproject.toml -o src/requirements.txt"; exit 1)
+
       - name: Validate SAM template
         run: sam validate --lint
       
+      - name: Lint CloudFormation templates
+        run: |
+          pip install cfn-lint
+          cfn-lint template.yaml infra/*.yaml
+
       - name: Build SAM application
         run: sam build
 
