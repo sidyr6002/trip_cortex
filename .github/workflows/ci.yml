@@ -6,10 +6,15 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       
@@ -33,6 +38,7 @@ jobs:
   type-check:
     name: Type Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       
@@ -53,6 +59,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       
@@ -67,16 +74,23 @@ jobs:
       - name: Install dependencies
         run: uv sync
       
-      - name: Run unit tests
-        run: uv run pytest tests/unit/ -v --tb=short
+      - name: Run unit tests with coverage
+        run: uv run pytest tests/unit/ -v --tb=short --cov=src --cov-report=xml
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
 
   integration-tests:
     name: Integration Tests
+    needs: [lint, type-check, unit-tests]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     
     services:
       postgres:
-        image: pgvector/pgvector:pg15
+        image: pgvector/pgvector:pg15@sha256:7f5681e45237acdf546cf7cdc0dfc0ed7752ede857fda6e54f6ea21b936f8742
         env:
           POSTGRES_DB: tripcortex
           POSTGRES_USER: tripcortex
@@ -90,7 +104,7 @@ jobs:
           --health-retries 5
       
       dynamodb:
-        image: amazon/dynamodb-local
+        image: amazon/dynamodb-local@sha256:d89f8fcc6b1a39cb35976c248ed42a28c66ae00dc043099210f5571e42648ab4
         ports:
           - 8000:8000
     
@@ -140,7 +154,9 @@ jobs:
 
   sam-build:
     name: SAM Build Validation
+    needs: [lint, type-check, unit-tests]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       
@@ -165,3 +181,21 @@ jobs:
       
       - name: Build SAM application
         run: sam build
+
+  ci-gate:
+    name: CI Gate
+    if: always()
+    needs: [lint, type-check, unit-tests, integration-tests, sam-build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [[ "${{ needs.lint.result }}" != "success" ]] || \
+             [[ "${{ needs.type-check.result }}" != "success" ]] || \
+             [[ "${{ needs.unit-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.integration-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.sam-build.result }}" != "success" ]]; then
+            echo "One or more CI jobs failed"
+            exit 1
+          fi

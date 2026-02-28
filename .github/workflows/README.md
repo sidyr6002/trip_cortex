@@ -71,6 +71,29 @@ Add only the IAM Role ARNs (not access keys):
 - `AWS_ROLE_ARN_STAGING` - e.g., `arn:aws:iam::123456789012:role/GitHubActionsDeployRole-Staging`
 - `AWS_ROLE_ARN_PROD` - e.g., `arn:aws:iam::123456789012:role/GitHubActionsDeployRole-Prod`
 
+### Branch Protection Rules
+
+Configure branch protection in GitHub: **Settings → Branches → Add rule**
+
+**`main` branch:**
+- Require status check `ci-gate` to pass before merging
+- Require 1 reviewer approval
+- Dismiss stale pull request approvals when new commits are pushed
+- Include administrators
+
+**`staging` branch:**
+- Require status check `ci-gate` to pass before merging
+- Require 1 reviewer approval
+- Dismiss stale pull request approvals when new commits are pushed
+
+**`prod` branch:**
+- Require status check `ci-gate` to pass before merging
+- Require 2 reviewer approvals
+- Dismiss stale pull request approvals when new commits are pushed
+- Include administrators (enforce for everyone)
+
+> **Note:** The `ci-gate` job aggregates all 5 CI jobs (lint, type-check, unit-tests, integration-tests, sam-build) into a single status check. This simplifies branch protection config — you only need to track one check name.
+
 ### Environment Protection Rules
 
 Configure environment protection rules in GitHub:
