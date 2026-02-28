@@ -6,7 +6,14 @@ from unittest.mock import patch
 import pydantic
 import pytest
 
-from core.config import get_config
+from core.config import _reset_config, get_config
+
+
+@pytest.fixture(autouse=True)
+def _clear_config_cache():
+    _reset_config()
+    yield
+    _reset_config()
 
 
 def test_get_config_with_dynamodb_endpoint():

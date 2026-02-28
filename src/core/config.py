@@ -49,8 +49,22 @@ class Config(BaseModel):
     websocket_endpoint: str = ""
 
 
+_cached_config: Config | None = None
+
+
+def _reset_config() -> None:
+    """Reset cached config — for testing only."""
+    global _cached_config, _cached_clerk_secret
+    _cached_config = None
+    _cached_clerk_secret = None
+
+
 def get_config() -> Config:
-    return Config(
+    global _cached_config
+    if _cached_config is not None:
+        return _cached_config
+
+    _cached_config = Config(
         aws_region=environ.get("AWS_REGION", "us-east-1"),
         aurora_host=environ.get("AURORA_HOST", "localhost"),
         aurora_port=int(environ.get("AURORA_PORT", "5432")),
@@ -68,3 +82,4 @@ def get_config() -> Config:
         environment=environ.get("ENVIRONMENT", "local"),
         websocket_endpoint=environ.get("WEBSOCKET_ENDPOINT", ""),
     )
+    return _cached_config
