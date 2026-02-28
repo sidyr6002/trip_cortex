@@ -1,6 +1,7 @@
 import sys
 from logging.config import fileConfig
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import engine_from_config, pool
 
@@ -42,7 +43,7 @@ target_metadata = Base.metadata
 _UNMANAGED_INDEXES = {"idx_policy_chunks_embedding"}
 
 
-def _include_object(obj, name, type_, reflected, compare_to):
+def _include_object(obj: Any, name: str | None, type_: str, reflected: bool, compare_to: Any) -> bool:
     """Exclude indexes that are managed manually (e.g. HNSW vector index)."""
     if type_ == "index" and name in _UNMANAGED_INDEXES:
         return False

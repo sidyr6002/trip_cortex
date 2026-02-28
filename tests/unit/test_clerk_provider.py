@@ -152,9 +152,7 @@ async def test_get_user_api_error():
 async def test_decode_claims_valid():
     with patch("core.auth.clerk_provider.Clerk"):
         provider = ClerkAuthProvider(secret_key="sk_test_mock")
-        token = jwt.encode(
-            {"sub": "user_123", "exp": 9999999999}, "secret", algorithm="HS256"
-        )
+        token = jwt.encode({"sub": "user_123", "exp": 9999999999}, "secret", algorithm="HS256")
 
         result = await provider.decode_claims(token)
 
