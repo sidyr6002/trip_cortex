@@ -9,15 +9,16 @@ def test_disconnect_handler_deletes_connection():
     event = {"requestContext": {"connectionId": "conn-789"}}
 
     with (
-        patch("handlers.disconnect.boto3") as mock_boto3,
+        patch("handlers.disconnect.get_dynamo_client") as mock_get_client,
         patch("handlers.disconnect.delete_connection") as mock_delete,
     ):
-        mock_boto3.client.return_value = MagicMock()
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
 
         result = handler(event, None)
 
         assert result == {"statusCode": 200}
-        mock_delete.assert_called_once_with("conn-789", mock_boto3.client.return_value, "Connections")
+        mock_delete.assert_called_once_with("conn-789", mock_client, "Connections")
 
 
 def test_disconnect_handler_returns_200_on_error():
@@ -25,7 +26,7 @@ def test_disconnect_handler_returns_200_on_error():
     event = {"requestContext": {"connectionId": "conn-fail"}}
 
     with (
-        patch("handlers.disconnect.boto3"),
+        patch("handlers.disconnect.get_dynamo_client", return_value=MagicMock()),
         patch("handlers.disconnect.delete_connection", side_effect=Exception("boom")),
     ):
         result = handler(event, None)

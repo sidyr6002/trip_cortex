@@ -13,9 +13,11 @@ def test_connect_handler():
         }
     }
 
-    with patch("handlers.connect.boto3") as mock_boto3, patch("handlers.connect.store_connection") as mock_store:
+    with patch("handlers.connect.get_dynamo_client") as mock_get_client, patch(
+        "handlers.connect.store_connection"
+    ) as mock_store:
         mock_client = MagicMock()
-        mock_boto3.client.return_value = mock_client
+        mock_get_client.return_value = mock_client
 
         result = handler(event, None)
 

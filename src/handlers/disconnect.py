@@ -3,8 +3,7 @@
 import logging
 from typing import Any
 
-import boto3
-
+from core.clients import get_dynamo_client
 from core.config import get_config
 from core.services.connection import delete_connection
 
@@ -21,8 +20,7 @@ def handler(event: dict[str, Any], context: object) -> dict[str, int]:
 
     try:
         config = get_config()
-        dynamo_client = boto3.client("dynamodb", endpoint_url=config.dynamodb_endpoint)
-        delete_connection(connection_id, dynamo_client, config.connections_table)
+        delete_connection(connection_id, get_dynamo_client(), config.connections_table)
         logger.info("Deleted connection %s", connection_id)
     except Exception:
         logger.exception("Failed to delete connection %s", connection_id)

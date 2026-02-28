@@ -3,8 +3,7 @@
 import logging
 from typing import Any
 
-import boto3
-
+from core.clients import get_apigw_client, get_dynamo_client
 from core.config import get_config
 from core.services.connection import cleanup_stale_connections
 
@@ -15,13 +14,7 @@ def handler(event: dict[str, Any], context: object) -> dict[str, Any]:
     """Ping all active connections and clean up stale ones."""
     config = get_config()
 
-    dynamo_client = boto3.client("dynamodb", endpoint_url=config.dynamodb_endpoint)
-    apigw_client = boto3.client(
-        "apigatewaymanagementapi",
-        endpoint_url=config.websocket_endpoint,
-    )
-
-    result = cleanup_stale_connections(dynamo_client, apigw_client, config.connections_table)
+    result = cleanup_stale_connections(get_dynamo_client(), get_apigw_client(), config.connections_table)
 
     logger.info(
         "Heartbeat complete: %d active, %d cleaned",

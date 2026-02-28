@@ -2,8 +2,7 @@
 
 from typing import Any
 
-import boto3
-
+from core.clients import get_dynamo_client
 from core.config import get_config
 from core.services.connection import store_connection
 
@@ -13,8 +12,6 @@ def handler(event: dict[str, Any], context: object) -> dict[str, int]:
     employee_id = event["requestContext"]["authorizer"]["employeeId"]
 
     config = get_config()
-    dynamo_client = boto3.client("dynamodb", endpoint_url=config.dynamodb_endpoint)
-
-    store_connection(connection_id, employee_id, dynamo_client, config.connections_table)
+    store_connection(connection_id, employee_id, get_dynamo_client(), config.connections_table)
 
     return {"statusCode": 200}

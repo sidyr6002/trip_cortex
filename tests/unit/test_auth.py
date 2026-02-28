@@ -1,6 +1,14 @@
 import pytest
 
 from core.auth import AuthProvider, AuthUser, get_auth_provider
+from core.config import _reset_config
+
+
+@pytest.fixture(autouse=True)
+def _clear_config_cache():
+    _reset_config()
+    yield
+    _reset_config()
 
 VALID_USER = dict(
     user_id="user_123",
