@@ -31,7 +31,7 @@ region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 # Replace suffix after running: aws secretsmanager describe-secret --secret-id trip-cortex/dev/clerk-secret-key --query ARN --output text
-parameter_overrides = "Environment=dev ClerkSecretKeyArn=arn:aws:secretsmanager:us-east-1:591618107284:secret:trip-cortex/dev/clerk-secret-key-XXXXXX"
+parameter_overrides = "Environment=dev ClerkSecretKeyArn=arn:aws:secretsmanager:us-east-1:591618107284:secret:trip-cortex/dev/clerk-secret-key-P9t2fC"
 
 [dev.build.parameters]
 cached = true
