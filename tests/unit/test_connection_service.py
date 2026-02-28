@@ -3,7 +3,7 @@
 from time import time
 from unittest.mock import MagicMock
 
-from core.services.connection import store_connection
+from core.services.connection import delete_connection, store_connection
 
 
 def test_store_connection():
@@ -25,3 +25,20 @@ def test_store_connection():
 
     ttl = int(call_args.kwargs["Item"]["ttl"]["N"])
     assert before_time <= ttl <= after_time
+
+
+def test_delete_connection():
+    mock_client = MagicMock()
+    delete_connection("conn-456", mock_client, "Connections")
+
+    mock_client.delete_item.assert_called_once_with(
+        TableName="Connections",
+        Key={"connectionId": {"S": "conn-456"}},
+    )
+
+
+def test_delete_nonexistent_connection():
+    """delete_item is idempotent — no error for missing items."""
+    mock_client = MagicMock()
+    delete_connection("nonexistent", mock_client, "Connections")
+    mock_client.delete_item.assert_called_once()
