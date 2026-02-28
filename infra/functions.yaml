@@ -40,6 +40,9 @@ Parameters:
   ClerkSecretKeyArn:
     Type: String
     Description: ARN of the Secrets Manager secret containing the Clerk secret key
+  WebSocketManagementEndpoint:
+    Type: String
+    Default: ""
 
 Conditions:
   IsNotDev: !Not [!Equals [!Ref Environment, dev]]
@@ -260,6 +263,9 @@ Resources:
       CodeUri: ../src/
       Handler: handlers.heartbeat.handler
       Description: Pings active WebSocket connections to prevent idle disconnects
+      Environment:
+        Variables:
+          WEBSOCKET_ENDPOINT: !Ref WebSocketManagementEndpoint
       Events:
         Schedule:
           Type: Schedule

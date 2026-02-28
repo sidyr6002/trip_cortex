@@ -21,6 +21,7 @@ class Config(BaseModel):
     nova_embeddings_model_id: str
     clerk_secret_key: str = ""
     environment: str
+    websocket_endpoint: str = ""
 
 
 def get_config() -> Config:
@@ -40,4 +41,5 @@ def get_config() -> Config:
         nova_embeddings_model_id=environ.get("NOVA_EMBEDDINGS_MODEL_ID", "amazon.nova-2-multimodal-embeddings-v1:0"),
         clerk_secret_key=environ.get("CLERK_SECRET_KEY", ""),
         environment=environ.get("ENVIRONMENT", "local"),
+        websocket_endpoint=environ.get("WEBSOCKET_ENDPOINT", ""),
     )
