@@ -1,7 +1,10 @@
 """Connection management service for WebSocket connections."""
 
+import logging
 from time import time
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 def store_connection(connection_id: str, employee_id: str, dynamo_client: Any, connections_table: str) -> None:
@@ -10,4 +13,12 @@ def store_connection(connection_id: str, employee_id: str, dynamo_client: Any, c
     dynamo_client.put_item(
         TableName=connections_table,
         Item={"connectionId": {"S": connection_id}, "employeeId": {"S": employee_id}, "ttl": {"N": str(ttl)}},
+    )
+
+
+def delete_connection(connection_id: str, dynamo_client: Any, connections_table: str) -> None:
+    """Delete WebSocket connection from DynamoDB."""
+    dynamo_client.delete_item(
+        TableName=connections_table,
+        Key={"connectionId": {"S": connection_id}},
     )
