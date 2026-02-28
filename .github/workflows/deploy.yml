@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches:
-      - main      # Deploys to dev
+      - master    # Deploys to dev
       - staging   # Deploys to staging
       - prod      # Deploys to prod
 
