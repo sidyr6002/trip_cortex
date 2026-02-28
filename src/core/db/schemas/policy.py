@@ -1,10 +1,17 @@
 """SQLAlchemy ORM model for the policies table."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sqlalchemy import CheckConstraint, Index, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.db.schemas.base import Base
+
+if TYPE_CHECKING:
+    from core.db.schemas.policy_chunk import PolicyChunk
 
 
 class Policy(Base):
@@ -32,7 +39,3 @@ class Policy(Base):
         Index("idx_policies_uploaded_by", "uploaded_by"),
     )
 
-
-# TODO: Remove — SQLAlchemy resolves string-based relationship refs via the registry.
-#   This circular import is unnecessary but harmless.
-from core.db.schemas.policy_chunk import PolicyChunk  # noqa: E402, F401
