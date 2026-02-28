@@ -1,154 +1,34 @@
-# GitHub Actions Workflows
+# CI/CD Workflows
 
-## CI Workflow (`ci.yml`)
-
-Runs on every push and pull request to `main` or `develop` branches.
-
-**Jobs:**
-- Lint (ruff)
-- Type Check (mypy)
-- Unit Tests
-- Integration Tests (with PostgreSQL + DynamoDB)
-- SAM Build Validation
-
-## Deploy Workflow (`deploy.yml`)
-
-Automatically deploys to AWS environments based on branch using **OIDC (OpenID Connect)** for secure, temporary credentials:
-- `main` → dev environment
-- `staging` → staging environment
-- `prod` → production environment
-
-### AWS OIDC Setup (Required)
-
-The deployment workflow uses OIDC instead of long-lived access keys for security best practices.
-
-#### 1. Create OIDC Identity Provider in AWS
-
-```bash
-aws iam create-open-id-connect-provider \
-  --url https://token.actions.githubusercontent.com \
-  --client-id-list sts.amazonaws.com \
-  --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
+```
+push to master → CI (lint, types, tests, SAM validate) → auto-deploy to dev
+                                                          ↓
+                              manual dispatch → deploy to staging
+                                                          ↓
+                              manual dispatch → deploy to prod
 ```
 
-#### 2. Create IAM Roles for Each Environment
+## CI (`ci.yml`)
 
-**Dev Role (`GitHubActionsDeployRole-Dev`):**
+Runs on every push to `master` and on PRs.
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam::<AWS_ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
-        },
-        "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:<GITHUB_ORG>/<REPO_NAME>:ref:refs/heads/main"
-        }
-      }
-    }
-  ]
-}
-```
+| Job | Timeout | Depends On |
+|-----|---------|------------|
+| lint (ruff + uv.lock check) | 5 min | — |
+| type-check (mypy) | 10 min | — |
+| unit-tests (pytest + coverage) | 10 min | — |
+| integration-tests (postgres + dynamodb) | 15 min | lint, type-check, unit-tests |
+| sam-validate (cfn-lint + sam build) | 15 min | lint, type-check, unit-tests |
+| ci-gate (aggregator) | 5 min | all above |
 
-Attach policies for SAM deployment (CloudFormation, S3, Lambda, IAM, etc.)
+## Deploy (`deploy.yml`)
 
-**Staging Role:** Same trust policy but with `ref:refs/heads/staging`  
-**Prod Role:** Same trust policy but with `ref:refs/heads/prod`
+| Environment | Trigger | Changeset |
+|-------------|---------|-----------|
+| dev | auto (CI pass on master) | auto-confirm |
+| staging | manual workflow dispatch | auto-confirm |
+| prod | manual workflow dispatch | fail-on-empty |
 
-#### 3. Configure GitHub Secrets
+All environments use OIDC for AWS credentials and per-environment concurrency groups (no parallel deploys).
 
-Add only the IAM Role ARNs (not access keys):
-
-- `AWS_ROLE_ARN_DEV` - e.g., `arn:aws:iam::123456789012:role/GitHubActionsDeployRole-Dev`
-- `AWS_ROLE_ARN_STAGING` - e.g., `arn:aws:iam::123456789012:role/GitHubActionsDeployRole-Staging`
-- `AWS_ROLE_ARN_PROD` - e.g., `arn:aws:iam::123456789012:role/GitHubActionsDeployRole-Prod`
-
-### Branch Protection Rules
-
-Configure branch protection in GitHub: **Settings → Branches → Add rule**
-
-**`main` branch:**
-- Require status check `ci-gate` to pass before merging
-- Require 1 reviewer approval
-- Dismiss stale pull request approvals when new commits are pushed
-- Include administrators
-
-**`staging` branch:**
-- Require status check `ci-gate` to pass before merging
-- Require 1 reviewer approval
-- Dismiss stale pull request approvals when new commits are pushed
-
-**`prod` branch:**
-- Require status check `ci-gate` to pass before merging
-- Require 2 reviewer approvals
-- Dismiss stale pull request approvals when new commits are pushed
-- Include administrators (enforce for everyone)
-
-> **Note:** The `ci-gate` job aggregates all 5 CI jobs (lint, type-check, unit-tests, integration-tests, sam-build) into a single status check. This simplifies branch protection config — you only need to track one check name.
-
-### Environment Protection Rules
-
-Configure environment protection rules in GitHub:
-
-**Production (`prod`):**
-- Required reviewers: 2+ team members
-- Deployment branches: Only `prod` branch
-- Wait timer: Optional 5-minute delay
-
-**Staging (`staging`):**
-- Required reviewers: 1+ team member
-- Deployment branches: Only `staging` branch
-
-**Dev (`dev`):**
-- No protection (auto-deploy on merge to `main`)
-
-### Setup Instructions
-
-1. **AWS Setup:**
-   - Create OIDC provider in IAM
-   - Create IAM roles for dev/staging/prod with trust policies
-   - Attach deployment permissions to roles
-
-2. **GitHub Setup:**
-   - Go to repository Settings → Secrets and variables → Actions
-   - Add the IAM Role ARNs (AWS_ROLE_ARN_DEV, AWS_ROLE_ARN_STAGING, AWS_ROLE_ARN_PROD)
-   - Go to Settings → Environments
-   - Create environments: `dev`, `staging`, `prod`
-   - Configure protection rules for `staging` and `prod`
-
-### Security Benefits of OIDC
-
-✅ No long-lived credentials stored in GitHub  
-✅ Temporary credentials with automatic expiration  
-✅ Fine-grained access control per branch  
-✅ Audit trail via CloudTrail  
-✅ Follows AWS Well-Architected Framework security pillar  
-✅ Complies with Zero-Trust security model  
-
-### Rollback
-
-To rollback a deployment:
-
-```bash
-# Revert the commit locally
-git revert <commit-hash>
-
-# Push to trigger re-deployment
-git push origin <branch-name>
-```
-
-Or manually deploy a previous version:
-
-```bash
-git checkout <previous-commit>
-sam build
-sam deploy --config-env <environment>
-```
+To promote: **Actions → Deploy → Run workflow → select environment**.

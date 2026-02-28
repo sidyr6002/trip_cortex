@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [master]
   pull_request:
-    branches: [ master, develop ]
+    branches: [master]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: uv sync
       
+      - name: Check uv.lock is up to date
+        run: uv lock --check
+
       - name: Run ruff check
         run: uv run ruff check src/ tests/
       
@@ -152,8 +155,8 @@ jobs:
           AWS_ACCESS_KEY_ID: test
           AWS_SECRET_ACCESS_KEY: test
 
-  sam-build:
-    name: SAM Build Validation
+  sam-validate:
+    name: SAM Validate & Build
     needs: [lint, type-check, unit-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -176,16 +179,30 @@ jobs:
         with:
           use-installer: true
       
+      - name: Check requirements.txt is up to date
+        run: |
+          uv export --no-dev --no-hashes --frozen -o /tmp/requirements.txt
+          tail -n +3 src/requirements.txt > /tmp/req_current.txt
+          tail -n +3 /tmp/requirements.txt > /tmp/req_fresh.txt
+          diff /tmp/req_current.txt /tmp/req_fresh.txt || \
+            (echo "ERROR: src/requirements.txt is out of sync."; \
+             echo "Run: uv export --no-dev --no-hashes --frozen -o src/requirements.txt"; exit 1)
+
       - name: Validate SAM template
         run: sam validate --lint
       
+      - name: Lint CloudFormation templates
+        run: |
+          pip install cfn-lint
+          cfn-lint template.yaml infra/*.yaml
+
       - name: Build SAM application
         run: sam build
 
   ci-gate:
     name: CI Gate
     if: always()
-    needs: [lint, type-check, unit-tests, integration-tests, sam-build]
+    needs: [lint, type-check, unit-tests, integration-tests, sam-validate]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -195,7 +212,7 @@ jobs:
              [[ "${{ needs.type-check.result }}" != "success" ]] || \
              [[ "${{ needs.unit-tests.result }}" != "success" ]] || \
              [[ "${{ needs.integration-tests.result }}" != "success" ]] || \
-             [[ "${{ needs.sam-build.result }}" != "success" ]]; then
+             [[ "${{ needs.sam-validate.result }}" != "success" ]]; then
             echo "One or more CI jobs failed"
             exit 1
           fi

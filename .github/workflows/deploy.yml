@@ -1,21 +1,39 @@
 name: Deploy
 
 on:
-  push:
-    branches:
-      - master    # Deploys to dev
-      - staging   # Deploys to staging
-      - prod      # Deploys to prod
+  # Auto-deploy to dev when CI passes on master
+  workflow_run:
+    workflows: ["CI"]
+    branches: [master]
+    types: [completed]
+
+  # Manual promotion to staging/prod
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - staging
+          - prod
 
 permissions:
-  id-token: write   # Required for OIDC
-  contents: read    # Required for checkout
+  id-token: write
+  contents: read
 
 jobs:
+  # ── Auto-deploy to dev on main push ──────────────────────────────────────────
   deploy-dev:
     name: Deploy to Dev
-    if: github.ref == 'refs/heads/main'
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: false
     environment:
       name: dev
       url: https://dev.tripcortex.example.com
@@ -52,17 +70,34 @@ jobs:
       - name: Validate no placeholder ARNs
         run: |
           if grep -q 'ACCOUNT_ID\|REPLACE_WITH' samconfig.toml; then
-            echo "ERROR: samconfig.toml contains placeholder values. Replace before deploying."
+            echo "ERROR: samconfig.toml contains placeholder values."
             exit 1
           fi
 
       - name: SAM Deploy
         run: sam deploy --config-env dev --no-confirm-changeset
 
+      - name: Verify stack status
+        run: |
+          STATUS=$(aws cloudformation describe-stacks \
+            --stack-name trip-cortex-dev \
+            --query 'Stacks[0].StackStatus' --output text)
+          echo "Stack status: $STATUS"
+          if [[ "$STATUS" != *"COMPLETE" ]]; then
+            echo "ERROR: Stack in bad state: $STATUS"; exit 1
+          fi
+
+  # ── Manual promotion to staging ──────────────────────────────────────────────
   deploy-staging:
     name: Deploy to Staging
-    if: github.ref == 'refs/heads/staging'
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.environment == 'staging'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
     environment:
       name: staging
       url: https://staging.tripcortex.example.com
@@ -99,17 +134,34 @@ jobs:
       - name: Validate no placeholder ARNs
         run: |
           if grep -q 'ACCOUNT_ID\|REPLACE_WITH' samconfig.toml; then
-            echo "ERROR: samconfig.toml contains placeholder values. Replace before deploying."
+            echo "ERROR: samconfig.toml contains placeholder values."
             exit 1
           fi
 
       - name: SAM Deploy
         run: sam deploy --config-env staging --no-confirm-changeset
 
+      - name: Verify stack status
+        run: |
+          STATUS=$(aws cloudformation describe-stacks \
+            --stack-name trip-cortex-staging \
+            --query 'Stacks[0].StackStatus' --output text)
+          echo "Stack status: $STATUS"
+          if [[ "$STATUS" != *"COMPLETE" ]]; then
+            echo "ERROR: Stack in bad state: $STATUS"; exit 1
+          fi
+
+  # ── Manual promotion to prod ─────────────────────────────────────────────────
   deploy-prod:
     name: Deploy to Production
-    if: github.ref == 'refs/heads/prod'
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.environment == 'prod'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
     environment:
       name: prod
       url: https://tripcortex.example.com
@@ -146,13 +198,23 @@ jobs:
       - name: Validate no placeholder ARNs
         run: |
           if grep -q 'ACCOUNT_ID\|REPLACE_WITH' samconfig.toml; then
-            echo "ERROR: samconfig.toml contains placeholder values. Replace before deploying."
+            echo "ERROR: samconfig.toml contains placeholder values."
             exit 1
           fi
 
       - name: SAM Deploy
-        run: sam deploy --config-env prod --no-confirm-changeset
+        run: sam deploy --config-env prod --fail-on-empty-changeset
       
+      - name: Verify stack status
+        run: |
+          STATUS=$(aws cloudformation describe-stacks \
+            --stack-name trip-cortex-prod \
+            --query 'Stacks[0].StackStatus' --output text)
+          echo "Stack status: $STATUS"
+          if [[ "$STATUS" != *"COMPLETE" ]]; then
+            echo "ERROR: Stack in bad state: $STATUS"; exit 1
+          fi
+
       - name: Notify deployment
         if: success()
         run: echo "✅ Production deployment successful"

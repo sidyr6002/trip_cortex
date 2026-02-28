@@ -6,8 +6,10 @@ from handlers.heartbeat import handler
 
 
 def test_heartbeat_handler():
-    with patch("handlers.heartbeat.boto3") as mock_boto3, \
-         patch("handlers.heartbeat.cleanup_stale_connections") as mock_cleanup:
+    with (
+        patch("handlers.heartbeat.boto3") as mock_boto3,
+        patch("handlers.heartbeat.cleanup_stale_connections") as mock_cleanup,
+    ):
         mock_cleanup.return_value = {"active": 3, "cleaned": 1}
         mock_boto3.client.return_value = MagicMock()
 
