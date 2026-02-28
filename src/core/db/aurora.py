@@ -4,21 +4,22 @@ import json
 
 import boto3
 import psycopg
+from pgvector.psycopg import register_vector
 
 from core.config import Config
-from core.errors import TripCortexError
+from core.errors import ErrorCode, PolicyRetrievalError, TripCortexError
 from core.models.retrieval import PolicyChunkResult
 
-# TODO(Story 4.2): Replace manual vector string building with pgvector.psycopg
-#   register_vector() so list[float] can be passed directly as a parameter.
-# TODO(Story 4.4): Wrap similarity_search in try/except and raise PolicyRetrievalError
-#   instead of letting raw psycopg exceptions propagate to callers.
 _SIMILARITY_SEARCH_SQL = """
-    SELECT id, content_text, section_title, source_page, content_type,
-           bda_entity_subtype, 1 - (embedding <=> %s::vector) AS similarity
-    FROM policy_chunks
-    WHERE 1 - (embedding <=> %s::vector) >= %s
-    ORDER BY embedding <=> %s::vector
+    WITH query AS (
+        SELECT %s::vector AS vec
+    )
+    SELECT pc.id, pc.content_text, pc.section_title, pc.source_page,
+           pc.content_type, pc.bda_entity_subtype,
+           1 - (pc.embedding <=> q.vec) AS similarity
+    FROM policy_chunks pc, query q
+    WHERE 1 - (pc.embedding <=> q.vec) >= %s
+    ORDER BY pc.embedding <=> q.vec
     LIMIT %s
 """
 
@@ -53,6 +54,7 @@ class AuroraClient:
             user=creds.get("username", creds.get("user", self._config.aurora_user)),
             password=creds.get("password", self._config.aurora_password),
         )
+        register_vector(self._conn)
 
     def disconnect(self) -> None:
         if self._conn and not self._conn.closed:
@@ -81,10 +83,16 @@ class AuroraClient:
         top_k: int = 5,
     ) -> list[PolicyChunkResult]:
         conn = self._require_connection()
-        vec = "[" + ",".join(str(v) for v in query_embedding) + "]"
-        with conn.cursor() as cur:
-            cur.execute(_SIMILARITY_SEARCH_SQL, (vec, vec, threshold, vec, top_k))
-            rows = cur.fetchall()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(_SIMILARITY_SEARCH_SQL, (query_embedding, threshold, top_k))
+                rows = cur.fetchall()
+        except Exception as e:
+            raise PolicyRetrievalError(
+                f"Similarity search failed: {e}",
+                code=ErrorCode.RETRIEVAL_FAILED,
+            ) from e
+
         return [
             PolicyChunkResult(
                 id=str(row[0]),
