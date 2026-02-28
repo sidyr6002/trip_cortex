@@ -18,11 +18,6 @@ Parameters:
     Description: ARN of Clerk secret key in Secrets Manager
     Default: ''
 
-  WebSocketApiId:
-    Type: String
-    Description: API Gateway WebSocket API ID (set in Story 1.7)
-    Default: placeholder
-
 Resources:
 
   # ── Network (VPC) ────────────────────────────────────────────────────────────
@@ -90,7 +85,6 @@ Resources:
         AuditLogTableArn: !GetAtt TablesStack.Outputs.AuditLogTableArn
         PolicyDocumentsBucketArn: !GetAtt StorageStack.Outputs.PolicyDocumentsBucketArn
         BookingWorkflowArn: !GetAtt WorkflowStack.Outputs.BookingWorkflowArn
-        WebSocketApiId: !Ref WebSocketApiId
         BookingsTableName: !GetAtt TablesStack.Outputs.BookingsTableName
         ConnectionsTableName: !GetAtt TablesStack.Outputs.ConnectionsTableName
         AuditLogTableName: !GetAtt TablesStack.Outputs.AuditLogTableName
@@ -103,6 +97,19 @@ Resources:
         LambdaSecurityGroupId: !GetAtt NetworkStack.Outputs.LambdaSecurityGroupId
         PrivateSubnetIds: !GetAtt NetworkStack.Outputs.PrivateSubnetIds
         ClerkSecretKeyArn: !Ref ClerkSecretKeyArn
+
+  # ── API Gateway WebSocket ────────────────────────────────────────────────────
+
+  ApiStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: infra/api.yaml
+      Parameters:
+        Environment: !Ref Environment
+        ConnectFunctionArn: !GetAtt FunctionsStack.Outputs.ConnectFunctionArn
+        DisconnectFunctionArn: !GetAtt FunctionsStack.Outputs.DisconnectFunctionArn
+        DefaultFunctionArn: !GetAtt FunctionsStack.Outputs.BookingRequestFunctionArn
+        WebSocketAuthorizerFunctionArn: !GetAtt FunctionsStack.Outputs.WebSocketAuthorizerFunctionArn
 
 Outputs:
   StackName:
@@ -211,3 +218,15 @@ Outputs:
     Value: !GetAtt FunctionsStack.Outputs.HeartbeatFunctionArn
     Export:
       Name: !Sub "${AWS::StackName}-HeartbeatFunctionArn"
+
+  WebSocketApiEndpoint:
+    Value: !GetAtt ApiStack.Outputs.WebSocketApiEndpoint
+    Description: WebSocket connection URL
+    Export:
+      Name: !Sub "${AWS::StackName}-WebSocketApiEndpoint"
+
+  WebSocketManagementEndpoint:
+    Value: !GetAtt ApiStack.Outputs.WebSocketManagementEndpoint
+    Description: WebSocket management endpoint for @connections API
+    Export:
+      Name: !Sub "${AWS::StackName}-WebSocketManagementEndpoint"

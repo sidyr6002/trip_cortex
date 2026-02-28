@@ -15,8 +15,6 @@ Parameters:
     Type: String
   BookingWorkflowArn:
     Type: String
-  WebSocketApiId:
-    Type: String
   BookingsTableName:
     Type: String
   ConnectionsTableName:
@@ -245,7 +243,7 @@ Resources:
         - Statement:
             - Effect: Allow
               Action: execute-api:ManageConnections
-              Resource: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApiId}/*"
+              Resource: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*"
             - Effect: Allow
               Action:
                 - dynamodb:GetItem
@@ -272,12 +270,13 @@ Resources:
         - Statement:
             - Effect: Allow
               Action: execute-api:ManageConnections
-              Resource: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApiId}/*"
+              Resource: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*"
             - Effect: Allow
               Action:
                 - dynamodb:GetItem
                 - dynamodb:Query
                 - dynamodb:Scan
+                - dynamodb:DeleteItem
               Resource: !Ref ConnectionsTableArn
 
 Outputs:
