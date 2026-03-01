@@ -38,4 +38,3 @@ class Policy(Base):
         Index("idx_policies_status", "status"),
         Index("idx_policies_uploaded_by", "uploaded_by"),
     )
-

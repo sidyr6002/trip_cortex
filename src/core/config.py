@@ -55,9 +55,7 @@ def get_config() -> Config:
         connections_table=environ.get("CONNECTIONS_TABLE", "Connections"),
         audit_log_table=environ.get("AUDIT_LOG_TABLE", "AuditLog"),
         nova_lite_model_id=environ.get("NOVA_LITE_MODEL_ID", "us.amazon.nova-2-lite-v1:0"),
-        nova_embeddings_model_id=environ.get(
-            "NOVA_EMBEDDINGS_MODEL_ID", "amazon.nova-2-multimodal-embeddings-v1:0"
-        ),
+        nova_embeddings_model_id=environ.get("NOVA_EMBEDDINGS_MODEL_ID", "amazon.nova-2-multimodal-embeddings-v1:0"),
         clerk_secret_key=_resolve_clerk_secret(),
         environment=environ.get("ENVIRONMENT", "local"),
         websocket_endpoint=environ.get("WEBSOCKET_ENDPOINT", ""),

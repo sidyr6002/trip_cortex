@@ -10,6 +10,7 @@ def _clear_config_cache():
     yield
     _reset_config()
 
+
 VALID_USER = dict(
     user_id="user_123",
     email="employee@example.com",

@@ -39,4 +39,3 @@ class PolicyChunk(Base):
         Index("idx_policy_chunks_policy_id", "policy_id"),
         Index("idx_policy_chunks_content_type", "content_type"),
     )
-
