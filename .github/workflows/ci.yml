@@ -194,7 +194,7 @@ jobs:
       - name: Lint CloudFormation templates
         run: |
           pip install cfn-lint
-          cfn-lint template.yaml infra/*.yaml
+          cfn-lint template.yaml infra/stacks/*.yaml infra/bootstrap.yaml
 
       - name: Build SAM application
         run: sam build

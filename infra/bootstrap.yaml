@@ -148,7 +148,7 @@ Resources:
                   - ec2:DeleteRouteTable
                   - ec2:DeleteInternetGateway
                   - ec2:DeleteNatGateway
-                  - ec2:DeleteVpcEndpoint
+                  - ec2:DeleteVpcEndpoints
                   - ec2:DeleteRoute
                   - ec2:ModifyVpcAttribute
                   - ec2:ModifySubnetAttribute
