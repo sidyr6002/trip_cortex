@@ -16,7 +16,7 @@ def _resolve_clerk_secret() -> str:
         return ""
 
     client = boto3.client("secretsmanager")
-    return client.get_secret_value(SecretId=arn)["SecretString"]
+    return str(client.get_secret_value(SecretId=arn)["SecretString"])
 
 
 class Config(BaseModel):

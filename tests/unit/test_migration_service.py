@@ -1,4 +1,4 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
@@ -9,7 +9,7 @@ from core.services.migration import run_migrations
 @patch("core.services.migration._load_credentials_from_secret")
 def test_run_migrations_success(mock_creds, mock_command):
     with patch.dict("os.environ", {"AURORA_SECRET_ARN": ""}):
-        with patch("core.services.migration.Config") as mock_cfg:
+        with patch("core.services.migration.Config"):
             result = run_migrations()
             assert result["status"] == "success"
 
