@@ -25,7 +25,7 @@ Resources:
   NetworkStack:
     Type: AWS::Serverless::Application
     Properties:
-      Location: infra/network.yaml
+      Location: infra/stacks/network.yaml
       Parameters:
         Environment: !Ref Environment
         StackPrefix: !Ref AWS::StackName
@@ -35,7 +35,7 @@ Resources:
   AuroraStack:
     Type: AWS::Serverless::Application
     Properties:
-      Location: infra/aurora.yaml
+      Location: infra/stacks/aurora.yaml
       Parameters:
         Environment: !Ref Environment
         StackPrefix: !Ref AWS::StackName
@@ -47,7 +47,7 @@ Resources:
   TablesStack:
     Type: AWS::Serverless::Application
     Properties:
-      Location: infra/tables.yaml
+      Location: infra/stacks/tables.yaml
       Parameters:
         Environment: !Ref Environment
         StackPrefix: !Ref AWS::StackName
@@ -57,7 +57,7 @@ Resources:
   StorageStack:
     Type: AWS::Serverless::Application
     Properties:
-      Location: infra/storage.yaml
+      Location: infra/stacks/storage.yaml
       Parameters:
         Environment: !Ref Environment
         StackPrefix: !Ref AWS::StackName
@@ -67,7 +67,7 @@ Resources:
   WorkflowStack:
     Type: AWS::Serverless::Application
     Properties:
-      Location: infra/workflow.yaml
+      Location: infra/stacks/workflow.yaml
       Parameters:
         Environment: !Ref Environment
         StackPrefix: !Ref AWS::StackName
@@ -77,7 +77,7 @@ Resources:
   FunctionsStack:
     Type: AWS::Serverless::Application
     Properties:
-      Location: infra/functions.yaml
+      Location: infra/stacks/functions.yaml
       Parameters:
         Environment: !Ref Environment
         BookingsTableArn: !GetAtt TablesStack.Outputs.BookingsTableArn
@@ -103,7 +103,7 @@ Resources:
   ApiStack:
     Type: AWS::Serverless::Application
     Properties:
-      Location: infra/api.yaml
+      Location: infra/stacks/api.yaml
       Parameters:
         Environment: !Ref Environment
         ConnectFunctionArn: !GetAtt FunctionsStack.Outputs.ConnectFunctionArn

@@ -71,7 +71,7 @@ Resources:
   WebSocketAuthorizerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src/
+      CodeUri: ../../src/
       Handler: handlers.ws_authorizer.handler
       Description: WebSocket Lambda authorizer - validates Clerk JWT on $connect
       Environment:
@@ -86,7 +86,7 @@ Resources:
   ConnectFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src/
+      CodeUri: ../../src/
       Handler: handlers.connect.handler
       Description: WebSocket $connect handler
       Policies:
@@ -101,7 +101,7 @@ Resources:
   DisconnectFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src/
+      CodeUri: ../../src/
       Handler: handlers.disconnect.handler
       Description: WebSocket $disconnect handler
       Policies:
@@ -116,7 +116,7 @@ Resources:
   BookingRequestFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src/
+      CodeUri: ../../src/
       Handler: handlers.booking_request.handler
       Description: Validates booking request and starts Step Functions execution
       ReservedConcurrentExecutions: !If [IsNotDev, 10, !Ref AWS::NoValue]
@@ -135,7 +135,7 @@ Resources:
   MigrateFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src/
+      CodeUri: ../../src/
       Handler: handlers.migrate.handler
       Description: Runs Alembic migrations against Aurora — invoke manually after each schema change
       Timeout: 120
@@ -159,7 +159,7 @@ Resources:
   EmbedAndRetrieveFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src/
+      CodeUri: ../../src/
       Handler: handlers.embed_and_retrieve.handler
       Description: Generates query embedding and retrieves policy chunks via pgvector
       VpcConfig:
@@ -195,7 +195,7 @@ Resources:
   ReasonAndPlanFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src/
+      CodeUri: ../../src/
       Handler: handlers.reason_plan.handler
       Description: Invokes Nova 2 Lite with Extended Thinking to produce a BookingPlan
       Timeout: 180
@@ -225,7 +225,7 @@ Resources:
   ValidatePlanFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src/
+      CodeUri: ../../src/
       Handler: handlers.validate_plan.handler
       Description: Validates BookingPlan against policy constraints
       Policies:
@@ -239,7 +239,7 @@ Resources:
   ResponseSenderFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src/
+      CodeUri: ../../src/
       Handler: handlers.response_sender.handler
       Description: Sends WebSocket progress updates to connected clients
       Policies:
@@ -260,7 +260,7 @@ Resources:
   HeartbeatFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src/
+      CodeUri: ../../src/
       Handler: handlers.heartbeat.handler
       Description: Pings active WebSocket connections to prevent idle disconnects
       Environment:

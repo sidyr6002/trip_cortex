@@ -21,7 +21,7 @@ Resources:
     Properties:
       Name: !Sub "${StackPrefix}-booking-workflow"
       Type: STANDARD
-      DefinitionUri: ../statemachine/booking-workflow.asl.json
+      DefinitionUri: ../../statemachine/booking-workflow.asl.json
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
