@@ -67,15 +67,17 @@ jobs:
       - name: SAM Build
         run: sam build
       
-      - name: Validate no placeholder ARNs
+      - name: Validate no secrets in config
         run: |
-          if grep -q 'ACCOUNT_ID\|REPLACE_WITH' samconfig.toml; then
-            echo "ERROR: samconfig.toml contains placeholder values."
+          if grep -rE '[0-9]{12}' samconfig.toml; then
+            echo "ERROR: AWS account ID found in samconfig.toml."
             exit 1
           fi
 
       - name: SAM Deploy
-        run: sam deploy --config-env dev --no-confirm-changeset
+        run: |
+          sam deploy --config-env dev --no-confirm-changeset \
+            --parameter-overrides "Environment=dev ClerkSecretKeyArn=${{ secrets.DEV_CLERK_SECRET_ARN }}"
 
       - name: Verify stack status
         run: |
@@ -131,15 +133,17 @@ jobs:
       - name: SAM Build
         run: sam build
       
-      - name: Validate no placeholder ARNs
+      - name: Validate no secrets in config
         run: |
-          if grep -q 'ACCOUNT_ID\|REPLACE_WITH' samconfig.toml; then
-            echo "ERROR: samconfig.toml contains placeholder values."
+          if grep -rE '[0-9]{12}' samconfig.toml; then
+            echo "ERROR: AWS account ID found in samconfig.toml."
             exit 1
           fi
 
       - name: SAM Deploy
-        run: sam deploy --config-env staging --no-confirm-changeset
+        run: |
+          sam deploy --config-env staging --no-confirm-changeset \
+            --parameter-overrides "Environment=staging ClerkSecretKeyArn=${{ secrets.STAGING_CLERK_SECRET_ARN }}"
 
       - name: Verify stack status
         run: |
@@ -195,15 +199,17 @@ jobs:
       - name: SAM Build
         run: sam build
       
-      - name: Validate no placeholder ARNs
+      - name: Validate no secrets in config
         run: |
-          if grep -q 'ACCOUNT_ID\|REPLACE_WITH' samconfig.toml; then
-            echo "ERROR: samconfig.toml contains placeholder values."
+          if grep -rE '[0-9]{12}' samconfig.toml; then
+            echo "ERROR: AWS account ID found in samconfig.toml."
             exit 1
           fi
 
       - name: SAM Deploy
-        run: sam deploy --config-env prod --fail-on-empty-changeset
+        run: |
+          sam deploy --config-env prod --fail-on-empty-changeset \
+            --parameter-overrides "Environment=prod ClerkSecretKeyArn=${{ secrets.PROD_CLERK_SECRET_ARN }}"
       
       - name: Verify stack status
         run: |
