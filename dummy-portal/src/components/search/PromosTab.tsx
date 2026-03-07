@@ -31,7 +31,7 @@ export default function PromosTab({ flight }: Props) {
                     </div>
                     <div className="flex-1">
                         <div className="font-bold text-content text-sm mb-1 uppercase tracking-wide">BANK PROMO</div>
-                        <h5 className="font-semibold text-content text-sm mb-1">Save US$ 25 on {flight.airline.name}</h5>
+                        <h5 className="font-semibold text-content text-sm mb-1">Save US$ 25 on {flight.segments[0].airline.name}</h5>
                         <p className="text-xs text-content-muted mb-3">Minimum transaction US$ 200.00. Limited quota daily.</p>
                         <button className="text-sm font-medium text-primary hover:text-primary-hover transition-colors">Apply Promo</button>
                     </div>

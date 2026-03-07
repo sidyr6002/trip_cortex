@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Briefcase, Utensils, MonitorPlay, Wifi, BatteryCharging } from 'lucide-react';
 import type { FlightListing } from '../../data/schema';
+import { formatDuration } from '../../data/mockData';
 import FlightPath from './FlightPath';
 import { cn } from '../../lib/utils';
 
@@ -18,7 +19,16 @@ type TabType = 'details' | 'price' | 'promos' | null;
 export default function FlightCard({ flight }: FlightCardProps) {
     const [activeTab, setActiveTab] = useState<TabType>(null);
 
-    const hasFacility = (icon: string) => flight.facilities.some(f => f.iconName === icon);
+    // Aggregate facilities across all segments (deduplicated)
+    const allFacilities = flight.segments.flatMap(s => s.facilities);
+    const uniqueFacilities = allFacilities.filter((f, i, arr) => arr.findIndex(x => x.id === f.id) === i);
+    const hasFacility = (icon: string) => uniqueFacilities.some(f => f.iconName === icon);
+
+    // Primary airline & flight number from first segment
+    const primaryAirline = flight.segments[0].airline;
+    const flightNumbers = flight.segments.map(s => s.flightNumber).join(' → ');
+    const departureTime = flight.segments[0].departureTime;
+    const arrivalTime = flight.segments[flight.segments.length - 1].arrivalTime;
 
     const toggleTab = (tab: TabType) => {
         setActiveTab(current => current === tab ? null : tab);
@@ -31,34 +41,33 @@ export default function FlightCard({ flight }: FlightCardProps) {
                 {/* Airline Info */}
                 <div className="flex items-center gap-4 w-full lg:w-1/4 shrink-0">
                     <div className="w-10 h-10 rounded-full bg-surface-muted flex items-center justify-center overflow-hidden shrink-0">
-                        {/* Mock logo since I don't have the actual logo */}
                         <div className="text-[10px] font-bold text-center text-primary leading-tight px-1">
-                            {flight.airline.name.split(' ').map(w => w[0]).join('')}
+                            {primaryAirline.name.split(' ').map(w => w[0]).join('')}
                         </div>
                     </div>
                     <div>
-                        <h4 className="font-semibold text-content">{flight.airline.name}</h4>
-                        <p className="text-xs text-content-muted">{flight.flightNumber} · <span className="text-content-light">{flight.flightClass.name}</span></p>
+                        <h4 className="font-semibold text-content">{primaryAirline.name}</h4>
+                        <p className="text-xs text-content-muted">{flightNumbers} · <span className="text-content-light">{flight.flightClass.name}</span></p>
                     </div>
                 </div>
 
                 {/* Times & Duration */}
                 <div className="flex items-center justify-between w-full lg:flex-1 px-4">
                     <div className="text-center">
-                        <div className="font-bold text-lg">{flight.departureTime.split('T')[1].substring(0, 5)}</div>
-                        <div className="text-xs text-content-muted">Sun, 20 Aug</div>
+                        <div className="font-bold text-lg">{departureTime.split('T')[1].substring(0, 5)}</div>
+                        <div className="text-xs text-content-muted">{new Date(departureTime).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })}</div>
                         <div className="text-xs font-semibold mt-1 text-content-light">{flight.departureCity.code}</div>
                     </div>
 
                     <div className="flex-1 px-4 flex flex-col items-center">
-                        <div className="text-xs text-content-muted mb-1">Duration: {flight.durationString}</div>
+                        <div className="text-xs text-content-muted mb-1">Duration: {formatDuration(flight.totalDurationMinutes)}</div>
                         <FlightPath />
                         <div className="text-xs text-content-muted mt-1 font-medium">{flight.transitType}</div>
                     </div>
 
                     <div className="text-center">
-                        <div className="font-bold text-lg">{flight.arrivalTime.split('T')[1].substring(0, 5)}</div>
-                        <div className="text-xs text-content-muted">Sun, 20 Aug</div>
+                        <div className="font-bold text-lg">{arrivalTime.split('T')[1].substring(0, 5)}</div>
+                        <div className="text-xs text-content-muted">{new Date(arrivalTime).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })}</div>
                         <div className="text-xs font-semibold mt-1 text-content-light">{flight.arrivalCity.code}</div>
                     </div>
                 </div>
