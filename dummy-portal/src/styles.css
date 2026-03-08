@@ -1,0 +1,203 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-primary: #3957d7;
+  /* royal-blue-600 */
+  --color-primary-hover: #3044c5;
+  /* royal-blue-700 */
+  --color-primary-light: #4169e1;
+  /* royal-blue-500 */
+  --color-primary-outline: #7097ea;
+  /* royal-blue-400 */
+
+  --color-primary-50: #f1f4fd;
+  --color-primary-100: #dfe7fa;
+  --color-primary-200: #c5d5f8;
+  --color-primary-300: #9ebbf2;
+  --color-primary-400: #7097ea;
+  --color-primary-500: #4169e1;
+  --color-primary-600: #3957d7;
+  --color-primary-700: #3044c5;
+  --color-primary-800: #2d39a0;
+  --color-primary-900: #29347f;
+  --color-primary-950: #1d224e;
+
+  --color-zumthor-50: #edf5ff;
+  --color-zumthor-100: #dbeafe;
+  --color-zumthor-200: #bfdbfe;
+  --color-zumthor-300: #93c6fd;
+  --color-zumthor-400: #60a6fa;
+  --color-zumthor-500: #3b83f6;
+  --color-zumthor-600: #2564eb;
+  --color-zumthor-700: #1d4fd8;
+  --color-zumthor-800: #1e41af;
+  --color-zumthor-900: #1e3b8a;
+  --color-zumthor-950: #172554;
+
+  --color-monza-50: #ffeff2;
+  --color-monza-100: #ffdce2;
+  --color-monza-200: #ffbfca;
+  --color-monza-300: #ff92a5;
+  --color-monza-400: #ff5471;
+  --color-monza-500: #ff1f46;
+  --color-monza-600: #ff002c;
+  --color-monza-700: #db0026;
+  --color-monza-800: #c00021;
+  --color-monza-900: #940820;
+  --color-monza-950: #52000e;
+
+  --font-sans:
+    'Geom', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+  --color-surface: #eaf1f8;
+  --color-surface-gradient: #f4f7fb;
+  --color-surface-card: #ffffff;
+  --color-surface-muted: #f3f4f6;
+  --color-surface-hover: #f9fafb;
+
+  --color-content: #111827;
+  --color-content-muted: #374151;
+  --color-content-light: #6b7280;
+  --color-content-lighter: #9ca3af;
+  --color-content-inverse: #ffffff;
+  --color-content-on-dark: #d1d5db;
+
+  --color-divider-light: #f3f4f6;
+  --color-divider: #e5e7eb;
+  --color-divider-dark: #d1d5db;
+  --color-divider-focus: #9ca3af;
+
+  /* Shadcn UI Variables mapping to existing FlySmart custom colors */
+  --color-background: var(--color-surface-card);
+  --color-foreground: var(--color-content);
+
+  --color-card: var(--color-surface-card);
+  --color-card-foreground: var(--color-content);
+
+  --color-popover: var(--color-surface-card);
+  --color-popover-foreground: var(--color-content);
+
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary: var(--color-surface-muted);
+  --color-secondary-foreground: var(--color-content);
+
+  --color-muted: var(--color-surface-muted);
+  --color-muted-foreground: var(--color-content-muted);
+
+  --color-accent: var(--color-surface-hover);
+  --color-accent-foreground: var(--color-content);
+
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+
+  --color-border: var(--color-divider);
+  --color-input: var(--color-divider);
+  --color-ring: var(--color-primary-outline);
+
+  --radius-lg: 0.5rem;
+  --radius-md: calc(var(--radius-lg) - 2px);
+  --radius-sm: calc(var(--radius-md) - 2px);
+}
+
+@layer components {
+
+  /* Navigation */
+  .nav-link {
+    @apply hover:text-primary transition-colors;
+  }
+
+  .btn-outline {
+    @apply px-6 py-2 rounded-full border border-divider-dark hover:border-divider-focus transition-colors;
+  }
+
+  /* Hero Section */
+  .hero-title {
+    @apply text-6xl md:text-[5.5rem] font-bold tracking-tight mb-6 text-content leading-tight;
+  }
+
+  .hero-subtitle {
+    @apply text-content-muted max-w-2xl mx-auto text-lg leading-relaxed;
+  }
+
+  /* Search Widget */
+  .search-widget {
+    @apply bg-white/80 backdrop-blur-2xl rounded-2xl p-6 w-full relative z-10 border border-white/60 md:-mt-12;
+    box-shadow: 0 8px 24px -8px rgba(57, 87, 215, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    view-transition-name: search-widget;
+  }
+
+  .search-input {
+    @apply flex-1 flex items-center gap-4 p-4 bg-white/70 border border-transparent hover:border-primary-outline/50 hover:bg-white transition-all duration-300 w-full cursor-pointer rounded-2xl shadow-sm;
+  }
+
+  .search-input-departure {
+    @apply flex-1 flex items-center gap-4 p-4 bg-white/70 border border-transparent hover:border-primary-outline/50 hover:bg-white transition-all duration-300 w-full cursor-pointer rounded-tl-3xl rounded-tr-3xl rounded-bl-none rounded-br-none lg:rounded-tr-none lg:rounded-bl-3xl shadow-sm relative hover:z-20 h-[72px];
+  }
+
+  .search-input-arrival {
+    @apply flex-1 flex items-center gap-4 p-4 bg-white/70 border border-transparent hover:border-primary-outline/50 hover:bg-white transition-all duration-300 w-full cursor-pointer rounded-tl-none rounded-tr-none rounded-bl-3xl rounded-br-3xl lg:rounded-bl-none lg:rounded-tr-3xl lg:pl-10 shadow-sm relative hover:z-20 h-[72px];
+  }
+
+  .search-input-regular {
+    @apply flex-1 flex items-center gap-4 p-4 bg-white/70 border border-transparent hover:border-primary-outline/50 hover:bg-white transition-all duration-300 w-full cursor-pointer rounded-3xl shadow-sm h-[72px];
+  }
+
+  .search-icon-box {
+    @apply bg-primary-50 p-2 rounded-full;
+  }
+
+  .swap-btn {
+    @apply absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-white flex items-center justify-center border border-divider-light text-primary hover:bg-primary-50 hover:text-primary-hover active:scale-95 transition-all duration-300 shadow-md hover:shadow-lg rotate-90 lg:rotate-0;
+  }
+
+  .btn-primary-large {
+    @apply bg-linear-to-r from-primary to-primary-light hover:from-primary-hover hover:to-primary text-white p-4 rounded-2xl flex items-center justify-center gap-2 font-semibold transition-all duration-300 px-8 shrink-0 w-full lg:w-auto shadow-md shadow-primary/30 hover:shadow-md hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm;
+  }
+
+  .radio-checked {
+    @apply w-5 h-5 rounded bg-primary flex items-center justify-center transition-colors;
+  }
+
+  .radio-unchecked {
+    @apply w-5 h-5 rounded border border-divider-dark transition-colors;
+  }
+
+  label.group:hover .radio-unchecked {
+    @apply border-primary-outline;
+  }
+
+  .radio-label-checked {
+    @apply text-sm font-medium text-content;
+  }
+
+  .radio-label-unchecked {
+    @apply text-sm font-medium text-content-light transition-colors;
+  }
+
+  label.group:hover .radio-label-unchecked {
+    @apply text-content;
+  }
+
+  /* Destination Cards */
+  .destination-card {
+    @apply relative h-[420px] rounded-3xl overflow-hidden cursor-pointer shadow-sm hover:shadow-xl transition-shadow duration-500;
+  }
+
+  .destination-img {
+    @apply absolute inset-0 w-full h-full object-cover transition-transform duration-700;
+  }
+
+  .destination-card:hover .destination-img {
+    @apply scale-105;
+  }
+
+  .destination-overlay {
+    @apply absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent;
+  }
+
+  .destination-content {
+    @apply absolute bottom-0 left-0 right-0 p-8 flex justify-between items-end;
+  }
+}
