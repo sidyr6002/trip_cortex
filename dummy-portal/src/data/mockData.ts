@@ -64,9 +64,6 @@ function addMinutesToTime(timeStr: string, minutes: number): string {
   return date.toISOString().slice(0, 19);
 }
 
-const today = new Date();
-const D = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-
 // ── Flight Segments (individual non-stop hops) ─────────────────────
 
 // Base segment templates (time only, no date)

@@ -4,14 +4,39 @@ import SearchWidget from '../components/home/SearchWidget'
 import FlightFilterSidebar from '../components/search/FlightFilterSidebar'
 import DateTabs from '../components/search/DateTabs'
 import FlightCard from '../components/search/FlightCard'
-import { getAvailableFlights } from '../data/mockData'
+import { searchFlights } from '../data/searchFlights'
+import { getClassIdByName } from '../data/helpers'
+
+interface SearchParams {
+    from?: string;
+    to?: string;
+    date?: string;
+    class?: string;
+}
 
 export const Route = createFileRoute('/search')({
+    validateSearch: (search: Record<string, unknown>): SearchParams => {
+        return {
+            from: search.from as string | undefined,
+            to: search.to as string | undefined,
+            date: search.date as string | undefined,
+            class: search.class as string | undefined,
+        }
+    },
     component: SearchRoute,
 })
 
 function SearchRoute() {
-    const flights = getAvailableFlights();
+    const searchParams = Route.useSearch();
+    
+    const classId = searchParams.class ? getClassIdByName(searchParams.class) : undefined;
+
+    const flights = searchFlights({
+        originAirportCode: searchParams.from,
+        destinationAirportCode: searchParams.to,
+        departureDate: searchParams.date,
+        classId,
+    });
 
     return (
         <div className="min-h-screen bg-surface-gradient font-sans text-content overflow-x-hidden">
@@ -70,7 +95,12 @@ function SearchRoute() {
 
                     {/* Main Content Area */}
                     <div className="flex-1 w-full min-w-0">
-                        <DateTabs />
+                        <DateTabs
+                            departureDate={searchParams.date}
+                            from={searchParams.from}
+                            to={searchParams.to}
+                            flightClass={classId}
+                        />
 
                         <div className="space-y-4">
                             {flights.length > 0 ? flights.map((flight) => (

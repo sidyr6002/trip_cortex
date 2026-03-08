@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, User, Search, ChevronDown, ArrowRightLeft, PlaneTakeoff, PlaneLanding, Minus, Plus } from 'lucide-react';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useSearch } from '@tanstack/react-router';
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 
@@ -14,12 +14,14 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 
 import { AIRPORT_TABLE, CLASS_TABLE } from "../../data/mockData";
+import { getAirportByCode, getClassNameById } from "../../data/helpers";
 import type { Airport } from "../../data/schema";
 
 const CLASSES = CLASS_TABLE.map(c => c.name);
 
 export default function SearchWidget() {
     const navigate = useNavigate();
+    const searchParams: { from?: string; to?: string; date?: string; class?: string } = useSearch({ strict: false });
 
     // State
     const [tripType, setTripType] = useState<string>("one-way");
@@ -40,9 +42,37 @@ export default function SearchWidget() {
 
     const [citySelectorOpen, setCitySelectorOpen] = useState<"departure" | "arrival" | null>(null);
 
+    // Pre-populate from URL params
+    useEffect(() => {
+        if (searchParams.from) {
+            const airport = getAirportByCode(searchParams.from);
+            if (airport) setDepartureAirport(airport);
+        }
+        if (searchParams.to) {
+            const airport = getAirportByCode(searchParams.to);
+            if (airport) setArrivalAirport(airport);
+        }
+        if (searchParams.date) {
+            const parsedDate = new Date(searchParams.date);
+            if (!isNaN(parsedDate.getTime())) setDate(parsedDate);
+        }
+        if (searchParams.class) {
+            const className = getClassNameById(searchParams.class) || 
+                             CLASS_TABLE.find(c => c.name.toLowerCase() === searchParams.class?.toLowerCase())?.name;
+            if (className) setFlightClass(className);
+        }
+    }, [searchParams]);
+
     const handleSearch = () => {
-        // Trigger navigation to the search page, view transition will happen automatically
-        navigate({ to: '/search' });
+        navigate({ 
+            to: '/search',
+            search: {
+                from: departureAirport.code,
+                to: arrivalAirport.code,
+                date: format(date, 'yyyy-MM-dd'),
+                class: flightClass.toLowerCase(),
+            }
+        });
     };
 
     const swapCities = () => {
@@ -205,7 +235,7 @@ export default function SearchWidget() {
                                     </span>
                                     <span className="font-semibold text-content text-sm truncate w-full">
                                         {tripType === "one-way" ? (
-                                            date ? format(date, "dd MMM yyyy") : "Pick a date"
+                                            format(date, "dd MMM yyyy")
                                         ) : (
                                             dateRange?.from ? (
                                                 dateRange.to ? (
