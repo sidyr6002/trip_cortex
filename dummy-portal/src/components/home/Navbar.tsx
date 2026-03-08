@@ -1,7 +1,11 @@
-import { Link } from '@tanstack/react-router'
-import { SignedIn, SignedOut, UserButton } from '@clerk/tanstack-react-start'
+import { Link, useRouterState } from '@tanstack/react-router'
+import { SignedIn, SignedOut } from '@clerk/tanstack-react-start'
+import UserMenu from './UserMenu'
 
 export default function Navbar({ simplified = false }: { simplified?: boolean }) {
+  const routerState = useRouterState()
+  const currentUrl = routerState.location.href
+
   return (
     <nav className={`flex items-center justify-between px-8 py-6 ${simplified ? 'max-w-[1400px]' : 'max-w-7xl'} mx-auto relative z-20 mb-4 transition-[max-width,padding] duration-500 ease-in-out`}>
       <div className="flex items-center gap-8 text-sm font-medium w-1/3">
@@ -42,12 +46,10 @@ export default function Navbar({ simplified = false }: { simplified?: boolean })
           </>
         )}
         <SignedOut>
-          <Link to="/login/$" className="btn-outline">Login</Link>
+          <Link to="/login/$" search={{ redirect_url: currentUrl }} className="btn-outline">Login</Link>
         </SignedOut>
         <SignedIn>
-          <div className="flex items-center justify-center w-10 h-10">
-            <UserButton />
-          </div>
+          <UserMenu />
         </SignedIn>
       </div>
     </nav>

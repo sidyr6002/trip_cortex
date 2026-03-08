@@ -1,18 +1,30 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useSignIn } from '@clerk/tanstack-react-start'
+import { useSignIn, AuthenticateWithRedirectCallback } from '@clerk/tanstack-react-start'
 import { FcGoogle } from 'react-icons/fc'
 import { FaArrowLeftLong } from 'react-icons/fa6'
 
-export const Route = createFileRoute('/login/$')({ component: LoginPage })
+export const Route = createFileRoute('/login/$')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    redirect_url: (search.redirect_url as string) || '/',
+  }),
+  component: LoginPage,
+})
 
 function LoginPage() {
   const { signIn } = useSignIn()
+  const { _splat } = Route.useParams()
+  const { redirect_url } = Route.useSearch()
+
+  // Handle the SSO callback redirect from OAuth provider
+  if (_splat === 'sso-callback') {
+    return <AuthenticateWithRedirectCallback />
+  }
 
   const handleGoogleSignIn = () => {
     signIn?.authenticateWithRedirect({
       strategy: 'oauth_google',
       redirectUrl: '/login/sso-callback',
-      redirectUrlComplete: '/',
+      redirectUrlComplete: redirect_url,
     })
   }
 
@@ -24,7 +36,7 @@ function LoginPage() {
         className="absolute top-6 left-6 md:top-8 md:left-8 z-20 flex items-center gap-2 text-royal-blue-700 hover:text-royal-blue-800 font-medium transition-colors"
         aria-label="Go back to home"
       >
-        <div className='flex items-center gap-2 px-4 py-2 bg-white rounded-full'>
+        <div className='flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-full'>
           <FaArrowLeftLong className="w-4 h-4" />
           <span className='text-lg'>Home</span>
         </div>
@@ -50,9 +62,8 @@ function LoginPage() {
         {/* Sign In Button */}
         <button
           onClick={handleGoogleSignIn}
-          className="h-14 px-8 rounded-full bg-royal-blue-500 hover:bg-royal-blue-600 border-0 transition-all duration-300 shadow-lg shadow-royal-blue-500/25 hover:shadow-xl hover:shadow-royal-blue-500/30 hover:scale-[1.02] font-semibold text-white text-base flex items-center justify-center gap-3 cursor-pointer"
+          className="h-14 px-8 rounded-full bg-primary-500 hover:bg-primary-600 border-0 transition-all duration-300 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 hover:scale-[1.02] font-semibold text-white text-base flex items-center justify-center gap-3 cursor-pointer"
         >
-
           <div className='p-0.5 bg-white flex items-center justify-center rounded-full'>
             <FcGoogle className="w-6 h-6" />
           </div>

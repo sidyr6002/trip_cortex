@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { format } from 'date-fns'
 import Navbar from '../components/home/Navbar'
 import SearchWidget from '../components/home/SearchWidget'
 import FlightFilterSidebar, { SORT_LABELS } from '../components/search/FlightFilterSidebar'
@@ -28,6 +29,21 @@ export const Route = createFileRoute('/search')({
             returnDate: search.returnDate as string | undefined,
             tripType: search.tripType as string | undefined,
             class: search.class as string | undefined,
+        }
+    },
+    beforeLoad: ({ search }) => {
+        if (!search.from || !search.to || !search.date) {
+            throw redirect({
+                to: '/search',
+                search: {
+                    from: search.from || 'DEL',
+                    to: search.to || 'BOM',
+                    date: search.date || format(new Date(), 'yyyy-MM-dd'),
+                    tripType: search.tripType || 'one-way',
+                    class: search.class || 'economy',
+                    ...(search.returnDate ? { returnDate: search.returnDate } : {}),
+                },
+            })
         }
     },
     component: SearchRoute,
