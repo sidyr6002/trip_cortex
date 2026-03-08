@@ -9,6 +9,7 @@ interface DateTabsProps {
     from?: string;
     to?: string;
     flightClass?: string;
+    isReturnLeg?: boolean;
 }
 
 function buildDateRange(center: Date, offset: number) {
@@ -45,16 +46,18 @@ function formatPrice(price: number | null, currency = 'USD'): string {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(price);
 }
 
-export default function DateTabs({ departureDate, from, to, flightClass }: DateTabsProps) {
+export default function DateTabs({ departureDate, from, to, flightClass, isReturnLeg = false }: DateTabsProps) {
     const [offset, setOffset] = useState(0);
     const navigate = useNavigate();
     const center = departureDate ? new Date(departureDate + 'T00:00:00Z') : new Date();
     const dates = buildDateRange(center, offset);
 
     const handleDateClick = (iso: string) => {
+        // When viewing return leg, update returnDate; otherwise update date
+        const paramKey = isReturnLeg ? 'returnDate' : 'date';
         navigate({
             to: '/search',
-            search: (prev: Record<string, unknown>) => ({ ...prev, date: iso }),
+            search: (prev: Record<string, unknown>) => ({ ...prev, [paramKey]: iso }),
         });
     };
 

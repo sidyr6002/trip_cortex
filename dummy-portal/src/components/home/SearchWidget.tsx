@@ -21,7 +21,7 @@ const CLASSES = CLASS_TABLE.map(c => c.name);
 
 export default function SearchWidget() {
     const navigate = useNavigate();
-    const searchParams: { from?: string; to?: string; date?: string; class?: string } = useSearch({ strict: false });
+    const searchParams: { from?: string; to?: string; date?: string; returnDate?: string; tripType?: string; class?: string } = useSearch({ strict: false });
 
     // State
     const [tripType, setTripType] = useState<string>("one-way");
@@ -52,9 +52,18 @@ export default function SearchWidget() {
             const airport = getAirportByCode(searchParams.to);
             if (airport) setArrivalAirport(airport);
         }
+        if (searchParams.tripType) {
+            setTripType(searchParams.tripType);
+        }
         if (searchParams.date) {
             const parsedDate = new Date(searchParams.date);
-            if (!isNaN(parsedDate.getTime())) setDate(parsedDate);
+            if (!isNaN(parsedDate.getTime())) {
+                setDate(parsedDate);
+                if (searchParams.tripType === 'round-trip') {
+                    const returnDate = searchParams.returnDate ? new Date(searchParams.returnDate) : new Date(parsedDate.getTime() + 7 * 86400000);
+                    setDateRange({ from: parsedDate, to: returnDate });
+                }
+            }
         }
         if (searchParams.class) {
             const className = getClassNameById(searchParams.class) || 
@@ -64,15 +73,17 @@ export default function SearchWidget() {
     }, [searchParams]);
 
     const handleSearch = () => {
-        navigate({ 
-            to: '/search',
-            search: {
-                from: departureAirport.code,
-                to: arrivalAirport.code,
-                date: format(date, 'yyyy-MM-dd'),
-                class: flightClass.toLowerCase(),
-            }
-        });
+        const search: Record<string, string> = {
+            from: departureAirport.code,
+            to: arrivalAirport.code,
+            date: format(tripType === 'round-trip' && dateRange?.from ? dateRange.from : date, 'yyyy-MM-dd'),
+            class: flightClass.toLowerCase(),
+            tripType,
+        };
+        if (tripType === 'round-trip' && dateRange?.to) {
+            search.returnDate = format(dateRange.to, 'yyyy-MM-dd');
+        }
+        navigate({ to: '/search', search });
     };
 
     const swapCities = () => {
@@ -118,13 +129,13 @@ export default function SearchWidget() {
             <div className="flex flex-col lg:flex-row items-stretch gap-4 w-full">
 
                 {/* Cities Group */}
-                <div className="flex flex-col lg:flex-row items-stretch w-full lg:flex-[1_1_0%] lg:max-w-[600px] bg-white/70 rounded-3xl lg:rounded-4xl shadow-sm border border-divider hover:border-primary-outline/50 hover:bg-white hover:shadow-md transition-all duration-300">
+                <div className="flex flex-col lg:flex-row items-stretch w-full lg:flex-[1_1_0%] lg:max-w-[600px] bg-white/70 rounded-2xl shadow-sm border border-divider hover:border-primary-outline/50 hover:bg-white hover:shadow-md transition-all duration-300">
 
                     {/* Departure City */}
                     <div className="flex-1 min-w-0">
                         <Popover open={citySelectorOpen === "departure"} onOpenChange={(open) => setCitySelectorOpen(open ? "departure" : null)}>
                             <PopoverTrigger asChild>
-                                <div className="flex items-center gap-4 p-4 lg:p-5 w-full cursor-pointer h-[72px] rounded-t-3xl lg:rounded-none lg:rounded-l-4xl hover:bg-primary-50/40 transition-colors">
+                                <div className="flex items-center gap-4 p-4 lg:p-5 w-full cursor-pointer h-[72px] rounded-t-2xl lg:rounded-none lg:rounded-l-2xl hover:bg-primary-50/40 transition-colors">
                                     <div className="bg-primary-50 w-10 h-10 rounded-full shrink-0 flex items-center justify-center">
                                         <PlaneTakeoff className="w-5 h-5 text-primary-light" />
                                     </div>
@@ -184,7 +195,7 @@ export default function SearchWidget() {
                     <div className="flex-1 min-w-0">
                         <Popover open={citySelectorOpen === "arrival"} onOpenChange={(open) => setCitySelectorOpen(open ? "arrival" : null)}>
                             <PopoverTrigger asChild>
-                                <div className="flex items-center gap-4 p-4 lg:p-5 w-full cursor-pointer h-[72px] rounded-b-3xl lg:rounded-none lg:rounded-r-4xl hover:bg-primary-50/40 transition-colors">
+                                <div className="flex items-center gap-4 p-4 lg:p-5 w-full cursor-pointer h-[72px] rounded-b-2xl lg:rounded-none lg:rounded-r-2xl hover:bg-primary-50/40 transition-colors">
                                     <div className="bg-primary-50 w-10 h-10 rounded-full shrink-0 flex items-center justify-center">
                                         <PlaneLanding className="w-5 h-5 text-primary-light" />
                                     </div>
@@ -225,7 +236,7 @@ export default function SearchWidget() {
                 <div className="w-full lg:flex-[1_1_0%] relative">
                     <Popover>
                         <PopoverTrigger asChild>
-                            <div className="flex items-center gap-4 p-4 lg:p-5 bg-white/70 border border-divider hover:border-primary-outline/50 hover:bg-white transition-all duration-300 w-full cursor-pointer rounded-3xl lg:rounded-4xl shadow-sm h-full">
+                            <div className="flex items-center gap-4 p-4 lg:p-5 bg-white/70 border border-divider hover:border-primary-outline/50 hover:bg-white transition-all duration-300 w-full cursor-pointer rounded-2xl shadow-sm h-full">
                                 <div className="bg-primary-50 w-10 h-10 rounded-full shrink-0 flex items-center justify-center">
                                     <CalendarIcon className="w-5 h-5 text-primary-light" />
                                 </div>
@@ -277,7 +288,7 @@ export default function SearchWidget() {
                 <div className="w-full lg:flex-[1_1_0%] relative">
                     <Popover>
                         <PopoverTrigger asChild>
-                            <div className="flex items-center gap-4 p-4 lg:p-5 bg-white/70 border border-divider hover:border-primary-outline/50 hover:bg-white transition-all duration-300 w-full cursor-pointer rounded-3xl lg:rounded-4xl shadow-sm h-full">
+                            <div className="flex items-center gap-4 p-4 lg:p-5 bg-white/70 border border-divider hover:border-primary-outline/50 hover:bg-white transition-all duration-300 w-full cursor-pointer rounded-2xl shadow-sm h-full">
                                 <div className="bg-primary-50 w-10 h-10 rounded-full shrink-0 flex items-center justify-center">
                                     <User className="w-5 h-5 text-primary-light" />
                                 </div>
