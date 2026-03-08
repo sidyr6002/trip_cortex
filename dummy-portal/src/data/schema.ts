@@ -4,6 +4,8 @@ export interface Airport {
   code: string; // IATA code e.g., 'BOM', 'DXB', 'LHR'
   cityName: string; // e.g., 'Mumbai', 'Dubai', 'London'
   countryCode: string; // ISO 3166-1 alpha-2 e.g., 'IN', 'AE', 'GB'
+  lat: number;
+  lng: number;
 }
 
 export interface Airline {

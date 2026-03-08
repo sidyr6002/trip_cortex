@@ -7,21 +7,21 @@ import type {
 // ── Reference Tables ───────────────────────────────────────────────
 
 export const AIRPORT_TABLE: Airport[] = [
-  { id: 'apt_1', name: 'Indira Gandhi International Airport', code: 'DEL', cityName: 'New Delhi', countryCode: 'IN' },
-  { id: 'apt_2', name: 'Chhatrapati Shivaji Maharaj International Airport', code: 'BOM', cityName: 'Mumbai', countryCode: 'IN' },
-  { id: 'apt_3', name: 'Kempegowda International Airport', code: 'BLR', cityName: 'Bangalore', countryCode: 'IN' },
-  { id: 'apt_4', name: 'Rajiv Gandhi International Airport', code: 'HYD', cityName: 'Hyderabad', countryCode: 'IN' },
-  { id: 'apt_5', name: 'Chennai International Airport', code: 'MAA', cityName: 'Chennai', countryCode: 'IN' },
-  { id: 'apt_6', name: 'Netaji Subhas Chandra Bose International Airport', code: 'CCU', cityName: 'Kolkata', countryCode: 'IN' },
-  { id: 'apt_7', name: 'Pune Airport', code: 'PNQ', cityName: 'Pune', countryCode: 'IN' },
-  { id: 'apt_8', name: 'Sardar Vallabhbhai Patel International Airport', code: 'AMD', cityName: 'Ahmedabad', countryCode: 'IN' },
-  { id: 'apt_9', name: 'Jaipur International Airport', code: 'JAI', cityName: 'Jaipur', countryCode: 'IN' },
-  { id: 'apt_10', name: 'Surat Airport', code: 'STV', cityName: 'Surat', countryCode: 'IN' },
-  { id: 'apt_11', name: 'Soekarno-Hatta International Airport', code: 'CGK', cityName: 'Jakarta', countryCode: 'ID' },
-  { id: 'apt_12', name: 'Singapore Changi Airport', code: 'SIN', cityName: 'Singapore', countryCode: 'SG' },
-  { id: 'apt_13', name: 'Dubai International Airport', code: 'DXB', cityName: 'Dubai', countryCode: 'AE' },
-  { id: 'apt_14', name: 'London Heathrow Airport', code: 'LHR', cityName: 'London', countryCode: 'GB' },
-  { id: 'apt_15', name: 'John F. Kennedy International Airport', code: 'JFK', cityName: 'New York', countryCode: 'US' },
+  { id: 'apt_1', name: 'Indira Gandhi International Airport', code: 'DEL', cityName: 'New Delhi', countryCode: 'IN', lat: 28.5562, lng: 77.1000 },
+  { id: 'apt_2', name: 'Chhatrapati Shivaji Maharaj International Airport', code: 'BOM', cityName: 'Mumbai', countryCode: 'IN', lat: 19.0896, lng: 72.8656 },
+  { id: 'apt_3', name: 'Kempegowda International Airport', code: 'BLR', cityName: 'Bangalore', countryCode: 'IN', lat: 13.1986, lng: 77.7066 },
+  { id: 'apt_4', name: 'Rajiv Gandhi International Airport', code: 'HYD', cityName: 'Hyderabad', countryCode: 'IN', lat: 17.2403, lng: 78.4294 },
+  { id: 'apt_5', name: 'Chennai International Airport', code: 'MAA', cityName: 'Chennai', countryCode: 'IN', lat: 12.9941, lng: 80.1709 },
+  { id: 'apt_6', name: 'Netaji Subhas Chandra Bose International Airport', code: 'CCU', cityName: 'Kolkata', countryCode: 'IN', lat: 22.6547, lng: 88.4467 },
+  { id: 'apt_7', name: 'Pune Airport', code: 'PNQ', cityName: 'Pune', countryCode: 'IN', lat: 18.5822, lng: 73.9197 },
+  { id: 'apt_8', name: 'Sardar Vallabhbhai Patel International Airport', code: 'AMD', cityName: 'Ahmedabad', countryCode: 'IN', lat: 23.0772, lng: 72.6347 },
+  { id: 'apt_9', name: 'Jaipur International Airport', code: 'JAI', cityName: 'Jaipur', countryCode: 'IN', lat: 26.8242, lng: 75.8122 },
+  { id: 'apt_10', name: 'Surat Airport', code: 'STV', cityName: 'Surat', countryCode: 'IN', lat: 21.1141, lng: 72.7417 },
+  { id: 'apt_11', name: 'Soekarno-Hatta International Airport', code: 'CGK', cityName: 'Jakarta', countryCode: 'ID', lat: -6.1256, lng: 106.6558 },
+  { id: 'apt_12', name: 'Singapore Changi Airport', code: 'SIN', cityName: 'Singapore', countryCode: 'SG', lat: 1.3644, lng: 103.9915 },
+  { id: 'apt_13', name: 'Dubai International Airport', code: 'DXB', cityName: 'Dubai', countryCode: 'AE', lat: 25.2532, lng: 55.3657 },
+  { id: 'apt_14', name: 'London Heathrow Airport', code: 'LHR', cityName: 'London', countryCode: 'GB', lat: 51.4700, lng: -0.4543 },
+  { id: 'apt_15', name: 'John F. Kennedy International Airport', code: 'JFK', cityName: 'New York', countryCode: 'US', lat: 40.6413, lng: -73.7781 },
 ];
 
 export const CLASS_TABLE: FlightClass[] = [

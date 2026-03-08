@@ -1,6 +1,7 @@
 import type { FlightListing } from '../../data/schema';
 import { formatDuration } from '../../data/mockData';
 import { Briefcase, Utensils, MonitorPlay, Wifi, BatteryCharging, Info, Clock } from 'lucide-react';
+import { FlightRouteMap } from './FlightRouteMap';
 
 interface Props {
     flight: FlightListing;
@@ -16,6 +17,17 @@ export default function FlightDetailsTab({ flight }: Props) {
 
     const hasFacility = (segment: typeof flight.segments[0], icon: string) =>
         segment.facilities.some(f => f.iconName === icon);
+
+    // Build ordered airports array for the route map
+    const routeAirports = [];
+    for (const seg of flight.segments) {
+        if (routeAirports.length === 0 ||
+            routeAirports[routeAirports.length - 1].code !== seg.departureAirport.code) {
+            routeAirports.push(seg.departureAirport);
+        }
+    }
+    const lastSeg = flight.segments[flight.segments.length - 1];
+    routeAirports.push(lastSeg.arrivalAirport);
 
     return (
         <div className="pt-6 border-t border-divider-light mt-6 flex flex-col lg:flex-row gap-8">
@@ -124,31 +136,9 @@ export default function FlightDetailsTab({ flight }: Props) {
                 </div>
             </div>
 
-            {/* Right Column: Fake Map */}
-            <div className="w-full lg:w-72 xl:w-80 h-64 lg:h-auto rounded-2xl bg-[#e5e7eb] relative overflow-hidden border border-divider-light shrink-0">
-                <div className="absolute inset-0 opacity-40 mix-blend-multiply" style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' viewBox='0 0 800 600' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='square' stroke-linejoin='bevel'%3E%3Cpath d='M100 100l200 50l50 150l-100 100Z'/%3E%3Cpath d='M400 300l100-50l150 100l-50 150Z'/%3E%3C/g%3E%3C/svg%3E")`,
-                    backgroundSize: 'cover'
-                }}></div>
-
-                <div className="absolute top-1/4 left-1/3 flex flex-col items-center gap-1 z-10">
-                    <div className="w-2.5 h-2.5 bg-primary rounded-full border-2 border-white shadow-sm ring-2 ring-primary/20"></div>
-                    <span className="text-xs font-semibold text-content-muted drop-shadow-md">{flight.departureAirport.cityName}</span>
-                </div>
-
-                <svg className="absolute inset-0 w-full h-full z-0" style={{ pointerEvents: 'none' }}>
-                    <path d="M96 64 C 150 150, 180 200, 190 220" stroke="#3957d7" strokeWidth="2" strokeDasharray="4 4" fill="none" className="opacity-60" />
-                </svg>
-
-                <div className="absolute bottom-1/4 right-1/3 flex flex-col items-center gap-1 z-10">
-                    <div className="w-2.5 h-2.5 bg-white border-2 border-primary rounded-full shadow-sm ring-2 ring-primary/20"></div>
-                    <span className="text-xs font-semibold text-content-muted drop-shadow-md mt-6">{flight.arrivalAirport.cityName}</span>
-                </div>
-
-                <div className="absolute bottom-4 left-4 flex flex-col bg-white rounded-lg shadow-sm border border-divider overflow-hidden z-20">
-                    <button className="w-8 h-8 flex items-center justify-center border-b border-divider text-content-muted hover:text-content hover:bg-surface-muted transition-colors">+</button>
-                    <button className="w-8 h-8 flex items-center justify-center text-content-muted hover:text-content hover:bg-surface-muted transition-colors">-</button>
-                </div>
+            {/* Right Column: Interactive Route Map */}
+            <div className="w-full lg:w-72 xl:w-80 h-64 lg:h-auto shrink-0">
+                <FlightRouteMap airports={routeAirports} />
             </div>
         </div>
     );
