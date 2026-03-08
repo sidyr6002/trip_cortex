@@ -11,3 +11,8 @@ dist-ssr
 .vinxi
 __unconfig*
 todos.json
+
+# Lock files for other package managers
+package-lock.json
+yarn.lock
+npm-shrinkwrap.json

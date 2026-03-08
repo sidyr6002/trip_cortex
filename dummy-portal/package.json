@@ -13,7 +13,7 @@
     "lint": "eslint",
     "format": "prettier --check .",
     "check": "prettier --write . && eslint --fix",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "pnpm build && wrangler deploy"
   },
   "dependencies": {
     "@clerk/tanstack-react-start": "^0.29.8",
@@ -66,5 +66,6 @@
       "esbuild",
       "lightningcss"
     ]
-  }
+  },
+  "packageManager": "pnpm@10.30.3"
 }
