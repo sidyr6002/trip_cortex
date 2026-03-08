@@ -1,4 +1,6 @@
 import { AIRPORT_TABLE, CLASS_TABLE } from './mockData';
+import { searchFlights } from './searchFlights';
+import type { FlightListing } from './schema';
 
 export function getAirportByCode(code: string) {
   return AIRPORT_TABLE.find(a => a.code === code);
@@ -16,4 +18,10 @@ export function getClassIdByName(className: string) {
 
 export function getClassNameById(classId: string) {
   return CLASS_TABLE.find(c => c.id === classId)?.name;
+}
+
+export function getFlightById(flightId: string): FlightListing | undefined {
+  // Search all flights without filters to find the specific flight
+  const allFlights = searchFlights({ excludeSoldOut: false });
+  return allFlights.find(f => f.id === flightId);
 }

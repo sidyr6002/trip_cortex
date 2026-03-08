@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { Briefcase, Utensils, MonitorPlay, Wifi, BatteryCharging } from 'lucide-react';
 import type { FlightListing } from '../../data/schema';
 import { formatDuration } from '../../data/mockData';
@@ -12,11 +13,13 @@ import PromosTab from './PromosTab';
 
 interface FlightCardProps {
     flight: FlightListing;
+    adults?: number;
+    children?: number;
 }
 
 type TabType = 'details' | 'price' | 'promos' | null;
 
-export default function FlightCard({ flight }: FlightCardProps) {
+export default function FlightCard({ flight, adults = 1, children = 0 }: FlightCardProps) {
     const [activeTab, setActiveTab] = useState<TabType>(null);
 
     // Aggregate facilities across all segments (deduplicated)
@@ -33,6 +36,8 @@ export default function FlightCard({ flight }: FlightCardProps) {
     const toggleTab = (tab: TabType) => {
         setActiveTab(current => current === tab ? null : tab);
     };
+
+    const bookingUrl = `/book/${flight.id}?adults=${adults}&children=${children}`;
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-divider-light p-6 pb-4 mb-4 hover:shadow-md transition-shadow">
@@ -116,15 +121,27 @@ export default function FlightCard({ flight }: FlightCardProps) {
                             Promos
                         </button>
                     </div>
-                    <button className="bg-content hover:bg-black text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer whitespace-nowrap hidden lg:block -mt-2">
+                    <Link
+                        to="/book/$flightId"
+                        params={{ flightId: flight.id }}
+                        search={{ adults, children }}
+                        className="bg-content hover:bg-black text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer whitespace-nowrap hidden lg:block -mt-2"
+                        data-testid="select-flight-desktop"
+                    >
                         Select Flight
-                    </button>
+                    </Link>
                 </div>
 
                 {/* Mobile Select Flight Button */}
-                <button className="w-full bg-content hover:bg-black text-white px-6 py-3 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer lg:hidden mt-3">
+                <Link
+                    to="/book/$flightId"
+                    params={{ flightId: flight.id }}
+                    search={{ adults, children }}
+                    className="w-full bg-content hover:bg-black text-white px-6 py-3 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer lg:hidden mt-3 text-center block"
+                    data-testid="select-flight-mobile"
+                >
                     Select Flight
-                </button>
+                </Link>
 
                 {/* Expanded Content Area */}
                 {activeTab === 'details' && <FlightDetailsTab flight={flight} />}

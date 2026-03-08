@@ -18,6 +18,8 @@ interface SearchParams {
     returnDate?: string;
     tripType?: string;
     class?: string;
+    adults?: number;
+    children?: number;
 }
 
 export const Route = createFileRoute('/search')({
@@ -29,6 +31,8 @@ export const Route = createFileRoute('/search')({
             returnDate: search.returnDate as string | undefined,
             tripType: search.tripType as string | undefined,
             class: search.class as string | undefined,
+            adults: Number(search.adults) || 1,
+            children: Number(search.children) || 0,
         }
     },
     beforeLoad: ({ search }) => {
@@ -252,7 +256,12 @@ function SearchRoute() {
 
                         <div className="space-y-4">
                             {sortedFlights.length > 0 ? sortedFlights.map((flight) => (
-                                <FlightCard key={flight.id} flight={flight} />
+                                <FlightCard 
+                                    key={flight.id} 
+                                    flight={flight} 
+                                    adults={searchParams.adults || 1}
+                                    children={searchParams.children || 0}
+                                />
                             )) : (
                                 <div className="bg-white rounded-2xl shadow-sm border border-divider-light p-12 text-center">
                                     <div className="w-16 h-16 bg-surface-muted rounded-full flex items-center justify-center mx-auto mb-4 text-content-muted">
