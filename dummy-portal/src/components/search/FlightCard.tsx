@@ -56,7 +56,7 @@ export default function FlightCard({ flight }: FlightCardProps) {
                     <div className="text-center">
                         <div className="font-bold text-lg">{departureTime.split('T')[1].substring(0, 5)}</div>
                         <div className="text-xs text-content-muted">{new Date(departureTime).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })}</div>
-                        <div className="text-xs font-semibold mt-1 text-content-light">{flight.departureCity.code}</div>
+                        <div className="text-xs font-semibold mt-1 text-content-light">{flight.departureAirport.code}</div>
                     </div>
 
                     <div className="flex-1 px-4 flex flex-col items-center">
@@ -68,7 +68,7 @@ export default function FlightCard({ flight }: FlightCardProps) {
                     <div className="text-center">
                         <div className="font-bold text-lg">{arrivalTime.split('T')[1].substring(0, 5)}</div>
                         <div className="text-xs text-content-muted">{new Date(arrivalTime).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })}</div>
-                        <div className="text-xs font-semibold mt-1 text-content-light">{flight.arrivalCity.code}</div>
+                        <div className="text-xs font-semibold mt-1 text-content-light">{flight.arrivalAirport.code}</div>
                     </div>
                 </div>
 

@@ -13,9 +13,8 @@ import {
 } from "../ui/popover";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 
-import { CITY_TABLE, CLASS_TABLE } from "../../data/mockData";
-
-const CITIES = CITY_TABLE.map(c => c.name);
+import { AIRPORT_TABLE, CLASS_TABLE } from "../../data/mockData";
+import type { Airport } from "../../data/schema";
 
 const CLASSES = CLASS_TABLE.map(c => c.name);
 
@@ -25,8 +24,8 @@ export default function SearchWidget() {
     // State
     const [tripType, setTripType] = useState<string>("one-way");
 
-    const [departureCity, setDepartureCity] = useState("New Delhi");
-    const [arrivalCity, setArrivalCity] = useState("Mumbai");
+    const [departureAirport, setDepartureAirport] = useState<Airport>(AIRPORT_TABLE[0]); // DEL
+    const [arrivalAirport, setArrivalAirport] = useState<Airport>(AIRPORT_TABLE[1]); // BOM
 
     const [date, setDate] = useState<Date>(new Date());
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -47,8 +46,9 @@ export default function SearchWidget() {
     };
 
     const swapCities = () => {
-        setDepartureCity(arrivalCity);
-        setArrivalCity(departureCity);
+        const temp = departureAirport;
+        setDepartureAirport(arrivalAirport);
+        setArrivalAirport(temp);
     };
 
     return (
@@ -85,24 +85,13 @@ export default function SearchWidget() {
             </div>
 
             {/* Bottom Row */}
-            <div className="flex flex-col lg:flex-row items-center gap-4 w-full">
+            <div className="flex flex-col lg:flex-row items-stretch gap-4 w-full">
 
                 {/* Cities Group */}
-                <div className="flex flex-col lg:flex-row w-full lg:flex-[2_1_0%] relative bg-white/70 rounded-3xl lg:rounded-4xl shadow-sm border border-divider hover:border-primary-outline/50 hover:bg-white hover:shadow-md transition-all duration-300">
-
-                    {/* Common Boundary Divider */}
-                    <div className="hidden lg:block absolute left-1/2 top-4 bottom-4 w-px bg-divider-light -translate-x-1/2 z-10 pointer-events-none transition-colors"></div>
-                    <div className="lg:hidden absolute top-1/2 left-6 right-6 h-px bg-divider-light -translate-y-1/2 z-10 pointer-events-none transition-colors"></div>
-
-                    {/* Swap Button */}
-                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 flex items-center justify-center pointer-events-none">
-                        <button className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-white flex items-center justify-center border border-divider-light text-primary hover:bg-primary-50 hover:text-primary-hover shadow-sm lg:shadow-md hover:shadow-lg transition-transform active:scale-95 rotate-90 lg:rotate-0 pointer-events-auto cursor-pointer" onClick={(e) => { e.preventDefault(); swapCities(); }}>
-                            <ArrowRightLeft className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-                        </button>
-                    </div>
+                <div className="flex flex-col lg:flex-row items-stretch w-full lg:flex-[1_1_0%] lg:max-w-[600px] bg-white/70 rounded-3xl lg:rounded-4xl shadow-sm border border-divider hover:border-primary-outline/50 hover:bg-white hover:shadow-md transition-all duration-300">
 
                     {/* Departure City */}
-                    <div className="flex-1 w-full relative z-20">
+                    <div className="flex-1 min-w-0">
                         <Popover open={citySelectorOpen === "departure"} onOpenChange={(open) => setCitySelectorOpen(open ? "departure" : null)}>
                             <PopoverTrigger asChild>
                                 <div className="flex items-center gap-4 p-4 lg:p-5 w-full cursor-pointer h-[72px] rounded-t-3xl lg:rounded-none lg:rounded-l-4xl hover:bg-primary-50/40 transition-colors">
@@ -110,23 +99,30 @@ export default function SearchWidget() {
                                         <PlaneTakeoff className="w-5 h-5 text-primary-light" />
                                     </div>
                                     <div className="flex flex-col items-start min-w-0 text-left">
-                                        <span className="text-xs text-content-light mb-0.5 whitespace-nowrap">Departure City</span>
-                                        <span className="font-semibold text-content text-sm truncate w-full">{departureCity}</span>
+                                        <span className="text-xs text-content-light mb-0.5 whitespace-nowrap">From</span>
+                                        <span className="font-semibold text-content text-sm truncate w-full">{departureAirport.cityName}</span>
+                                        <span className="text-xs text-content-muted truncate w-full">{departureAirport.code} · {departureAirport.name}</span>
                                     </div>
                                 </div>
                             </PopoverTrigger>
-                            <PopoverContent className="w-64 p-2 rounded-2xl" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
-                                <div className="max-h-60 overflow-y-auto flex flex-col gap-1">
-                                    {CITIES.map((city) => (
+                            <PopoverContent className="w-80 p-2 rounded-2xl" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+                                <div className="max-h-80 overflow-y-auto flex flex-col gap-1">
+                                    {AIRPORT_TABLE.map((airport) => (
                                         <button
-                                            key={city}
-                                            className={cn("w-full outline-none px-4 py-2.5 text-sm text-left rounded-xl transition-all duration-200 hover:bg-primary-50 hover:text-primary focus:bg-primary-50 focus:text-primary cursor-pointer", departureCity === city ? "bg-primary-50 font-medium text-primary" : "text-content")}
+                                            key={airport.id}
+                                            className={cn("w-full outline-none px-4 py-3 text-left rounded-xl transition-all duration-200 hover:bg-primary-50 focus:bg-primary-50 cursor-pointer", departureAirport.id === airport.id ? "bg-primary-50" : "")}
                                             onClick={() => {
-                                                setDepartureCity(city);
+                                                setDepartureAirport(airport);
                                                 setCitySelectorOpen(null);
                                             }}
                                         >
-                                            {city}
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="font-semibold text-content text-sm">{airport.cityName}</div>
+                                                    <div className="text-xs text-content-muted truncate">{airport.name}</div>
+                                                </div>
+                                                <div className="text-sm font-mono font-semibold text-content-light shrink-0">{airport.code}</div>
+                                            </div>
                                         </button>
                                     ))}
                                 </div>
@@ -134,32 +130,59 @@ export default function SearchWidget() {
                         </Popover>
                     </div>
 
+                    {/* Swap Button — in-flow flex item */}
+                    <div className="shrink-0 flex items-center justify-center lg:py-4">
+                        {/* Horizontal divider on mobile */}
+                        <div className="lg:hidden flex items-center w-full px-4">
+                            <div className="flex-1 h-px bg-divider-light" />
+                            <button className="mx-2 w-8 h-8 rounded-full bg-white flex items-center justify-center border border-divider-light text-primary hover:bg-primary-50 hover:text-primary-hover transition-transform active:scale-95 rotate-90 cursor-pointer shrink-0" onClick={(e) => { e.preventDefault(); swapCities(); }}>
+                                <ArrowRightLeft className="w-3.5 h-3.5" />
+                            </button>
+                            <div className="flex-1 h-px bg-divider-light" />
+                        </div>
+                        {/* Vertical divider on desktop */}
+                        <div className="hidden lg:flex flex-col items-center h-full">
+                            <div className="flex-1 w-px bg-divider-light" />
+                            <button className="my-1 w-10 h-10 rounded-full bg-white flex items-center justify-center border border-divider-light text-primary hover:bg-primary-100 hover:text-primary-hover transition-transform active:scale-95 cursor-pointer shrink-0 lg:shadow" onClick={(e) => { e.preventDefault(); swapCities(); }}>
+                                <ArrowRightLeft className="w-4 h-4" />
+                            </button>
+                            <div className="flex-1 w-px bg-divider-light" />
+                        </div>
+                    </div>
+
                     {/* Arrival City */}
-                    <div className="flex-1 w-full relative z-20">
+                    <div className="flex-1 min-w-0">
                         <Popover open={citySelectorOpen === "arrival"} onOpenChange={(open) => setCitySelectorOpen(open ? "arrival" : null)}>
                             <PopoverTrigger asChild>
-                                <div className="flex items-center gap-4 p-4 lg:p-5 lg:pl-8 w-full cursor-pointer h-[72px] rounded-b-3xl lg:rounded-none lg:rounded-r-4xl hover:bg-primary-50/40 transition-colors">
+                                <div className="flex items-center gap-4 p-4 lg:p-5 w-full cursor-pointer h-[72px] rounded-b-3xl lg:rounded-none lg:rounded-r-4xl hover:bg-primary-50/40 transition-colors">
                                     <div className="bg-primary-50 w-10 h-10 rounded-full shrink-0 flex items-center justify-center">
                                         <PlaneLanding className="w-5 h-5 text-primary-light" />
                                     </div>
                                     <div className="flex flex-col items-start min-w-0 text-left">
-                                        <span className="text-xs text-content-light mb-0.5 whitespace-nowrap">Arrival City</span>
-                                        <span className="font-semibold text-content text-sm truncate w-full">{arrivalCity}</span>
+                                        <span className="text-xs text-content-light mb-0.5 whitespace-nowrap">To</span>
+                                        <span className="font-semibold text-content text-sm truncate w-full">{arrivalAirport.cityName}</span>
+                                        <span className="text-xs text-content-muted truncate w-full">{arrivalAirport.code} · {arrivalAirport.name}</span>
                                     </div>
                                 </div>
                             </PopoverTrigger>
-                            <PopoverContent className="w-64 p-2 rounded-2xl" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
-                                <div className="max-h-60 overflow-y-auto flex flex-col gap-1">
-                                    {CITIES.map((city) => (
+                            <PopoverContent className="w-80 p-2 rounded-2xl" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+                                <div className="max-h-80 overflow-y-auto flex flex-col gap-1">
+                                    {AIRPORT_TABLE.map((airport) => (
                                         <button
-                                            key={city}
-                                            className={cn("w-full outline-none px-4 py-2.5 text-sm text-left rounded-xl transition-all duration-200 hover:bg-primary-50 hover:text-primary focus:bg-primary-50 focus:text-primary cursor-pointer", arrivalCity === city ? "bg-primary-50 font-medium text-primary" : "text-content")}
+                                            key={airport.id}
+                                            className={cn("w-full outline-none px-4 py-3 text-left rounded-xl transition-all duration-200 hover:bg-primary-50 focus:bg-primary-50 cursor-pointer", arrivalAirport.id === airport.id ? "bg-primary-50" : "")}
                                             onClick={() => {
-                                                setArrivalCity(city);
+                                                setArrivalAirport(airport);
                                                 setCitySelectorOpen(null);
                                             }}
                                         >
-                                            {city}
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="font-semibold text-content text-sm">{airport.cityName}</div>
+                                                    <div className="text-xs text-content-muted truncate">{airport.name}</div>
+                                                </div>
+                                                <div className="text-sm font-mono font-semibold text-content-light shrink-0">{airport.code}</div>
+                                            </div>
                                         </button>
                                     ))}
                                 </div>
@@ -172,7 +195,7 @@ export default function SearchWidget() {
                 <div className="w-full lg:flex-[1_1_0%] relative">
                     <Popover>
                         <PopoverTrigger asChild>
-                            <div className="flex items-center gap-4 p-4 lg:p-5 bg-white/70 border border-divider hover:border-primary-outline/50 hover:bg-white transition-all duration-300 w-full cursor-pointer rounded-3xl lg:rounded-4xl shadow-sm h-[72px]">
+                            <div className="flex items-center gap-4 p-4 lg:p-5 bg-white/70 border border-divider hover:border-primary-outline/50 hover:bg-white transition-all duration-300 w-full cursor-pointer rounded-3xl lg:rounded-4xl shadow-sm h-full">
                                 <div className="bg-primary-50 w-10 h-10 rounded-full shrink-0 flex items-center justify-center">
                                     <CalendarIcon className="w-5 h-5 text-primary-light" />
                                 </div>
@@ -224,7 +247,7 @@ export default function SearchWidget() {
                 <div className="w-full lg:flex-[1_1_0%] relative">
                     <Popover>
                         <PopoverTrigger asChild>
-                            <div className="flex items-center gap-4 p-4 lg:p-5 bg-white/70 border border-divider hover:border-primary-outline/50 hover:bg-white transition-all duration-300 w-full cursor-pointer rounded-3xl lg:rounded-4xl shadow-sm h-[72px]">
+                            <div className="flex items-center gap-4 p-4 lg:p-5 bg-white/70 border border-divider hover:border-primary-outline/50 hover:bg-white transition-all duration-300 w-full cursor-pointer rounded-3xl lg:rounded-4xl shadow-sm h-full">
                                 <div className="bg-primary-50 w-10 h-10 rounded-full shrink-0 flex items-center justify-center">
                                     <User className="w-5 h-5 text-primary-light" />
                                 </div>
@@ -288,7 +311,7 @@ export default function SearchWidget() {
                 </div>
 
                 {/* Search Button */}
-                <button className="btn-primary-large cursor-pointer shrink-0" onClick={handleSearch}>
+                <button className="btn-primary-large cursor-pointer shrink-0 self-stretch" onClick={handleSearch}>
                     <Search className="w-5 h-5" />
                     Search
                 </button>

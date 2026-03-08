@@ -64,7 +64,7 @@ export default function FlightDetailsTab({ flight }: Props) {
                         <div key={seg.id}>
                             {/* Departure */}
                             <div className="mb-4">
-                                <div className="font-semibold text-content">{seg.departureCity.name} ({seg.departureCity.code})</div>
+                                <div className="font-semibold text-content">{seg.departureAirport.name} ({seg.departureAirport.code})</div>
                                 <div className="text-sm text-content-muted mb-3">Terminal (Mocked)</div>
 
                                 <div className="bg-surface-muted/50 rounded-xl p-4 text-sm text-content flex flex-col gap-3 border border-divider-light">
@@ -101,7 +101,7 @@ export default function FlightDetailsTab({ flight }: Props) {
 
                             {/* Arrival */}
                             <div>
-                                <div className="font-semibold text-content">{seg.arrivalCity.name} ({seg.arrivalCity.code})</div>
+                                <div className="font-semibold text-content">{seg.arrivalAirport.name} ({seg.arrivalAirport.code})</div>
                                 <div className="text-sm text-content-muted">Terminal (Mocked)</div>
                             </div>
 
@@ -109,7 +109,7 @@ export default function FlightDetailsTab({ flight }: Props) {
                             {idx < flight.layovers.length && (
                                 <div className="mt-4 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 px-4 py-2.5 rounded-xl border border-amber-200">
                                     <Clock className="w-4 h-4" />
-                                    Layover in {flight.layovers[idx].city.name}: {formatDuration(flight.layovers[idx].durationMinutes)}
+                                    Layover in {flight.layovers[idx].airport.cityName}: {formatDuration(flight.layovers[idx].durationMinutes)}
                                 </div>
                             )}
                         </div>
@@ -133,7 +133,7 @@ export default function FlightDetailsTab({ flight }: Props) {
 
                 <div className="absolute top-1/4 left-1/3 flex flex-col items-center gap-1 z-10">
                     <div className="w-2.5 h-2.5 bg-primary rounded-full border-2 border-white shadow-sm ring-2 ring-primary/20"></div>
-                    <span className="text-xs font-semibold text-content-muted drop-shadow-md">{flight.departureCity.name}</span>
+                    <span className="text-xs font-semibold text-content-muted drop-shadow-md">{flight.departureAirport.cityName}</span>
                 </div>
 
                 <svg className="absolute inset-0 w-full h-full z-0" style={{ pointerEvents: 'none' }}>
@@ -142,7 +142,7 @@ export default function FlightDetailsTab({ flight }: Props) {
 
                 <div className="absolute bottom-1/4 right-1/3 flex flex-col items-center gap-1 z-10">
                     <div className="w-2.5 h-2.5 bg-white border-2 border-primary rounded-full shadow-sm ring-2 ring-primary/20"></div>
-                    <span className="text-xs font-semibold text-content-muted drop-shadow-md mt-6">{flight.arrivalCity.name}</span>
+                    <span className="text-xs font-semibold text-content-muted drop-shadow-md mt-6">{flight.arrivalAirport.cityName}</span>
                 </div>
 
                 <div className="absolute bottom-4 left-4 flex flex-col bg-white rounded-lg shadow-sm border border-divider overflow-hidden z-20">

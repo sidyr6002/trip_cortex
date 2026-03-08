@@ -1,27 +1,27 @@
 import type {
-  City, Airline, Facility, FlightClass, FlightSegment, Flight,
+  Airport, Airline, Facility, FlightClass, FlightSegment, Flight,
   FlightPricing, FlightFacilityMapping, FlightListing,
   FlightSegmentDetail, LayoverDetail
 } from './schema';
 
 // ── Reference Tables ───────────────────────────────────────────────
 
-export const CITY_TABLE: City[] = [
-  { id: 'city_1', name: 'New Delhi', code: 'DEL' },
-  { id: 'city_2', name: 'Mumbai', code: 'BOM' },
-  { id: 'city_3', name: 'Bangalore', code: 'BLR' },
-  { id: 'city_4', name: 'Hyderabad', code: 'HYD' },
-  { id: 'city_5', name: 'Chennai', code: 'MAA' },
-  { id: 'city_6', name: 'Kolkata', code: 'CCU' },
-  { id: 'city_7', name: 'Pune', code: 'PNQ' },
-  { id: 'city_8', name: 'Ahmedabad', code: 'AMD' },
-  { id: 'city_9', name: 'Jaipur', code: 'JAI' },
-  { id: 'city_10', name: 'Surat', code: 'STV' },
-  { id: 'city_11', name: 'Jakarta', code: 'CGK' },
-  { id: 'city_12', name: 'Singapore', code: 'SIN' },
-  { id: 'city_13', name: 'Dubai', code: 'DXB' },
-  { id: 'city_14', name: 'London', code: 'LHR' },
-  { id: 'city_15', name: 'New York', code: 'JFK' },
+export const AIRPORT_TABLE: Airport[] = [
+  { id: 'apt_1', name: 'Indira Gandhi International Airport', code: 'DEL', cityName: 'New Delhi', countryCode: 'IN' },
+  { id: 'apt_2', name: 'Chhatrapati Shivaji Maharaj International Airport', code: 'BOM', cityName: 'Mumbai', countryCode: 'IN' },
+  { id: 'apt_3', name: 'Kempegowda International Airport', code: 'BLR', cityName: 'Bangalore', countryCode: 'IN' },
+  { id: 'apt_4', name: 'Rajiv Gandhi International Airport', code: 'HYD', cityName: 'Hyderabad', countryCode: 'IN' },
+  { id: 'apt_5', name: 'Chennai International Airport', code: 'MAA', cityName: 'Chennai', countryCode: 'IN' },
+  { id: 'apt_6', name: 'Netaji Subhas Chandra Bose International Airport', code: 'CCU', cityName: 'Kolkata', countryCode: 'IN' },
+  { id: 'apt_7', name: 'Pune Airport', code: 'PNQ', cityName: 'Pune', countryCode: 'IN' },
+  { id: 'apt_8', name: 'Sardar Vallabhbhai Patel International Airport', code: 'AMD', cityName: 'Ahmedabad', countryCode: 'IN' },
+  { id: 'apt_9', name: 'Jaipur International Airport', code: 'JAI', cityName: 'Jaipur', countryCode: 'IN' },
+  { id: 'apt_10', name: 'Surat Airport', code: 'STV', cityName: 'Surat', countryCode: 'IN' },
+  { id: 'apt_11', name: 'Soekarno-Hatta International Airport', code: 'CGK', cityName: 'Jakarta', countryCode: 'ID' },
+  { id: 'apt_12', name: 'Singapore Changi Airport', code: 'SIN', cityName: 'Singapore', countryCode: 'SG' },
+  { id: 'apt_13', name: 'Dubai International Airport', code: 'DXB', cityName: 'Dubai', countryCode: 'AE' },
+  { id: 'apt_14', name: 'London Heathrow Airport', code: 'LHR', cityName: 'London', countryCode: 'GB' },
+  { id: 'apt_15', name: 'John F. Kennedy International Airport', code: 'JFK', cityName: 'New York', countryCode: 'US' },
 ];
 
 export const CLASS_TABLE: FlightClass[] = [
@@ -72,42 +72,42 @@ const D = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2
 // Base segment templates (time only, no date)
 const BASE_SEGMENTS = [
   // Domestic
-  { id: 1, airlineId: 'air_1', flightNumber: '6E-2134', from: 'city_1', to: 'city_2', depTime: '06:00:00', duration: 135 },
-  { id: 2, airlineId: 'air_2', flightNumber: 'AI-860', from: 'city_1', to: 'city_2', depTime: '11:30:00', duration: 135 },
-  { id: 3, airlineId: 'air_3', flightNumber: 'SG-8194', from: 'city_1', to: 'city_2', depTime: '17:00:00', duration: 135 },
-  { id: 4, airlineId: 'air_4', flightNumber: 'UK-995', from: 'city_2', to: 'city_1', depTime: '21:30:00', duration: 135 },
-  { id: 5, airlineId: 'air_1', flightNumber: '6E-6112', from: 'city_1', to: 'city_3', depTime: '07:15:00', duration: 165 },
-  { id: 6, airlineId: 'air_2', flightNumber: 'AI-804', from: 'city_1', to: 'city_3', depTime: '13:00:00', duration: 165 },
-  { id: 7, airlineId: 'air_4', flightNumber: 'UK-829', from: 'city_3', to: 'city_1', depTime: '18:30:00', duration: 165 },
-  { id: 8, airlineId: 'air_1', flightNumber: '6E-5327', from: 'city_2', to: 'city_3', depTime: '08:00:00', duration: 105 },
-  { id: 9, airlineId: 'air_3', flightNumber: 'SG-1136', from: 'city_2', to: 'city_3', depTime: '14:30:00', duration: 105 },
-  { id: 10, airlineId: 'air_4', flightNumber: 'UK-864', from: 'city_3', to: 'city_2', depTime: '20:00:00', duration: 105 },
-  { id: 11, airlineId: 'air_1', flightNumber: '6E-2063', from: 'city_1', to: 'city_4', depTime: '09:30:00', duration: 135 },
-  { id: 12, airlineId: 'air_2', flightNumber: 'AI-544', from: 'city_1', to: 'city_4', depTime: '16:00:00', duration: 135 },
-  { id: 13, airlineId: 'air_1', flightNumber: '6E-5054', from: 'city_2', to: 'city_5', depTime: '10:00:00', duration: 105 },
-  { id: 14, airlineId: 'air_3', flightNumber: 'SG-1024', from: 'city_2', to: 'city_5', depTime: '15:30:00', duration: 105 },
+  { id: 1, airlineId: 'air_1', flightNumber: '6E-2134', from: 'apt_1', to: 'apt_2', depTime: '06:00:00', duration: 135 },
+  { id: 2, airlineId: 'air_2', flightNumber: 'AI-860', from: 'apt_1', to: 'apt_2', depTime: '11:30:00', duration: 135 },
+  { id: 3, airlineId: 'air_3', flightNumber: 'SG-8194', from: 'apt_1', to: 'apt_2', depTime: '17:00:00', duration: 135 },
+  { id: 4, airlineId: 'air_4', flightNumber: 'UK-995', from: 'apt_2', to: 'apt_1', depTime: '21:30:00', duration: 135 },
+  { id: 5, airlineId: 'air_1', flightNumber: '6E-6112', from: 'apt_1', to: 'apt_3', depTime: '07:15:00', duration: 165 },
+  { id: 6, airlineId: 'air_2', flightNumber: 'AI-804', from: 'apt_1', to: 'apt_3', depTime: '13:00:00', duration: 165 },
+  { id: 7, airlineId: 'air_4', flightNumber: 'UK-829', from: 'apt_3', to: 'apt_1', depTime: '18:30:00', duration: 165 },
+  { id: 8, airlineId: 'air_1', flightNumber: '6E-5327', from: 'apt_2', to: 'apt_3', depTime: '08:00:00', duration: 105 },
+  { id: 9, airlineId: 'air_3', flightNumber: 'SG-1136', from: 'apt_2', to: 'apt_3', depTime: '14:30:00', duration: 105 },
+  { id: 10, airlineId: 'air_4', flightNumber: 'UK-864', from: 'apt_3', to: 'apt_2', depTime: '20:00:00', duration: 105 },
+  { id: 11, airlineId: 'air_1', flightNumber: '6E-2063', from: 'apt_1', to: 'apt_4', depTime: '09:30:00', duration: 135 },
+  { id: 12, airlineId: 'air_2', flightNumber: 'AI-544', from: 'apt_1', to: 'apt_4', depTime: '16:00:00', duration: 135 },
+  { id: 13, airlineId: 'air_1', flightNumber: '6E-5054', from: 'apt_2', to: 'apt_5', depTime: '10:00:00', duration: 105 },
+  { id: 14, airlineId: 'air_3', flightNumber: 'SG-1024', from: 'apt_2', to: 'apt_5', depTime: '15:30:00', duration: 105 },
   // International
-  { id: 15, airlineId: 'air_5', flightNumber: 'EK-512', from: 'city_1', to: 'city_13', depTime: '08:30:00', duration: 210 },
-  { id: 16, airlineId: 'air_2', flightNumber: 'AI-995', from: 'city_1', to: 'city_13', depTime: '22:00:00', duration: 210 },
-  { id: 17, airlineId: 'air_5', flightNumber: 'EK-500', from: 'city_2', to: 'city_13', depTime: '09:00:00', duration: 195 },
-  { id: 18, airlineId: 'air_6', flightNumber: 'SQ-402', from: 'city_1', to: 'city_12', depTime: '07:00:00', duration: 330 },
-  { id: 19, airlineId: 'air_2', flightNumber: 'AI-345', from: 'city_1', to: 'city_12', depTime: '23:00:00', duration: 330 },
-  { id: 20, airlineId: 'air_6', flightNumber: 'SQ-424', from: 'city_2', to: 'city_12', depTime: '10:30:00', duration: 330 },
-  { id: 21, airlineId: 'air_7', flightNumber: 'BA-142', from: 'city_1', to: 'city_14', depTime: '14:00:00', duration: 570 },
-  { id: 22, airlineId: 'air_2', flightNumber: 'AI-161', from: 'city_1', to: 'city_14', depTime: '13:30:00', duration: 570 },
+  { id: 15, airlineId: 'air_5', flightNumber: 'EK-512', from: 'apt_1', to: 'apt_13', depTime: '08:30:00', duration: 210 },
+  { id: 16, airlineId: 'air_2', flightNumber: 'AI-995', from: 'apt_1', to: 'apt_13', depTime: '22:00:00', duration: 210 },
+  { id: 17, airlineId: 'air_5', flightNumber: 'EK-500', from: 'apt_2', to: 'apt_13', depTime: '09:00:00', duration: 195 },
+  { id: 18, airlineId: 'air_6', flightNumber: 'SQ-402', from: 'apt_1', to: 'apt_12', depTime: '07:00:00', duration: 330 },
+  { id: 19, airlineId: 'air_2', flightNumber: 'AI-345', from: 'apt_1', to: 'apt_12', depTime: '23:00:00', duration: 330 },
+  { id: 20, airlineId: 'air_6', flightNumber: 'SQ-424', from: 'apt_2', to: 'apt_12', depTime: '10:30:00', duration: 330 },
+  { id: 21, airlineId: 'air_7', flightNumber: 'BA-142', from: 'apt_1', to: 'apt_14', depTime: '14:00:00', duration: 570 },
+  { id: 22, airlineId: 'air_2', flightNumber: 'AI-161', from: 'apt_1', to: 'apt_14', depTime: '13:30:00', duration: 570 },
   // Transit legs
-  { id: 23, airlineId: 'air_5', flightNumber: 'EK-514', from: 'city_1', to: 'city_13', depTime: '09:00:00', duration: 210 },
-  { id: 24, airlineId: 'air_5', flightNumber: 'EK-029', from: 'city_13', to: 'city_14', depTime: '14:30:00', duration: 420 },
-  { id: 25, airlineId: 'air_5', flightNumber: 'EK-502', from: 'city_2', to: 'city_13', depTime: '10:00:00', duration: 195 },
-  { id: 26, airlineId: 'air_5', flightNumber: 'EK-031', from: 'city_13', to: 'city_14', depTime: '15:00:00', duration: 420 },
-  { id: 27, airlineId: 'air_2', flightNumber: 'AI-191', from: 'city_1', to: 'city_14', depTime: '12:00:00', duration: 570 },
-  { id: 28, airlineId: 'air_7', flightNumber: 'BA-117', from: 'city_14', to: 'city_15', depTime: '19:00:00', duration: 480 },
-  { id: 29, airlineId: 'air_5', flightNumber: 'EK-516', from: 'city_1', to: 'city_13', depTime: '08:00:00', duration: 210 },
-  { id: 30, airlineId: 'air_5', flightNumber: 'EK-003', from: 'city_13', to: 'city_14', depTime: '13:30:00', duration: 420 },
-  { id: 31, airlineId: 'air_7', flightNumber: 'BA-115', from: 'city_14', to: 'city_15', depTime: '21:00:00', duration: 480 },
-  { id: 32, airlineId: 'air_2', flightNumber: 'AI-866', from: 'city_2', to: 'city_1', depTime: '06:00:00', duration: 135 },
-  { id: 33, airlineId: 'air_2', flightNumber: 'AI-111', from: 'city_1', to: 'city_14', depTime: '11:00:00', duration: 570 },
-  { id: 34, airlineId: 'air_7', flightNumber: 'BA-119', from: 'city_14', to: 'city_15', depTime: '18:00:00', duration: 480 },
+  { id: 23, airlineId: 'air_5', flightNumber: 'EK-514', from: 'apt_1', to: 'apt_13', depTime: '09:00:00', duration: 210 },
+  { id: 24, airlineId: 'air_5', flightNumber: 'EK-029', from: 'apt_13', to: 'apt_14', depTime: '14:30:00', duration: 420 },
+  { id: 25, airlineId: 'air_5', flightNumber: 'EK-502', from: 'apt_2', to: 'apt_13', depTime: '10:00:00', duration: 195 },
+  { id: 26, airlineId: 'air_5', flightNumber: 'EK-031', from: 'apt_13', to: 'apt_14', depTime: '15:00:00', duration: 420 },
+  { id: 27, airlineId: 'air_2', flightNumber: 'AI-191', from: 'apt_1', to: 'apt_14', depTime: '12:00:00', duration: 570 },
+  { id: 28, airlineId: 'air_7', flightNumber: 'BA-117', from: 'apt_14', to: 'apt_15', depTime: '19:00:00', duration: 480 },
+  { id: 29, airlineId: 'air_5', flightNumber: 'EK-516', from: 'apt_1', to: 'apt_13', depTime: '08:00:00', duration: 210 },
+  { id: 30, airlineId: 'air_5', flightNumber: 'EK-003', from: 'apt_13', to: 'apt_14', depTime: '13:30:00', duration: 420 },
+  { id: 31, airlineId: 'air_7', flightNumber: 'BA-115', from: 'apt_14', to: 'apt_15', depTime: '21:00:00', duration: 480 },
+  { id: 32, airlineId: 'air_2', flightNumber: 'AI-866', from: 'apt_2', to: 'apt_1', depTime: '06:00:00', duration: 135 },
+  { id: 33, airlineId: 'air_2', flightNumber: 'AI-111', from: 'apt_1', to: 'apt_14', depTime: '11:00:00', duration: 570 },
+  { id: 34, airlineId: 'air_7', flightNumber: 'BA-119', from: 'apt_14', to: 'apt_15', depTime: '18:00:00', duration: 480 },
 ];
 
 // Generate segments for 7 days
@@ -121,8 +121,8 @@ for (let day = 0; day < 7; day++) {
       id: `seg_${seg.id}_d${day}`,
       airlineId: seg.airlineId,
       flightNumber: seg.flightNumber,
-      departureCityId: seg.from,
-      arrivalCityId: seg.to,
+      departureAirportId: seg.from,
+      arrivalAirportId: seg.to,
       departureTime: depTime,
       arrivalTime: arrTime,
       durationMinutes: seg.duration,
@@ -135,36 +135,36 @@ for (let day = 0; day < 7; day++) {
 // Base flight templates
 const BASE_FLIGHTS = [
   // Direct domestic
-  { id: 1, from: 'city_1', to: 'city_2', segs: [1], duration: 135, type: 'Direct', status: 'available' },
-  { id: 2, from: 'city_1', to: 'city_2', segs: [2], duration: 135, type: 'Direct', status: 'available' },
-  { id: 3, from: 'city_1', to: 'city_2', segs: [3], duration: 135, type: 'Direct', status: 'available' },
-  { id: 4, from: 'city_2', to: 'city_1', segs: [4], duration: 135, type: 'Direct', status: 'available' },
-  { id: 5, from: 'city_1', to: 'city_3', segs: [5], duration: 165, type: 'Direct', status: 'available' },
-  { id: 6, from: 'city_1', to: 'city_3', segs: [6], duration: 165, type: 'Direct', status: 'available' },
-  { id: 7, from: 'city_3', to: 'city_1', segs: [7], duration: 165, type: 'Direct', status: 'available' },
-  { id: 8, from: 'city_2', to: 'city_3', segs: [8], duration: 105, type: 'Direct', status: 'available' },
-  { id: 9, from: 'city_2', to: 'city_3', segs: [9], duration: 105, type: 'Direct', status: 'available' },
-  { id: 10, from: 'city_3', to: 'city_2', segs: [10], duration: 105, type: 'Direct', status: 'available' },
-  { id: 11, from: 'city_1', to: 'city_4', segs: [11], duration: 135, type: 'Direct', status: 'available' },
-  { id: 12, from: 'city_1', to: 'city_4', segs: [12], duration: 135, type: 'Direct', status: 'sold-out' },
-  { id: 13, from: 'city_2', to: 'city_5', segs: [13], duration: 105, type: 'Direct', status: 'available' },
-  { id: 14, from: 'city_2', to: 'city_5', segs: [14], duration: 105, type: 'Direct', status: 'available' },
+  { id: 1, from: 'apt_1', to: 'apt_2', segs: [1], duration: 135, type: 'Direct', status: 'available' },
+  { id: 2, from: 'apt_1', to: 'apt_2', segs: [2], duration: 135, type: 'Direct', status: 'available' },
+  { id: 3, from: 'apt_1', to: 'apt_2', segs: [3], duration: 135, type: 'Direct', status: 'available' },
+  { id: 4, from: 'apt_2', to: 'apt_1', segs: [4], duration: 135, type: 'Direct', status: 'available' },
+  { id: 5, from: 'apt_1', to: 'apt_3', segs: [5], duration: 165, type: 'Direct', status: 'available' },
+  { id: 6, from: 'apt_1', to: 'apt_3', segs: [6], duration: 165, type: 'Direct', status: 'available' },
+  { id: 7, from: 'apt_3', to: 'apt_1', segs: [7], duration: 165, type: 'Direct', status: 'available' },
+  { id: 8, from: 'apt_2', to: 'apt_3', segs: [8], duration: 105, type: 'Direct', status: 'available' },
+  { id: 9, from: 'apt_2', to: 'apt_3', segs: [9], duration: 105, type: 'Direct', status: 'available' },
+  { id: 10, from: 'apt_3', to: 'apt_2', segs: [10], duration: 105, type: 'Direct', status: 'available' },
+  { id: 11, from: 'apt_1', to: 'apt_4', segs: [11], duration: 135, type: 'Direct', status: 'available' },
+  { id: 12, from: 'apt_1', to: 'apt_4', segs: [12], duration: 135, type: 'Direct', status: 'sold-out' },
+  { id: 13, from: 'apt_2', to: 'apt_5', segs: [13], duration: 105, type: 'Direct', status: 'available' },
+  { id: 14, from: 'apt_2', to: 'apt_5', segs: [14], duration: 105, type: 'Direct', status: 'available' },
   // Direct international
-  { id: 15, from: 'city_1', to: 'city_13', segs: [15], duration: 210, type: 'Direct', status: 'available' },
-  { id: 16, from: 'city_1', to: 'city_13', segs: [16], duration: 210, type: 'Direct', status: 'available' },
-  { id: 17, from: 'city_2', to: 'city_13', segs: [17], duration: 195, type: 'Direct', status: 'available' },
-  { id: 18, from: 'city_1', to: 'city_12', segs: [18], duration: 330, type: 'Direct', status: 'available' },
-  { id: 19, from: 'city_1', to: 'city_12', segs: [19], duration: 330, type: 'Direct', status: 'available' },
-  { id: 20, from: 'city_2', to: 'city_12', segs: [20], duration: 330, type: 'Direct', status: 'sold-out' },
-  { id: 21, from: 'city_1', to: 'city_14', segs: [21], duration: 570, type: 'Direct', status: 'available' },
-  { id: 22, from: 'city_1', to: 'city_14', segs: [22], duration: 570, type: 'Direct', status: 'available' },
+  { id: 15, from: 'apt_1', to: 'apt_13', segs: [15], duration: 210, type: 'Direct', status: 'available' },
+  { id: 16, from: 'apt_1', to: 'apt_13', segs: [16], duration: 210, type: 'Direct', status: 'available' },
+  { id: 17, from: 'apt_2', to: 'apt_13', segs: [17], duration: 195, type: 'Direct', status: 'available' },
+  { id: 18, from: 'apt_1', to: 'apt_12', segs: [18], duration: 330, type: 'Direct', status: 'available' },
+  { id: 19, from: 'apt_1', to: 'apt_12', segs: [19], duration: 330, type: 'Direct', status: 'available' },
+  { id: 20, from: 'apt_2', to: 'apt_12', segs: [20], duration: 330, type: 'Direct', status: 'sold-out' },
+  { id: 21, from: 'apt_1', to: 'apt_14', segs: [21], duration: 570, type: 'Direct', status: 'available' },
+  { id: 22, from: 'apt_1', to: 'apt_14', segs: [22], duration: 570, type: 'Direct', status: 'available' },
   // 1 transit
-  { id: 23, from: 'city_1', to: 'city_14', segs: [23, 24], duration: 690, type: '1 transit', status: 'available' },
-  { id: 24, from: 'city_2', to: 'city_14', segs: [25, 26], duration: 660, type: '1 transit', status: 'available' },
-  { id: 25, from: 'city_1', to: 'city_15', segs: [27, 28], duration: 1080, type: '1 transit', status: 'available' },
+  { id: 23, from: 'apt_1', to: 'apt_14', segs: [23, 24], duration: 690, type: '1 transit', status: 'available' },
+  { id: 24, from: 'apt_2', to: 'apt_14', segs: [25, 26], duration: 660, type: '1 transit', status: 'available' },
+  { id: 25, from: 'apt_1', to: 'apt_15', segs: [27, 28], duration: 1080, type: '1 transit', status: 'available' },
   // 2+ transit
-  { id: 26, from: 'city_1', to: 'city_15', segs: [29, 30, 31], duration: 1440, type: '2+ transit', status: 'available' },
-  { id: 27, from: 'city_2', to: 'city_15', segs: [32, 33, 34], duration: 1320, type: '2+ transit', status: 'available' },
+  { id: 26, from: 'apt_1', to: 'apt_15', segs: [29, 30, 31], duration: 1440, type: '2+ transit', status: 'available' },
+  { id: 27, from: 'apt_2', to: 'apt_15', segs: [32, 33, 34], duration: 1320, type: '2+ transit', status: 'available' },
 ];
 
 // Generate flights for 7 days
@@ -173,8 +173,8 @@ for (let day = 0; day < 7; day++) {
   BASE_FLIGHTS.forEach(flight => {
     FLIGHT_TABLE.push({
       id: `flight_${flight.id}_d${day}`,
-      departureCityId: flight.from,
-      arrivalCityId: flight.to,
+      departureAirportId: flight.from,
+      arrivalAirportId: flight.to,
       segmentIds: flight.segs.map(s => `seg_${s}_d${day}`),
       totalDurationMinutes: flight.duration,
       transitType: flight.type as 'Direct' | '1 transit' | '2+ transit',
@@ -304,15 +304,15 @@ export function getAvailableFlights(classId?: string): FlightListing[] {
       return PRICING_TABLE.some(p => p.flightId === flight.id && p.classId === targetClassId);
     })
     .map(flight => {
-      const departureCity = CITY_TABLE.find(c => c.id === flight.departureCityId)!;
-      const arrivalCity = CITY_TABLE.find(c => c.id === flight.arrivalCityId)!;
+      const departureAirport = AIRPORT_TABLE.find(a => a.id === flight.departureAirportId)!;
+      const arrivalAirport = AIRPORT_TABLE.find(a => a.id === flight.arrivalAirportId)!;
 
       // Build segment details in order
       const segments: FlightSegmentDetail[] = flight.segmentIds.map(segId => {
         const seg = SEGMENT_TABLE.find(s => s.id === segId)!;
         const airline = AIRLINE_TABLE.find(a => a.id === seg.airlineId)!;
-        const depCity = CITY_TABLE.find(c => c.id === seg.departureCityId)!;
-        const arrCity = CITY_TABLE.find(c => c.id === seg.arrivalCityId)!;
+        const depAirport = AIRPORT_TABLE.find(a => a.id === seg.departureAirportId)!;
+        const arrAirport = AIRPORT_TABLE.find(a => a.id === seg.arrivalAirportId)!;
 
         const facilityIds = FLIGHT_FACILITY_MAPPING_TABLE
           .filter(ffm => ffm.segmentId === segId)
@@ -323,8 +323,8 @@ export function getAvailableFlights(classId?: string): FlightListing[] {
           id: seg.id,
           airline,
           flightNumber: seg.flightNumber,
-          departureCity: depCity,
-          arrivalCity: arrCity,
+          departureAirport: depAirport,
+          arrivalAirport: arrAirport,
           departureTime: seg.departureTime,
           arrivalTime: seg.arrivalTime,
           durationMinutes: seg.durationMinutes,
@@ -339,7 +339,7 @@ export function getAvailableFlights(classId?: string): FlightListing[] {
         const depTime = new Date(segments[i + 1].departureTime).getTime();
         const layoverMinutes = Math.round((depTime - arrTime) / 60000);
         layovers.push({
-          city: segments[i].arrivalCity,
+          airport: segments[i].arrivalAirport,
           durationMinutes: layoverMinutes > 0 ? layoverMinutes : 0,
         });
       }
@@ -349,8 +349,8 @@ export function getAvailableFlights(classId?: string): FlightListing[] {
 
       return {
         id: flight.id,
-        departureCity,
-        arrivalCity,
+        departureAirport,
+        arrivalAirport,
         segments,
         layovers,
         totalDurationMinutes: flight.totalDurationMinutes,

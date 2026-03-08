@@ -1,7 +1,9 @@
-export interface City {
+export interface Airport {
   id: string;
   name: string;
   code: string; // IATA code e.g., 'BOM', 'DXB', 'LHR'
+  cityName: string; // e.g., 'Mumbai', 'Dubai', 'London'
+  countryCode: string; // ISO 3166-1 alpha-2 e.g., 'IN', 'AE', 'GB'
 }
 
 export interface Airline {
@@ -21,24 +23,24 @@ export interface FlightClass {
   name: string; // 'Economy' | 'Premium Economy' | 'Business' | 'First Class'
 }
 
-// A single non-stop hop (e.g., Mumbai → Dubai)
+// A single non-stop hop (e.g., Mumbai BOM → Dubai DXB)
 export interface FlightSegment {
   id: string;
   airlineId: string;
   flightNumber: string; // e.g., 'EK-507'
-  departureCityId: string;
-  arrivalCityId: string;
+  departureAirportId: string;
+  arrivalAirportId: string;
   departureTime: string; // ISO 8601
   arrivalTime: string; // ISO 8601
   durationMinutes: number; // e.g., 195
 }
 
-// The full journey (e.g., Mumbai → London via Dubai)
+// The full journey (e.g., Mumbai BOM → London LHR via Dubai DXB)
 // A direct flight has 1 segment; a 1-transit flight has 2 segments, etc.
 export interface Flight {
   id: string;
-  departureCityId: string; // origin of the whole journey
-  arrivalCityId: string; // final destination
+  departureAirportId: string; // origin airport of the whole journey
+  arrivalAirportId: string; // final destination airport
   segmentIds: string[]; // ordered list of FlightSegment IDs
   totalDurationMinutes: number; // gate-to-gate including layovers
   transitType: 'Direct' | '1 transit' | '2+ transit';
@@ -47,7 +49,7 @@ export interface Flight {
 
 // Layover info derived from consecutive segments
 export interface Layover {
-  cityId: string;
+  airportId: string;
   durationMinutes: number; // time between arrival of seg N and departure of seg N+1
 }
 
@@ -65,14 +67,15 @@ export interface FlightFacilityMapping {
   facilityId: string;
 }
 
+
 // ── Joined UI representations ──────────────────────────────────────
 
 export interface FlightSegmentDetail {
   id: string;
   airline: Airline;
   flightNumber: string;
-  departureCity: City;
-  arrivalCity: City;
+  departureAirport: Airport;
+  arrivalAirport: Airport;
   departureTime: string;
   arrivalTime: string;
   durationMinutes: number;
@@ -80,14 +83,14 @@ export interface FlightSegmentDetail {
 }
 
 export interface LayoverDetail {
-  city: City;
+  airport: Airport;
   durationMinutes: number;
 }
 
 export interface FlightListing {
   id: string;
-  departureCity: City;
-  arrivalCity: City;
+  departureAirport: Airport;
+  arrivalAirport: Airport;
   segments: FlightSegmentDetail[];
   layovers: LayoverDetail[]; // length = segments.length - 1
   totalDurationMinutes: number;
