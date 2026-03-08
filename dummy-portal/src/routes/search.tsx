@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import Navbar from '../components/home/Navbar'
 import SearchWidget from '../components/home/SearchWidget'
-import FlightFilterSidebar from '../components/search/FlightFilterSidebar'
+import FlightFilterSidebar, { SORT_LABELS } from '../components/search/FlightFilterSidebar'
+import type { FilterState, SortOption } from '../components/search/FlightFilterSidebar'
 import DateTabs from '../components/search/DateTabs'
 import FlightCard from '../components/search/FlightCard'
 import { searchFlights } from '../data/searchFlights'
 import { getClassIdByName, getAirportByCode } from '../data/helpers'
+import type { FlightListing } from '../data/schema'
 
 interface SearchParams {
     from?: string;
@@ -36,26 +38,102 @@ function formatSidebarDate(dateStr: string) {
     return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 
+function applyFilters(flights: FlightListing[], filters: FilterState): FlightListing[] {
+    return flights.filter(f => {
+        // Transit type filter
+        if (filters.transitTypes.length > 0 && !filters.transitTypes.includes(f.transitType as any)) {
+            return false;
+        }
+        // Price range filter
+        if (f.pricing.pricePerPassenger < filters.priceRange[0] || f.pricing.pricePerPassenger > filters.priceRange[1]) {
+            return false;
+        }
+        // Facility filter — flight must have ALL selected facilities
+        if (filters.facilities.length > 0) {
+            const flightFacilityIds = new Set(f.segments.flatMap(s => s.facilities.map(fac => fac.id)));
+            if (!filters.facilities.every(id => flightFacilityIds.has(id))) {
+                return false;
+            }
+        }
+        return true;
+    });
+}
+
+function applySorting(flights: FlightListing[], sort: SortOption): FlightListing[] {
+    const sorted = [...flights];
+    switch (sort) {
+        case 'price-asc':
+            return sorted.sort((a, b) => a.pricing.pricePerPassenger - b.pricing.pricePerPassenger);
+        case 'price-desc':
+            return sorted.sort((a, b) => b.pricing.pricePerPassenger - a.pricing.pricePerPassenger);
+        case 'duration-asc':
+            return sorted.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
+        case 'departure-asc':
+            return sorted.sort((a, b) => a.segments[0].departureTime.localeCompare(b.segments[0].departureTime));
+        case 'direct-first': {
+            const order: Record<string, number> = { 'Direct': 0, '1 transit': 1, '2+ transit': 2 };
+            return sorted.sort((a, b) => (order[a.transitType] ?? 9) - (order[b.transitType] ?? 9) || a.pricing.pricePerPassenger - b.pricing.pricePerPassenger);
+        }
+        default:
+            return sorted;
+    }
+}
+
 function SearchRoute() {
     const searchParams = Route.useSearch();
     const isRoundTrip = searchParams.tripType === 'round-trip';
     const [activeLeg, setActiveLeg] = useState<'outbound' | 'return'>('outbound');
+    const [sortBy, setSortBy] = useState<SortOption>('direct-first');
+    const [sortOpen, setSortOpen] = useState(false);
+    const sortRef = useRef<HTMLDivElement>(null);
 
     const classId = searchParams.class ? getClassIdByName(searchParams.class) : undefined;
-
     const isReturnLeg = isRoundTrip && activeLeg === 'return';
 
-    // For return leg, swap origin/destination and use returnDate
     const effectiveFrom = isReturnLeg ? searchParams.to : searchParams.from;
     const effectiveTo = isReturnLeg ? searchParams.from : searchParams.to;
     const effectiveDate = isReturnLeg ? searchParams.returnDate : searchParams.date;
 
-    const flights = searchFlights({
+    const allFlights = useMemo(() => searchFlights({
         originAirportCode: effectiveFrom,
         destinationAirportCode: effectiveTo,
         departureDate: effectiveDate,
         classId,
+    }), [effectiveFrom, effectiveTo, effectiveDate, classId]);
+
+    // Derive initial price range from flights
+    const prices = allFlights.map(f => f.pricing.pricePerPassenger);
+    const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+    const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+
+    const [filters, setFilters] = useState<FilterState>({
+        transitTypes: [],
+        priceRange: [minPrice, maxPrice],
+        facilities: [],
     });
+
+    // Reset filters when flights change (new search)
+    useEffect(() => {
+        setFilters({
+            transitTypes: [],
+            priceRange: [minPrice, maxPrice],
+            facilities: [],
+        });
+    }, [minPrice, maxPrice]);
+
+    // Close sort dropdown on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+                setSortOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const filteredFlights = useMemo(() => applyFilters(allFlights, filters), [allFlights, filters]);
+    const sortedFlights = useMemo(() => applySorting(filteredFlights, sortBy), [filteredFlights, sortBy]);
 
     const fromAirport = searchParams.from ? getAirportByCode(searchParams.from) : undefined;
     const toAirport = searchParams.to ? getAirportByCode(searchParams.to) : undefined;
@@ -80,7 +158,6 @@ function SearchRoute() {
                                     Your Flight
                                 </h3>
                                 <div className="space-y-4 relative before:absolute before:left-3.5 before:top-8 before:bottom-8 before:w-px before:bg-divider-light">
-                                    {/* Outbound leg */}
                                     <button
                                         onClick={() => setActiveLeg('outbound')}
                                         className={`flex gap-4 relative z-10 bg-white group cursor-pointer w-full text-left transition-opacity ${activeLeg === 'return' ? 'opacity-60 hover:opacity-100' : ''}`}
@@ -93,7 +170,6 @@ function SearchRoute() {
                                             <div className="font-semibold text-content mt-0.5 group-hover:text-primary transition-colors">{fromAirport.cityName} → {toAirport.cityName}</div>
                                         </div>
                                     </button>
-                                    {/* Return leg */}
                                     <button
                                         onClick={() => setActiveLeg('return')}
                                         className={`flex gap-4 relative z-10 bg-white group cursor-pointer w-full text-left transition-opacity ${activeLeg === 'outbound' ? 'opacity-60 hover:opacity-100' : ''}`}
@@ -110,18 +186,41 @@ function SearchRoute() {
                             </div>
                         )}
 
+                        {/* Sort By Dropdown */}
                         <div className="bg-white rounded-2xl shadow-sm border border-divider-light p-5">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm font-medium text-content-muted">Sort by:</span>
                             </div>
-                            <div className="font-semibold text-content flex items-center justify-between cursor-pointer group">
-                                <span className="group-hover:text-primary transition-colors">Direct Flight First</span>
-                                <svg className="w-4 h-4 text-content-muted group-hover:text-primary transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                            <div ref={sortRef} className="relative">
+                                <button
+                                    onClick={() => setSortOpen(!sortOpen)}
+                                    className="font-semibold text-content flex items-center justify-between cursor-pointer group w-full"
+                                >
+                                    <span className="group-hover:text-primary transition-colors">{SORT_LABELS[sortBy]}</span>
+                                    <svg className="w-4 h-4 text-content-muted group-hover:text-primary transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+                                {sortOpen && (
+                                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-divider-light z-50 py-1 overflow-hidden">
+                                        {(Object.keys(SORT_LABELS) as SortOption[]).map(option => (
+                                            <button
+                                                key={option}
+                                                onClick={() => { setSortBy(option); setSortOpen(false); }}
+                                                className={`w-full text-left px-4 py-2.5 text-sm cursor-pointer transition-colors ${sortBy === option ? 'bg-primary-50 text-primary font-semibold' : 'text-content hover:bg-surface-muted'}`}
+                                            >
+                                                {SORT_LABELS[option]}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         <div className="bg-white rounded-2xl shadow-sm border border-divider-light p-5">
-                            <FlightFilterSidebar />
+                            <FlightFilterSidebar
+                                filters={filters}
+                                onFiltersChange={setFilters}
+                                flights={allFlights}
+                            />
                         </div>
                     </div>
 
@@ -136,7 +235,7 @@ function SearchRoute() {
                         />
 
                         <div className="space-y-4">
-                            {flights.length > 0 ? flights.map((flight) => (
+                            {sortedFlights.length > 0 ? sortedFlights.map((flight) => (
                                 <FlightCard key={flight.id} flight={flight} />
                             )) : (
                                 <div className="bg-white rounded-2xl shadow-sm border border-divider-light p-12 text-center">
