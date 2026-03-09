@@ -4,12 +4,11 @@ import { getFlightById } from '../data/helpers';
 import Navbar from '../components/home/Navbar';
 import BookingStepper from '../components/booking/BookingStepper';
 import ReviewStep from '../components/booking/ReviewStep';
-import PassengerStep, { type PassengerData } from '../components/booking/PassengerStep';
+import PassengerStep from '../components/booking/PassengerStep';
 import PaymentStep from '../components/booking/PaymentStep';
 import { Loader2 } from 'lucide-react';
-
-// Constants
-const TAX_RATE = 0.12; // 12% tax rate
+import { TAX_RATE } from '../data/helpers';
+import type { PassengerData } from '../data/schema';
 // TODO: Replace with actual Stripe payment processing time
 const MOCK_PAYMENT_DELAY_MS = 2500;
 
@@ -155,6 +154,7 @@ function BookingRoute() {
             flight={flight}
             adults={adults}
             children={children}
+            pricing={pricing}
             onContinue={handleContinueToPassengers}
           />
         )}

@@ -101,3 +101,11 @@ export interface FlightListing {
   pricing: FlightPricing;
   flightClass: FlightClass;
 }
+
+export interface PassengerData {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  email?: string;
+  phone?: string;
+}

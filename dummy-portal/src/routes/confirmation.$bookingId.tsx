@@ -2,11 +2,9 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState, useRef } from 'react';
 import Navbar from '../components/home/Navbar';
 import { CheckCircle, Download, Printer } from 'lucide-react';
-import type { FlightListing } from '../data/schema';
-import type { PassengerData } from '../components/booking/PassengerStep';
+import type { FlightListing, PassengerData } from '../data/schema';
 import { formatDuration } from '../data/mockData';
-
-const TAX_RATE = 0.12; // 12% tax rate
+import { TAX_RATE } from '../data/helpers';
 
 interface ConfirmationState {
   flight: FlightListing;

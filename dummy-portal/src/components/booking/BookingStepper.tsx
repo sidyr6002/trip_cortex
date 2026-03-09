@@ -14,8 +14,8 @@ const STEPS = [
 
 export default function BookingStepper({ currentStep }: BookingStepperProps) {
   return (
-    <div className="w-full mb-12 hidden md:block px-4">
-      <div className="relative flex justify-between items-center z-0">
+    <div className="w-full mb-12 px-4">
+      <div className="relative hidden md:flex justify-between items-center z-0">
         {/* Background track */}
         <div className="absolute top-1/2 left-0 w-full h-1 bg-divider-light -translate-y-1/2 -z-10 rounded-full" />
 
