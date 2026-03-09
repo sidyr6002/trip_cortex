@@ -12,8 +12,7 @@ export default function Navbar({ simplified = false }: { simplified?: boolean })
         {!simplified && (
           <>
             <a href="#" className="nav-link">Home</a>
-            <a href="#" className="nav-link">Booking</a>
-            <a href="#" className="nav-link">Partnership</a>
+            <Link to="/search" className="nav-link">Booking</Link>
           </>
         )}
       </div>
@@ -41,8 +40,7 @@ export default function Navbar({ simplified = false }: { simplified?: boolean })
       <div className="flex items-center justify-end gap-8 text-sm font-medium w-1/3">
         {!simplified && (
           <>
-            <a href="#" className="nav-link">Deals</a>
-            <a href="#" className="nav-link">Blog</a>
+            <Link to="/deals" className="nav-link">Deals</Link>
           </>
         )}
         <SignedOut>

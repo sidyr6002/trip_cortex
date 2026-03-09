@@ -35,8 +35,8 @@ export default function SearchWidget() {
         to: new Date(new Date().setDate(new Date().getDate() + 7)),
     });
 
-    const [adults, setAdults] = useState(2);
-    const [children, setChildren] = useState(1);
+    const [adults, setAdults] = useState(1);
+    const [children, setChildren] = useState(0);
 
     const [flightClass, setFlightClass] = useState("Economy");
 
