@@ -21,7 +21,7 @@ const CLASSES = CLASS_TABLE.map(c => c.name);
 
 export default function SearchWidget() {
     const navigate = useNavigate();
-    const searchParams: { from?: string; to?: string; date?: string; returnDate?: string; tripType?: string; class?: string } = useSearch({ strict: false });
+    const searchParams: { from?: string; to?: string; date?: string; returnDate?: string; tripType?: string; class?: string; adults?: number; children?: number } = useSearch({ strict: false });
 
     // State
     const [tripType, setTripType] = useState<string>("one-way");
@@ -66,10 +66,12 @@ export default function SearchWidget() {
             }
         }
         if (searchParams.class) {
-            const className = getClassNameById(searchParams.class) || 
-                             CLASS_TABLE.find(c => c.name.toLowerCase() === searchParams.class?.toLowerCase())?.name;
+            const className = getClassNameById(searchParams.class) ||
+                CLASS_TABLE.find(c => c.name.toLowerCase() === searchParams.class?.toLowerCase())?.name;
             if (className) setFlightClass(className);
         }
+        if (searchParams.adults !== undefined) setAdults(Number(searchParams.adults));
+        if (searchParams.children !== undefined) setChildren(Number(searchParams.children));
     }, [searchParams]);
 
     const handleSearch = () => {
@@ -79,6 +81,8 @@ export default function SearchWidget() {
             date: format(tripType === 'round-trip' && dateRange?.from ? dateRange.from : date, 'yyyy-MM-dd'),
             class: flightClass.toLowerCase(),
             tripType,
+            adults: adults.toString(),
+            children: children.toString(),
         };
         if (tripType === 'round-trip' && dateRange?.to) {
             search.returnDate = format(dateRange.to, 'yyyy-MM-dd');

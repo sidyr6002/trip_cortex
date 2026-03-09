@@ -2,6 +2,8 @@ import type { FlightListing } from '../../data/schema';
 import { formatDuration } from '../../data/mockData';
 import { Plane, Calendar, Users, Briefcase } from 'lucide-react';
 
+const TAX_RATE = 0.12; // 12% tax rate
+
 interface ReviewStepProps {
   flight: FlightListing;
   adults: number;
@@ -12,7 +14,7 @@ interface ReviewStepProps {
 export default function ReviewStep({ flight, adults, children, onContinue }: ReviewStepProps) {
   const totalPassengers = adults + children;
   const subtotal = flight.pricing.pricePerPassenger * totalPassengers;
-  const taxes = subtotal * 0.12;
+  const taxes = subtotal * TAX_RATE;
   const total = subtotal + taxes;
 
   const departureDate = new Date(flight.segments[0].departureTime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });

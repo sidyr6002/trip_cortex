@@ -17,7 +17,7 @@ export default function PaymentStep({ totalAmount, onConfirm, onBack }: PaymentS
   const [cardName, setCardName] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  const isValid = cardNumber.length >= 16 && expiry && cvv.length === 3 && cardName && termsAccepted;
+  const isValid = cardNumber.length >= 16 && expiry.length === 5 && cvv.length === 3 && cardName.trim() && termsAccepted;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,6 +156,7 @@ export default function PaymentStep({ totalAmount, onConfirm, onBack }: PaymentS
                 onChange={(e) => setCardName(e.target.value)}
                 placeholder="John Doe"
                 className={inputClass}
+                autoComplete="cc-name"
                 required
                 data-testid="card-name"
               />

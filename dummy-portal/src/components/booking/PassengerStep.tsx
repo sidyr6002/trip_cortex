@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Mail, Phone, CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '../../lib/utils';
 import { Calendar } from '../ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
+
+// Validation helpers
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^[\d\s\-\+\(\)]+$/; // Basic phone validation
 
 export interface PassengerData {
   firstName: string;
@@ -23,15 +27,38 @@ interface PassengerStepProps {
 
 export default function PassengerStep({ adults, children, onContinue, onBack }: PassengerStepProps) {
   const totalPassengers = adults + children;
-  const [passengers, setPassengers] = useState<PassengerData[]>(
-    Array.from({ length: totalPassengers }, () => ({
+
+  const [passengers, setPassengers] = useState<PassengerData[]>(() => {
+    return Array.from({ length: totalPassengers }, () => ({
       firstName: '',
       lastName: '',
       dateOfBirth: '',
       email: '',
       phone: '',
-    }))
-  );
+    }));
+  });
+
+  useEffect(() => {
+    setPassengers(prev => {
+      if (prev.length === totalPassengers) return prev;
+
+      if (prev.length < totalPassengers) {
+        // Add new empty passengers
+        const toAdd = totalPassengers - prev.length;
+        const newPassengers = Array.from({ length: toAdd }, () => ({
+          firstName: '',
+          lastName: '',
+          dateOfBirth: '',
+          email: '',
+          phone: '',
+        }));
+        return [...prev, ...newPassengers];
+      } else {
+        // Remove excess passengers
+        return prev.slice(0, totalPassengers);
+      }
+    });
+  }, [totalPassengers]);
 
   const updatePassenger = (index: number, field: keyof PassengerData, value: string) => {
     setPassengers(prev => {
@@ -42,9 +69,17 @@ export default function PassengerStep({ adults, children, onContinue, onBack }: 
   };
 
   const isValid = passengers.every((p, idx) => {
-    const hasBasicInfo = p.firstName && p.lastName && p.dateOfBirth;
-    const hasContactInfo = idx === 0 ? p.email && p.phone : true;
-    return hasBasicInfo && hasContactInfo;
+    const hasBasicInfo = p.firstName.trim() && p.lastName.trim() && p.dateOfBirth;
+    if (!hasBasicInfo) return false;
+    
+    // Primary passenger needs valid email and phone
+    if (idx === 0) {
+      const hasValidEmail = p.email && EMAIL_REGEX.test(p.email);
+      const hasValidPhone = p.phone && PHONE_REGEX.test(p.phone) && p.phone.replace(/\D/g, '').length >= 10;
+      return hasValidEmail && hasValidPhone;
+    }
+    
+    return true;
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -99,6 +134,7 @@ export default function PassengerStep({ adults, children, onContinue, onBack }: 
                       onChange={(e) => updatePassenger(idx, 'firstName', e.target.value)}
                       className={inputClass}
                       placeholder="e.g. John"
+                      autoComplete="given-name"
                       required
                       data-testid={`passenger-${idx}-firstName`}
                     />
@@ -117,6 +153,7 @@ export default function PassengerStep({ adults, children, onContinue, onBack }: 
                       onChange={(e) => updatePassenger(idx, 'lastName', e.target.value)}
                       className={inputClass}
                       placeholder="e.g. Doe"
+                      autoComplete="family-name"
                       required
                       data-testid={`passenger-${idx}-lastName`}
                     />
@@ -184,6 +221,7 @@ export default function PassengerStep({ adults, children, onContinue, onBack }: 
                           onChange={(e) => updatePassenger(idx, 'email', e.target.value)}
                           className={inputClass}
                           placeholder="john.doe@example.com"
+                          autoComplete="email"
                           required
                           data-testid="primary-email"
                         />
@@ -202,6 +240,7 @@ export default function PassengerStep({ adults, children, onContinue, onBack }: 
                           onChange={(e) => updatePassenger(idx, 'phone', e.target.value)}
                           className={inputClass}
                           placeholder="+1 (555) 000-0000"
+                          autoComplete="tel"
                           required
                           data-testid="primary-phone"
                         />

@@ -28,7 +28,6 @@ export default function BookingStepper({ currentStep }: BookingStepperProps) {
         {STEPS.map((step) => {
           const isCompleted = step.number < currentStep;
           const isActive = step.number === currentStep;
-          const isPending = step.number > currentStep;
 
           return (
             <div key={step.number} className="flex flex-col items-center relative z-10 w-24">

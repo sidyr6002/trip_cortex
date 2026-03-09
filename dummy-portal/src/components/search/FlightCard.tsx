@@ -37,8 +37,6 @@ export default function FlightCard({ flight, adults = 1, children = 0 }: FlightC
         setActiveTab(current => current === tab ? null : tab);
     };
 
-    const bookingUrl = `/book/${flight.id}?adults=${adults}&children=${children}`;
-
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-divider-light p-6 pb-4 mb-4 hover:shadow-md transition-shadow">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-6">

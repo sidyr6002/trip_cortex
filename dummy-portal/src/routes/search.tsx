@@ -159,7 +159,7 @@ function SearchRoute() {
     const toAirport = searchParams.to ? getAirportByCode(searchParams.to) : undefined;
 
     return (
-        <div className="min-h-screen bg-surface-gradient font-sans text-content overflow-x-hidden">
+        <div className="min-h-screen bg-gradient-to-b from-primary-100 via-primary-50 to-white font-sans text-content overflow-x-hidden">
             <Navbar simplified />
 
             <div className="max-w-[1400px] mx-auto px-4 pt-12 pb-6">

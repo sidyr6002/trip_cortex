@@ -1,9 +1,12 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useEffect, useState, useRef } from 'react';
 import Navbar from '../components/home/Navbar';
 import { CheckCircle, Download, Printer } from 'lucide-react';
 import type { FlightListing } from '../data/schema';
 import type { PassengerData } from '../components/booking/PassengerStep';
 import { formatDuration } from '../data/mockData';
+
+const TAX_RATE = 0.12; // 12% tax rate
 
 interface ConfirmationState {
   flight: FlightListing;
@@ -20,11 +23,33 @@ export const Route = createFileRoute('/confirmation/$bookingId')({
 function ConfirmationRoute() {
   const { bookingId } = Route.useParams();
   const navigate = useNavigate();
-  const state = window.history.state?.usr as ConfirmationState | undefined;
+  const downloadLinkRef = useRef<HTMLAnchorElement>(null);
+  
+  // Try to get state from navigation or localStorage
+  const [bookingState, setBookingState] = useState<ConfirmationState | null>(null);
 
-  if (!state) {
+  useEffect(() => {
+    // First try navigation state
+    const navState = window.history.state?.usr as ConfirmationState | undefined;
+    
+    if (navState) {
+      setBookingState(navState);
+    } else {
+      // Fallback to localStorage
+      const stored = localStorage.getItem(`booking-${bookingId}`);
+      if (stored) {
+        try {
+          setBookingState(JSON.parse(stored));
+        } catch (error) {
+          console.error('Failed to parse booking data:', error);
+        }
+      }
+    }
+  }, [bookingId]);
+
+  if (!bookingState) {
     return (
-      <div className="min-h-screen bg-surface">
+      <div className="min-h-screen bg-gradient-to-b from-primary-100 via-primary-50 to-white">
         <Navbar />
         <div className="container mx-auto px-4 py-12 text-center">
           <h1 className="text-2xl font-bold text-content mb-4">Booking Not Found</h1>
@@ -40,12 +65,15 @@ function ConfirmationRoute() {
     );
   }
 
-  const { flight, passengers, adults, children, total } = state;
+  const { flight, passengers, adults, children, total } = bookingState;
   const totalPassengers = adults + children;
   const subtotal = flight.pricing.pricePerPassenger * totalPassengers;
-  const taxes = subtotal * 0.12;
+  const taxes = subtotal * TAX_RATE;
 
   const handleDownload = () => {
+    // Sanitize user input
+    const sanitize = (str: string) => str.replace(/[<>]/g, '');
+    
     const itinerary = `
 FLYSMART BOOKING CONFIRMATION
 ==============================
@@ -54,14 +82,14 @@ Booking Reference: ${bookingId}
 
 FLIGHT DETAILS
 --------------
-${flight.segments[0].airline.name}
-Flight: ${flight.segments.map(s => s.flightNumber).join(' → ')}
-Class: ${flight.flightClass.name}
+${sanitize(flight.segments[0].airline.name)}
+Flight: ${flight.segments.map(s => sanitize(s.flightNumber)).join(' → ')}
+Class: ${sanitize(flight.flightClass.name)}
 
-Departure: ${flight.departureAirport.name} (${flight.departureAirport.code})
+Departure: ${sanitize(flight.departureAirport.name)} (${flight.departureAirport.code})
            ${new Date(flight.segments[0].departureTime).toLocaleString()}
 
-Arrival:   ${flight.arrivalAirport.name} (${flight.arrivalAirport.code})
+Arrival:   ${sanitize(flight.arrivalAirport.name)} (${flight.arrivalAirport.code})
            ${new Date(flight.segments[flight.segments.length - 1].arrivalTime).toLocaleString()}
 
 Duration: ${formatDuration(flight.totalDurationMinutes)}
@@ -69,7 +97,7 @@ Transit: ${flight.transitType}
 
 PASSENGERS
 ----------
-${passengers.map((p, i) => `${i + 1}. ${p.firstName} ${p.lastName} (DOB: ${p.dateOfBirth})`).join('\n')}
+${passengers.map((p, i) => `${i + 1}. ${sanitize(p.firstName)} ${sanitize(p.lastName)} (DOB: ${p.dateOfBirth})`).join('\n')}
 
 PRICE BREAKDOWN
 ---------------
@@ -77,23 +105,27 @@ Base Fare (${totalPassengers} passengers): $${subtotal.toFixed(2)}
 Taxes & Fees: $${taxes.toFixed(2)}
 Total: $${total.toFixed(2)}
 
-Contact: ${passengers[0].email}
-Phone: ${passengers[0].phone}
+Contact: ${sanitize(passengers[0].email || '')}
+Phone: ${sanitize(passengers[0].phone || '')}
 
 Thank you for booking with FlySmart!
     `.trim();
 
     const blob = new Blob([itinerary], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `FlySmart-${bookingId}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    
+    if (downloadLinkRef.current) {
+      downloadLinkRef.current.href = url;
+      downloadLinkRef.current.download = `FlySmart-${bookingId}.txt`;
+      downloadLinkRef.current.click();
+    }
+    
+    // Cleanup
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   };
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-gradient-to-b from-primary-100 via-primary-50 to-white">
       <Navbar />
 
       <div className="container mx-auto px-4 py-12 max-w-4xl">
@@ -258,6 +290,9 @@ Thank you for booking with FlySmart!
             Book Another Flight
           </button>
         </div>
+
+        {/* Hidden download link for React-idiomatic approach */}
+        <a ref={downloadLinkRef} className="hidden" aria-hidden="true" />
       </div>
     </div>
   );
