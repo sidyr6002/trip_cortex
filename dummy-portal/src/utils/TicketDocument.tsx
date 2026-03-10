@@ -1,8 +1,7 @@
 import { Document, Page, View, Text, StyleSheet, Svg, Path, G } from '@react-pdf/renderer'
 import type { FlightListing, PassengerData } from '../data/schema'
-import { formatDuration } from '../data/mockData'
+import { formatDuration, formatDateLong, formatTimePM } from '../lib/dateUtils'
 import { TAX_RATE } from '../data/helpers'
-import { formatDateLong, formatTimePM } from '../lib/dateUtils'
 
 export interface TicketData {
   bookingId: string

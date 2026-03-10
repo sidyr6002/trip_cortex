@@ -1,6 +1,6 @@
 import type { FlightListing } from '../../data/schema';
-import { formatDuration } from '../../data/mockData';
-import { formatDateShort, formatTime } from '../../lib/dateUtils';
+import { formatDuration, formatDateShort, formatTime } from '../../lib/dateUtils';
+import { hasFacility } from '../../lib/flightUtils';
 import { Briefcase, Utensils, MonitorPlay, Wifi, BatteryCharging, Info, Clock } from 'lucide-react';
 import { FlightRouteMap } from './FlightRouteMap';
 
@@ -9,9 +9,6 @@ interface Props {
 }
 
 export default function FlightDetailsTab({ flight }: Props) {
-
-    const hasFacility = (segment: typeof flight.segments[0], icon: string) =>
-        segment.facilities.some(f => f.iconName === icon);
 
     // Build ordered airports array for the route map
     const routeAirports = [];

@@ -823,14 +823,6 @@ for (let day = 0; day < 7; day++) {
   });
 }
 
-// ── Helper: format minutes as "Xh Ym" ─────────────────────────────
-
-export function formatDuration(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
-}
-
 // ── Join helper: build FlightListing from normalized tables ────────
 
 export function getAvailableFlights(classId?: string): FlightListing[] {

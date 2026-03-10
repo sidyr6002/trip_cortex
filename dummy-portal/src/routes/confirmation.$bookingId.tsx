@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react';
 import Navbar from '../components/home/Navbar';
 import { CheckCircle, Download, Printer } from 'lucide-react';
 import type { FlightListing, PassengerData } from '../data/schema';
-import { formatDuration } from '../data/mockData';
-import { formatDateTime } from '../lib/dateUtils';
+import { formatDuration, formatDateTime } from '../lib/dateUtils';
 import { calculatePricing } from '../data/calculatePricing';
 import { generateTicketPdf } from '../utils/generateTicketPdf';
 

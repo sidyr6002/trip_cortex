@@ -1,6 +1,5 @@
 import type { FlightListing } from '../../data/schema';
-import { formatDuration } from '../../data/mockData';
-import { formatDate } from '../../lib/dateUtils';
+import { formatDuration, formatDate } from '../../lib/dateUtils';
 import { Plane, Calendar, Users, Briefcase } from 'lucide-react';
 
 function FlightSummaryCard({ flight }: { flight: FlightListing }) {

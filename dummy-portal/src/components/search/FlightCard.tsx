@@ -4,7 +4,8 @@ import { useAuth, useSignIn } from '@clerk/tanstack-react-start';
 import { Briefcase, Utensils, MonitorPlay, Wifi, BatteryCharging } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 import type { FlightListing } from '../../data/schema';
-import { formatDuration } from '../../data/mockData';
+import { formatDuration } from '../../lib/dateUtils';
+import { hasFacility } from '../../lib/flightUtils';
 import FlightPath from './FlightPath';
 import { cn } from '../../lib/utils';
 import {
@@ -40,7 +41,6 @@ export default function FlightCard({ flight, adults = 1, children = 0, onSelect 
     // Aggregate facilities across all segments (deduplicated)
     const allFacilities = flight.segments.flatMap(s => s.facilities);
     const uniqueFacilities = allFacilities.filter((f, i, arr) => arr.findIndex(x => x.id === f.id) === i);
-    const hasFacility = (icon: string) => uniqueFacilities.some(f => f.iconName === icon);
 
     // Primary airline & flight number from first segment
     const primaryAirline = flight.segments[0].airline;
@@ -100,11 +100,11 @@ export default function FlightCard({ flight, adults = 1, children = 0, onSelect 
                 {/* Facilities & Price */}
                 <div className="flex items-center justify-between w-full lg:w-1/3 shrink-0 gap-4">
                     <div className="flex items-center gap-2.5 text-content-light">
-                        {hasFacility('baggage') && <Briefcase className="w-4 h-4 shrink-0" />}
-                        {hasFacility('meal') && <Utensils className="w-4 h-4 shrink-0" />}
-                        {hasFacility('entertainment') && <MonitorPlay className="w-4 h-4 shrink-0" />}
-                        {hasFacility('wifi') && <Wifi className="w-4 h-4 shrink-0" />}
-                        {hasFacility('power') && <BatteryCharging className="w-4 h-4 shrink-0" />}
+                        {hasFacility(uniqueFacilities, 'baggage') && <Briefcase className="w-4 h-4 shrink-0" />}
+                        {hasFacility(uniqueFacilities, 'meal') && <Utensils className="w-4 h-4 shrink-0" />}
+                        {hasFacility(uniqueFacilities, 'entertainment') && <MonitorPlay className="w-4 h-4 shrink-0" />}
+                        {hasFacility(uniqueFacilities, 'wifi') && <Wifi className="w-4 h-4 shrink-0" />}
+                        {hasFacility(uniqueFacilities, 'power') && <BatteryCharging className="w-4 h-4 shrink-0" />}
                     </div>
                     <div className="text-right">
                         <div className="flex items-baseline gap-1">
