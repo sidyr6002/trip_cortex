@@ -36,7 +36,7 @@ export function StripeProvider({ clientSecret, children }: StripeProviderProps) 
             colorDanger: '#ef4444',
             borderRadius: '12px',
             fontFamily: 'Geom, ui-sans-serif, system-ui, sans-serif',
-            fontSizeBase: '24px',
+            fontSizeBase: '20px',
             spacingUnit: '5px',
             spacingGridRow: '20px',
             colorTextPlaceholder: '#9ca3af',
@@ -47,7 +47,7 @@ export function StripeProvider({ clientSecret, children }: StripeProviderProps) 
               border: '1.5px solid #e5e7eb',
               padding: '12px 14px',
               transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-              fontSize: '18px',
+              fontSize: '16px',
             },
             '.Input:focus': {
               borderColor: '#3957d7',
@@ -59,7 +59,7 @@ export function StripeProvider({ clientSecret, children }: StripeProviderProps) 
             },
             '.Label': {
               fontWeight: '600',
-              fontSize: '16px',
+              fontSize: '15px',
               color: '#374151',
               marginBottom: '6px',
             },
