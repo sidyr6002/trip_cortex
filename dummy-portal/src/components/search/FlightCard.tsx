@@ -1,10 +1,19 @@
 import { useState } from 'react';
-import { Link } from '@tanstack/react-router';
+import { useNavigate, useRouterState } from '@tanstack/react-router';
+import { useAuth, useSignIn } from '@clerk/tanstack-react-start';
 import { Briefcase, Utensils, MonitorPlay, Wifi, BatteryCharging } from 'lucide-react';
+import { FcGoogle } from 'react-icons/fc';
 import type { FlightListing } from '../../data/schema';
 import { formatDuration } from '../../data/mockData';
 import FlightPath from './FlightPath';
 import { cn } from '../../lib/utils';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from '../ui/dialog';
 
 // Import newly created tab components
 import FlightDetailsTab from './FlightDetailsTab';
@@ -21,6 +30,11 @@ type TabType = 'details' | 'price' | 'promos' | null;
 
 export default function FlightCard({ flight, adults = 1, children = 0 }: FlightCardProps) {
     const [activeTab, setActiveTab] = useState<TabType>(null);
+    const [showLoginDialog, setShowLoginDialog] = useState(false);
+    const { isSignedIn } = useAuth();
+    const { signIn } = useSignIn();
+    const navigate = useNavigate();
+    const currentUrl = useRouterState().location.href;
 
     // Aggregate facilities across all segments (deduplicated)
     const allFacilities = flight.segments.flatMap(s => s.facilities);
@@ -119,27 +133,68 @@ export default function FlightCard({ flight, adults = 1, children = 0 }: FlightC
                             Promos
                         </button>
                     </div>
-                    <Link
-                        to="/book/$flightId"
-                        params={{ flightId: flight.id }}
-                        search={{ adults, children }}
+                    <button
+                        onClick={() => {
+                            if (isSignedIn) {
+                                navigate({ to: '/book/$flightId', params: { flightId: flight.id }, search: { adults, children } });
+                            } else {
+                                setShowLoginDialog(true);
+                            }
+                        }}
                         className="bg-content hover:bg-black text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer whitespace-nowrap hidden lg:block -mt-2"
                         data-testid="select-flight-desktop"
                     >
                         Select Flight
-                    </Link>
+                    </button>
                 </div>
 
                 {/* Mobile Select Flight Button */}
-                <Link
-                    to="/book/$flightId"
-                    params={{ flightId: flight.id }}
-                    search={{ adults, children }}
+                <button
+                    onClick={() => {
+                        if (isSignedIn) {
+                            navigate({ to: '/book/$flightId', params: { flightId: flight.id }, search: { adults, children } });
+                        } else {
+                            setShowLoginDialog(true);
+                        }
+                    }}
                     className="w-full bg-content hover:bg-black text-white px-6 py-3 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer lg:hidden mt-3 text-center block"
                     data-testid="select-flight-mobile"
                 >
                     Select Flight
-                </Link>
+                </button>
+
+                {/* Login Dialog */}
+                <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader className="text-center items-center">
+                            <div className="text-3xl font-bold tracking-tight mb-1">
+                                <span className="text-primary">Fly</span>
+                                <span className="text-content">Smart</span>
+                            </div>
+                            <DialogTitle>Sign in to continue</DialogTitle>
+                            <DialogDescription>
+                                You need to be logged in to book a flight
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex flex-col items-center gap-4 py-4">
+                            <button
+                                onClick={() => {
+                                    signIn?.authenticateWithRedirect({
+                                        strategy: 'oauth_google',
+                                        redirectUrl: '/login/sso-callback',
+                                        redirectUrlComplete: currentUrl,
+                                    });
+                                }}
+                                className="h-12 px-8 rounded-full bg-primary-500 hover:bg-primary-600 transition-all duration-300 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 hover:scale-[1.02] font-semibold text-white text-sm flex items-center justify-center gap-3 cursor-pointer"
+                            >
+                                <div className="p-0.5 bg-white flex items-center justify-center rounded-full">
+                                    <FcGoogle className="w-5 h-5" />
+                                </div>
+                                Continue with Google
+                            </button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
 
                 {/* Expanded Content Area */}
                 {activeTab === 'details' && <FlightDetailsTab flight={flight} />}

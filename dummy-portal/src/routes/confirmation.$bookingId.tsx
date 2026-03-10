@@ -48,7 +48,7 @@ function ConfirmationRoute() {
 
   if (!bookingState) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-primary-100 via-primary-50 to-white">
+      <div className="min-h-screen bg-linear-to-b from-primary-100 via-primary-50 to-white">
         <Navbar />
         <div className="container mx-auto px-4 py-12 text-center">
           <h1 className="text-2xl font-bold text-content mb-4">Booking Not Found</h1>
@@ -82,7 +82,7 @@ function ConfirmationRoute() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-100 via-primary-50 to-white">
+    <div className="min-h-screen bg-linear-to-b from-primary-100 via-primary-50 to-white">
       <Navbar />
 
       <div className="container mx-auto px-4 py-12 max-w-4xl">

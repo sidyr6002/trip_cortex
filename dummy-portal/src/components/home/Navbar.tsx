@@ -11,7 +11,7 @@ export default function Navbar({ simplified = false }: { simplified?: boolean })
       <div className="flex items-center gap-8 text-sm font-medium w-1/3">
         {!simplified && (
           <>
-            <a href="#" className="nav-link">Home</a>
+            <Link to="/" className="nav-link">Home</Link>
             <Link to="/search" className="nav-link">Booking</Link>
           </>
         )}
