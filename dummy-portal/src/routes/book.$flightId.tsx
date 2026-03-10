@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { getFlightById } from '../data/helpers';
+import { getFlightById, TAX_RATE } from '../data/helpers';
 import Navbar from '../components/home/Navbar';
 import BookingStepper from '../components/booking/BookingStepper';
 import ReviewStep from '../components/booking/ReviewStep';
@@ -9,7 +9,6 @@ import PaymentStep from '../components/booking/PaymentStep';
 import { StripeProvider } from '../components/booking/StripeProvider';
 import { createPaymentIntent } from '../server/create-payment-intent';
 import { Loader2 } from 'lucide-react';
-import { TAX_RATE } from '../data/helpers';
 import type { PassengerData } from '../data/schema';
 
 interface BookingSearch {
@@ -60,7 +59,7 @@ function BookingRoute() {
 
   if (!flight) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-primary-100 via-primary-50 to-white">
+      <div className="min-h-screen bg-primary-100 to-white">
         <Navbar />
         <div className="container mx-auto px-4 py-12 text-center">
           <h1 className="text-2xl font-bold text-content mb-4">Flight Not Found</h1>
@@ -124,7 +123,7 @@ function BookingRoute() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-100 via-primary-50 to-white">
+    <div className="min-h-screen bg-primary-100">
       <Navbar simplified />
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">

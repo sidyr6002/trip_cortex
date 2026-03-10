@@ -82,22 +82,29 @@ function applyFilters(flights: FlightListing[], filters: FilterState): FlightLis
 
 function applySorting(flights: FlightListing[], sort: SortOption): FlightListing[] {
     const sorted = [...flights];
-    switch (sort) {
-        case 'price-asc':
-            return sorted.sort((a, b) => a.pricing.pricePerPassenger - b.pricing.pricePerPassenger);
-        case 'price-desc':
-            return sorted.sort((a, b) => b.pricing.pricePerPassenger - a.pricing.pricePerPassenger);
-        case 'duration-asc':
-            return sorted.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
-        case 'departure-asc':
-            return sorted.sort((a, b) => a.segments[0].departureTime.localeCompare(b.segments[0].departureTime));
-        case 'direct-first': {
-            const order: Record<string, number> = { 'Direct': 0, '1 transit': 1, '2+ transit': 2 };
-            return sorted.sort((a, b) => (order[a.transitType] ?? 9) - (order[b.transitType] ?? 9) || a.pricing.pricePerPassenger - b.pricing.pricePerPassenger);
+    const compareFn = (a: FlightListing, b: FlightListing): number => {
+        // Always push sold-out flights to the bottom
+        if (a.status === 'sold-out' && b.status !== 'sold-out') return 1;
+        if (a.status !== 'sold-out' && b.status === 'sold-out') return -1;
+        
+        switch (sort) {
+            case 'price-asc':
+                return a.pricing.pricePerPassenger - b.pricing.pricePerPassenger;
+            case 'price-desc':
+                return b.pricing.pricePerPassenger - a.pricing.pricePerPassenger;
+            case 'duration-asc':
+                return a.totalDurationMinutes - b.totalDurationMinutes;
+            case 'departure-asc':
+                return a.segments[0].departureTime.localeCompare(b.segments[0].departureTime);
+            case 'direct-first': {
+                const order: Record<string, number> = { 'Direct': 0, '1 transit': 1, '2+ transit': 2 };
+                return (order[a.transitType] ?? 9) - (order[b.transitType] ?? 9) || a.pricing.pricePerPassenger - b.pricing.pricePerPassenger;
+            }
+            default:
+                return 0;
         }
-        default:
-            return sorted;
-    }
+    };
+    return sorted.sort(compareFn);
 }
 
 function SearchRoute() {
@@ -120,6 +127,7 @@ function SearchRoute() {
         destinationAirportCode: effectiveTo,
         departureDate: effectiveDate,
         classId,
+        excludeSoldOut: false,
     }), [effectiveFrom, effectiveTo, effectiveDate, classId]);
 
     // Derive initial price range from flights
@@ -160,7 +168,7 @@ function SearchRoute() {
     const toAirport = searchParams.to ? getAirportByCode(searchParams.to) : undefined;
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-primary-100 via-primary-50 to-white font-sans text-content overflow-x-hidden">
+        <div className="min-h-screen bg-primary-100 font-sans text-content overflow-x-hidden">
             <Navbar simplified />
 
             <div className="max-w-[1400px] mx-auto px-4 pt-12 pb-6">

@@ -19,7 +19,8 @@ interface Props {
 export default function MobileFilterBar({ filters, onFiltersChange, flights, sortBy, onSortChange }: Props) {
   const [activeSheet, setActiveSheet] = useState<SheetType>(null)
 
-  const prices = flights.map(f => f.pricing.pricePerPassenger)
+  const bookableFlights = flights.filter(f => f.status !== 'sold-out')
+  const prices = bookableFlights.map(f => f.pricing.pricePerPassenger)
   const minPrice = prices.length > 0 ? Math.min(...prices) : 0
   const maxPrice = prices.length > 0 ? Math.max(...prices) : 0
 
@@ -92,13 +93,13 @@ export default function MobileFilterBar({ filters, onFiltersChange, flights, sor
                 <SortSheet sortBy={sortBy} onSortChange={(s) => { onSortChange(s); close() }} />
               )}
               {activeSheet === 'stops' && (
-                <StopsSheet filters={filters} onFiltersChange={onFiltersChange} flights={flights} />
+                <StopsSheet filters={filters} onFiltersChange={onFiltersChange} flights={bookableFlights} />
               )}
               {activeSheet === 'price' && (
                 <PriceSheet filters={filters} onFiltersChange={onFiltersChange} minPrice={minPrice} maxPrice={maxPrice} />
               )}
               {activeSheet === 'facilities' && (
-                <FacilitiesSheet filters={filters} onFiltersChange={onFiltersChange} flights={flights} />
+                <FacilitiesSheet filters={filters} onFiltersChange={onFiltersChange} flights={bookableFlights} />
               )}
             </div>
 

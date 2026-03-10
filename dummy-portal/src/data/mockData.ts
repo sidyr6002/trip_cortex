@@ -448,6 +448,16 @@ const BASE_FLIGHTS = [
   { id: 123, from: 'apt_2', to: 'apt_14', segs: [130], duration: 575, type: 'Direct', status: 'available' },
   // BLR → LHR (1 transit via DXB)
   { id: 124, from: 'apt_3', to: 'apt_14', segs: [131, 132], duration: 720, type: '1 transit', status: 'available' },
+  // Additional sold-out flights across popular routes
+  { id: 125, from: 'apt_1', to: 'apt_2', segs: [1], duration: 135, type: 'Direct', status: 'sold-out' },   // DEL → BOM
+  { id: 126, from: 'apt_2', to: 'apt_1', segs: [4], duration: 135, type: 'Direct', status: 'sold-out' },   // BOM → DEL
+  { id: 127, from: 'apt_1', to: 'apt_3', segs: [5], duration: 165, type: 'Direct', status: 'sold-out' },   // DEL → BLR
+  { id: 128, from: 'apt_2', to: 'apt_4', segs: [59], duration: 90, type: 'Direct', status: 'sold-out' },   // BOM → HYD
+  { id: 129, from: 'apt_3', to: 'apt_4', segs: [71], duration: 75, type: 'Direct', status: 'sold-out' },   // BLR → HYD
+  { id: 130, from: 'apt_4', to: 'apt_2', segs: [62], duration: 90, type: 'Direct', status: 'sold-out' },   // HYD → BOM
+  { id: 131, from: 'apt_6', to: 'apt_2', segs: [69], duration: 160, type: 'Direct', status: 'sold-out' },  // CCU → BOM
+  { id: 132, from: 'apt_1', to: 'apt_13', segs: [15], duration: 210, type: 'Direct', status: 'sold-out' }, // DEL → DXB
+  { id: 133, from: 'apt_3', to: 'apt_12', segs: [127], duration: 270, type: 'Direct', status: 'sold-out' }, // BLR → SIN
 ];
 
 // Generate flights for 7 days
@@ -628,6 +638,15 @@ const BASE_PRICING = [
   { flightId: 123, prices: [{ class: 'class_1', price: 440 }, { class: 'class_3', price: 1280 }] },
   // BLR → LHR (1 transit)
   { flightId: 124, prices: [{ class: 'class_1', price: 410 }, { class: 'class_3', price: 1180 }] },
+  { flightId: 125, prices: [{ class: 'class_1', price: 89 }] },   // DEL → BOM
+  { flightId: 126, prices: [{ class: 'class_1', price: 91 }] },   // BOM → DEL
+  { flightId: 127, prices: [{ class: 'class_1', price: 99 }] },   // DEL → BLR
+  { flightId: 128, prices: [{ class: 'class_1', price: 73 }] },   // BOM → HYD
+  { flightId: 129, prices: [{ class: 'class_1', price: 51 }] },   // BLR → HYD
+  { flightId: 130, prices: [{ class: 'class_1', price: 76 }] },   // HYD → BOM
+  { flightId: 131, prices: [{ class: 'class_1', price: 97 }] },   // CCU → BOM
+  { flightId: 132, prices: [{ class: 'class_1', price: 215 }] },  // DEL → DXB
+  { flightId: 133, prices: [{ class: 'class_1', price: 290 }] },  // BLR → SIN
 ];
 
 // Generate pricing for all flights across 7 days

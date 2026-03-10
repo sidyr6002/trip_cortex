@@ -51,9 +51,16 @@ export default function FlightCard({ flight, adults = 1, children = 0 }: FlightC
         setActiveTab(current => current === tab ? null : tab);
     };
 
+    const isSoldOut = flight.status === 'sold-out';
+
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-divider-light p-6 pb-4 mb-4 hover:shadow-md transition-shadow">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+        <div className={cn("bg-white rounded-2xl shadow-sm border border-divider-light p-6 pb-4 mb-4 transition-shadow relative", isSoldOut ? "opacity-60" : "hover:shadow-md")}>
+            {isSoldOut && (
+                <span className="absolute top-4 right-4 bg-rose-100 text-rose-700 text-xs font-semibold px-3 py-1 rounded-full z-10">
+                    Sold Out
+                </span>
+            )}
+            <div className={cn("flex flex-col lg:flex-row items-center justify-between gap-6", isSoldOut && "pointer-events-none")}>
 
                 {/* Airline Info */}
                 <div className="flex items-center gap-4 w-full lg:w-1/4 shrink-0">
@@ -100,7 +107,7 @@ export default function FlightCard({ flight, adults = 1, children = 0 }: FlightC
                     </div>
                     <div className="text-right">
                         <div className="flex items-baseline gap-1">
-                            <span className="font-bold text-xl text-monza-500">{flight.pricing.currency} {flight.pricing.pricePerPassenger.toFixed(2)}</span>
+                            <span className={cn("font-bold text-xl", isSoldOut ? "text-content-muted line-through" : "text-monza-500")}>{flight.pricing.currency} {flight.pricing.pricePerPassenger.toFixed(2)}</span>
                             <span className="text-xs text-content-muted font-medium">/pax</span>
                         </div>
                     </div>
@@ -114,25 +121,54 @@ export default function FlightCard({ flight, adults = 1, children = 0 }: FlightC
             <div className="flex flex-col">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-6 overflow-x-auto text-sm font-medium" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                        <button
-                            onClick={() => toggleTab('details')}
-                            className={cn("whitespace-nowrap cursor-pointer transition-colors pb-2 border-b-2", activeTab === 'details' ? "text-monza-500 border-monza-600" : "text-primary-500 hover:text-monza-500 border-transparent")}
-                        >
-                            Flight Details
-                        </button>
-                        <button
-                            onClick={() => toggleTab('price')}
-                            className={cn("whitespace-nowrap cursor-pointer transition-colors pb-2 border-b-2", activeTab === 'price' ? "text-monza-500 border-monza-600" : "text-primary-500 hover:text-monza-600 border-transparent")}
-                        >
-                            Price Details
-                        </button>
-                        <button
-                            onClick={() => toggleTab('promos')}
-                            className={cn("whitespace-nowrap cursor-pointer transition-colors pb-2 border-b-2", activeTab === 'promos' ? "text-monza-500 border-monza-600" : "text-primary-500 hover:text-monza-600 border-transparent")}
-                        >
-                            Promos
-                        </button>
+                        {!isSoldOut && <>
+                            <button
+                                onClick={() => toggleTab('details')}
+                                className={cn("whitespace-nowrap cursor-pointer transition-colors pb-2 border-b-2", activeTab === 'details' ? "text-monza-500 border-monza-600" : "text-primary-500 hover:text-monza-500 border-transparent")}
+                            >
+                                Flight Details
+                            </button>
+                            <button
+                                onClick={() => toggleTab('price')}
+                                className={cn("whitespace-nowrap cursor-pointer transition-colors pb-2 border-b-2", activeTab === 'price' ? "text-monza-500 border-monza-600" : "text-primary-500 hover:text-monza-600 border-transparent")}
+                            >
+                                Price Details
+                            </button>
+                            <button
+                                onClick={() => toggleTab('promos')}
+                                className={cn("whitespace-nowrap cursor-pointer transition-colors pb-2 border-b-2", activeTab === 'promos' ? "text-monza-500 border-monza-600" : "text-primary-500 hover:text-monza-600 border-transparent")}
+                            >
+                                Promos
+                            </button>
+                        </>}
                     </div>
+                    {isSoldOut ? (
+                        <button disabled className="bg-slate-200 text-slate-400 cursor-not-allowed px-6 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap hidden lg:block -mt-2">
+                            Sold Out
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => {
+                                if (isSignedIn) {
+                                    navigate({ to: '/book/$flightId', params: { flightId: flight.id }, search: { adults, children } });
+                                } else {
+                                    setShowLoginDialog(true);
+                                }
+                            }}
+                            className="bg-content hover:bg-black text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer whitespace-nowrap hidden lg:block -mt-2"
+                            data-testid="select-flight-desktop"
+                        >
+                            Select Flight
+                        </button>
+                    )}
+                </div>
+
+                {/* Mobile Select Flight Button */}
+                {isSoldOut ? (
+                    <button disabled className="w-full bg-slate-200 text-slate-400 cursor-not-allowed px-6 py-3 rounded-xl text-sm font-semibold lg:hidden mt-3 text-center block">
+                        Sold Out
+                    </button>
+                ) : (
                     <button
                         onClick={() => {
                             if (isSignedIn) {
@@ -141,27 +177,12 @@ export default function FlightCard({ flight, adults = 1, children = 0 }: FlightC
                                 setShowLoginDialog(true);
                             }
                         }}
-                        className="bg-content hover:bg-black text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer whitespace-nowrap hidden lg:block -mt-2"
-                        data-testid="select-flight-desktop"
+                        className="w-full bg-content hover:bg-black text-white px-6 py-3 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer lg:hidden mt-3 text-center block"
+                        data-testid="select-flight-mobile"
                     >
                         Select Flight
                     </button>
-                </div>
-
-                {/* Mobile Select Flight Button */}
-                <button
-                    onClick={() => {
-                        if (isSignedIn) {
-                            navigate({ to: '/book/$flightId', params: { flightId: flight.id }, search: { adults, children } });
-                        } else {
-                            setShowLoginDialog(true);
-                        }
-                    }}
-                    className="w-full bg-content hover:bg-black text-white px-6 py-3 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer lg:hidden mt-3 text-center block"
-                    data-testid="select-flight-mobile"
-                >
-                    Select Flight
-                </button>
+                )}
 
                 {/* Login Dialog */}
                 <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>

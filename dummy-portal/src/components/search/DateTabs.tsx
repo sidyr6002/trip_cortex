@@ -30,19 +30,23 @@ function toISODate(d: Date) {
     return d.toISOString().split('T')[0];
 }
 
-function getCheapestPrice(date: string, from?: string, to?: string, classId?: string): number | null {
+function getCheapestPrice(date: string, from?: string, to?: string, classId?: string): number | null | 'sold-out' {
     const flights = searchFlights({
         originAirportCode: from,
         destinationAirportCode: to,
         departureDate: date,
         classId,
+        excludeSoldOut: false,
     });
     if (flights.length === 0) return null;
-    return Math.min(...flights.map(f => f.pricing.pricePerPassenger));
+    const bookable = flights.filter(f => f.status !== 'sold-out');
+    if (bookable.length === 0) return 'sold-out';
+    return Math.min(...bookable.map(f => f.pricing.pricePerPassenger));
 }
 
-function formatPrice(price: number | null, currency = 'USD'): string {
+function formatPrice(price: number | null | 'sold-out', currency = 'USD'): string {
     if (price === null) return '—';
+    if (price === 'sold-out') return 'Sold Out';
     return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(price);
 }
 
@@ -87,7 +91,7 @@ export default function DateTabs({ departureDate, from, to, flightClass, isRetur
                             )}
                         >
                             <span className={cn("text-sm mb-1 font-medium", active ? "text-content" : "text-content-muted")}>{formatDate(d)}</span>
-                            <span className={cn("text-xs font-semibold", active ? "text-primary" : "text-content-light")}>{formatPrice(price)}</span>
+                            <span className={cn("text-xs font-semibold", active ? "text-primary" : price === 'sold-out' ? "text-rose-400" : "text-content-light")}>{formatPrice(price)}</span>
                         </button>
                     );
                 })}

@@ -27,22 +27,25 @@ interface Props {
 }
 
 export default function FlightFilterSidebar({ filters, onFiltersChange, flights }: Props) {
+    // Exclude sold-out flights from all derived filter values
+    const bookableFlights = flights.filter(f => f.status !== 'sold-out');
+
     // Derive which transit types exist in the current flight results
-    const availableTransitTypes = new Set(flights.map(f => f.transitType));
+    const availableTransitTypes = new Set(bookableFlights.map(f => f.transitType));
 
     // Derive price range from flights
-    const prices = flights.map(f => f.pricing.pricePerPassenger);
+    const prices = bookableFlights.map(f => f.pricing.pricePerPassenger);
     const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
     const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
 
     // Derive which facilities exist across all flights
     const availableFacilityIds = new Set(
-        flights.flatMap(f => f.segments.flatMap(s => s.facilities.map(fac => fac.id)))
+        bookableFlights.flatMap(f => f.segments.flatMap(s => s.facilities.map(fac => fac.id)))
     );
 
     // Get cheapest price per transit type
     const cheapestByTransit: { [key: string]: number | undefined } = {};
-    for (const f of flights) {
+    for (const f of bookableFlights) {
         const current = cheapestByTransit[f.transitType];
         if (current === undefined || f.pricing.pricePerPassenger < current) {
             cheapestByTransit[f.transitType] = f.pricing.pricePerPassenger;
