@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { getFlightById } from '../data/helpers';
 import Navbar from '../components/home/Navbar';
@@ -6,11 +6,11 @@ import BookingStepper from '../components/booking/BookingStepper';
 import ReviewStep from '../components/booking/ReviewStep';
 import PassengerStep from '../components/booking/PassengerStep';
 import PaymentStep from '../components/booking/PaymentStep';
+import { StripeProvider } from '../components/booking/StripeProvider';
+import { createPaymentIntent } from '../server/create-payment-intent';
 import { Loader2 } from 'lucide-react';
 import { TAX_RATE } from '../data/helpers';
 import type { PassengerData } from '../data/schema';
-// TODO: Replace with actual Stripe payment processing time
-const MOCK_PAYMENT_DELAY_MS = 2500;
 
 interface BookingSearch {
   adults: number;
@@ -43,19 +43,11 @@ function BookingRoute() {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [passengerData, setPassengerData] = useState<PassengerData[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [isLoadingPayment, setIsLoadingPayment] = useState(false);
 
   const flight = getFlightById(flightId);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
 
   // Memoize price calculations
   const pricing = useMemo(() => {
@@ -85,61 +77,50 @@ function BookingRoute() {
   }
 
   const handleContinueToPassengers = () => setCurrentStep(2);
-  const handleContinueToPayment = (passengers: PassengerData[]) => {
+  const handleContinueToPayment = async (passengers: PassengerData[]) => {
     setPassengerData(passengers);
+    setPaymentError(null);
+    setIsLoadingPayment(true);
     setCurrentStep(3);
-  };
-
-  const handleConfirmPayment = async () => {
-    setIsProcessing(true);
-    setCurrentStep(4);
-
-    // Create abort controller for cleanup
-    abortControllerRef.current = new AbortController();
 
     try {
-      // TODO: Replace with actual Stripe payment processing
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(resolve, MOCK_PAYMENT_DELAY_MS);
-        abortControllerRef.current?.signal.addEventListener('abort', () => {
-          clearTimeout(timeout);
-          reject(new Error('Payment cancelled'));
-        });
+      const { clientSecret } = await createPaymentIntent({
+        data: { amount: Math.round(pricing.total * 100) },
       });
-
-      // Generate deterministic booking ID based on flight and passenger data
-      const bookingData = JSON.stringify({
-        flightId,
-        passengers: passengerData.map(p => `${p.firstName}${p.lastName}${p.dateOfBirth}`),
-        timestamp: new Date().toISOString().split('T')[0], // Date only for determinism
-      });
-      const bookingId = `FS-${flightId}-${hashString(bookingData)}`;
-
-      // Store booking data in localStorage for persistence
-      const bookingState = {
-        flight,
-        passengers: passengerData,
-        adults,
-        children,
-        total: pricing.total,
-      };
-      localStorage.setItem(`booking-${bookingId}`, JSON.stringify(bookingState));
-
-      // Navigate to confirmation
-      navigate({
-        to: '/confirmation/$bookingId',
-        params: { bookingId },
-        state: bookingState as any,
-      });
-    } catch (error) {
-      // Handle payment cancellation/error
-      if ((error as Error).message !== 'Payment cancelled') {
-        console.error('Payment error:', error);
-        // TODO: Show error message to user
-      }
-      setIsProcessing(false);
-      setCurrentStep(3);
+      setClientSecret(clientSecret);
+    } catch {
+      setPaymentError('Failed to initialize payment. Please try again.');
+      setCurrentStep(2);
+    } finally {
+      setIsLoadingPayment(false);
     }
+  };
+
+  const handleConfirmPayment = (paymentIntentId: string) => {
+    // Generate deterministic booking ID based on flight and passenger data
+    const bookingData = JSON.stringify({
+      flightId,
+      passengers: passengerData.map(p => `${p.firstName}${p.lastName}${p.dateOfBirth}`),
+      timestamp: new Date().toISOString().split('T')[0],
+    });
+    const bookingId = `FS-${flightId}-${hashString(bookingData)}`;
+
+    // Store booking data in localStorage for persistence
+    const bookingState = {
+      flight,
+      passengers: passengerData,
+      adults,
+      children,
+      total: pricing.total,
+      paymentIntentId,
+    };
+    localStorage.setItem(`booking-${bookingId}`, JSON.stringify(bookingState));
+
+    navigate({
+      to: '/confirmation/$bookingId',
+      params: { bookingId },
+      state: bookingState as any,
+    });
   };
 
   return (
@@ -160,28 +141,36 @@ function BookingRoute() {
         )}
 
         {currentStep === 2 && (
-          <PassengerStep
-            adults={adults}
-            children={children}
-            onContinue={handleContinueToPayment}
-            onBack={() => setCurrentStep(1)}
-          />
+          <>
+            {paymentError && (
+              <div className="mb-6 p-4 rounded-xl bg-monza-50 border border-monza-200 text-monza-700 text-sm font-medium">
+                {paymentError}
+              </div>
+            )}
+            <PassengerStep
+              adults={adults}
+              children={children}
+              onContinue={handleContinueToPayment}
+              onBack={() => setCurrentStep(1)}
+            />
+          </>
         )}
 
-        {currentStep === 3 && (
-          <PaymentStep
-            totalAmount={pricing.total}
-            onConfirm={handleConfirmPayment}
-            onBack={() => setCurrentStep(2)}
-          />
-        )}
-
-        {currentStep === 4 && isProcessing && (
+        {currentStep === 3 && isLoadingPayment && (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-16 h-16 text-primary animate-spin mb-6" />
-            <h2 className="text-2xl font-bold text-content mb-2">Processing your booking...</h2>
-            <p className="text-content-muted">Please wait while we confirm your reservation</p>
+            <h2 className="text-2xl font-bold text-content mb-2">Preparing payment...</h2>
           </div>
+        )}
+
+        {currentStep === 3 && !isLoadingPayment && clientSecret && (
+          <StripeProvider clientSecret={clientSecret}>
+            <PaymentStep
+              totalAmount={pricing.total}
+              onConfirm={handleConfirmPayment}
+              onBack={() => setCurrentStep(2)}
+            />
+          </StripeProvider>
         )}
       </div>
     </div>

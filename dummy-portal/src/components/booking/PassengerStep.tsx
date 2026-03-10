@@ -1,7 +1,7 @@
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { User, Mail, Phone, CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '../../lib/utils';
@@ -22,14 +22,13 @@ const formSchema = z.object({
 }).superRefine((data, ctx) => {
   // Primary passenger (index 0) must have valid email and phone
   const primary = data.passengers[0];
-  if (primary) {
+
     if (!primary.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(primary.email)) {
       ctx.addIssue({ code: 'custom', message: 'Enter a valid email address', path: ['passengers', 0, 'email'] });
     }
     if (!primary.phone || primary.phone.replace(/\D/g, '').length < 10) {
       ctx.addIssue({ code: 'custom', message: 'Phone must be at least 10 digits', path: ['passengers', 0, 'phone'] });
     }
-  }
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -41,11 +40,110 @@ interface PassengerStepProps {
   onBack: () => void;
 }
 
+function DobField({ idx, formValue, hasError: hasErr, errorNode, onDateChange, inputBase, inputOk, inputErr }: {
+  idx: number;
+  formValue: string;
+  hasError: boolean;
+  errorNode: React.ReactNode;
+  onDateChange: (iso: string) => void;
+  inputBase: string;
+  inputOk: string;
+  inputErr: string;
+}) {
+  const [raw, setRaw] = useState(() =>
+    formValue && /^\d{4}-\d{2}-\d{2}$/.test(formValue)
+      ? format(new Date(formValue), 'dd-MM-yyyy')
+      : ''
+  );
+
+  // Sync from calendar picker → raw display
+  useEffect(() => {
+    if (formValue && /^\d{4}-\d{2}-\d{2}$/.test(formValue)) {
+      setRaw(format(new Date(formValue), 'dd-MM-yyyy'));
+    }
+  }, [formValue]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    // Only allow digits and dashes
+    val = val.replace(/[^\d-]/g, '');
+
+    // Auto-insert dashes after DD and MM
+    const digits = val.replace(/-/g, '');
+    if (digits.length <= 2) {
+      val = digits;
+    } else if (digits.length <= 4) {
+      val = `${digits.slice(0, 2)}-${digits.slice(2)}`;
+    } else {
+      val = `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4, 8)}`;
+    }
+
+    setRaw(val);
+
+    // When we have a complete DD-MM-YYYY, push ISO to form
+    const match = val.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (match) {
+      const [, dd, mm, yyyy] = match;
+      const date = new Date(`${yyyy}-${mm}-${dd}`);
+      if (!isNaN(date.getTime()) && date <= new Date() && date >= new Date('1900-01-01')) {
+        onDateChange(`${yyyy}-${mm}-${dd}`);
+      }
+    }
+  };
+
+  return (
+    <div>
+      <label htmlFor={`passenger-${idx}-dob`} className="block text-sm font-semibold text-content-muted mb-1.5">
+        Date of Birth <span className="text-monza-500">*</span>
+      </label>
+      <div className="relative">
+        <input
+          id={`passenger-${idx}-dob`}
+          type="text"
+          placeholder="DD-MM-YYYY"
+          maxLength={10}
+          value={raw}
+          onChange={handleChange}
+          className={cn(inputBase, hasErr ? inputErr : inputOk)}
+          data-testid={`passenger-${idx}-dob`}
+        />
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-content-lighter hover:text-primary transition-colors"
+              aria-label="Open calendar"
+            >
+              <CalendarDays className="w-5 h-5" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0 rounded-2xl border-divider" align="start">
+            <Calendar
+              mode="single"
+              captionLayout="dropdown"
+              startMonth={new Date(1900, 0)}
+              endMonth={new Date()}
+              selected={formValue && /^\d{4}-\d{2}-\d{2}$/.test(formValue) ? new Date(formValue) : undefined}
+              onSelect={(date) => {
+                onDateChange(date ? format(date, 'yyyy-MM-dd') : '');
+              }}
+              disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+              initialFocus
+              className="w-full p-3"
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+      {errorNode}
+    </div>
+  );
+}
+
 export default function PassengerStep({ adults, children, onContinue, onBack }: PassengerStepProps) {
   const totalPassengers = adults + children;
 
   const { register, control, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema as any),
     mode: 'onBlur',
     defaultValues: {
       passengers: Array.from({ length: totalPassengers }, () => ({
@@ -59,9 +157,10 @@ export default function PassengerStep({ adults, children, onContinue, onBack }: 
   // Sync field count if passenger count changes
   useEffect(() => {
     if (fields.length !== totalPassengers) {
-      setValue('passengers', Array.from({ length: totalPassengers }, (_, i) =>
-        watch(`passengers.${i}`) || { firstName: '', lastName: '', dateOfBirth: '', email: '', phone: '' }
-      ));
+      setValue('passengers', Array.from({ length: totalPassengers }, (_, i) => {
+        const existing = watch(`passengers.${i}`);
+        return existing.firstName ? existing : { firstName: '', lastName: '', dateOfBirth: '', email: '', phone: '' };
+      }));
     }
   }, [totalPassengers]);
 
@@ -148,58 +247,16 @@ export default function PassengerStep({ adults, children, onContinue, onBack }: 
                 </div>
 
                 {/* Date of Birth */}
-                <div>
-                  <label htmlFor={`passenger-${idx}-dob`} className="block text-sm font-semibold text-content-muted mb-1.5">
-                    Date of Birth <span className="text-monza-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      id={`passenger-${idx}-dob`}
-                      type="text"
-                      placeholder="DD-MM-YYYY"
-                      value={watch(`passengers.${idx}.dateOfBirth`) ? format(new Date(watch(`passengers.${idx}.dateOfBirth`)), 'dd-MM-yyyy') : ''}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        const match = val.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-                        if (match) {
-                          setValue(`passengers.${idx}.dateOfBirth`, `${match[3]}-${match[2]}-${match[1]}`, { shouldValidate: true });
-                        } else {
-                          // Store raw input temporarily so user can keep typing
-                          setValue(`passengers.${idx}.dateOfBirth`, val, { shouldValidate: false });
-                        }
-                      }}
-                      className={cn(inputBase, hasError(idx, 'dateOfBirth') ? inputErr : inputOk)}
-                      data-testid={`passenger-${idx}-dob`}
-                    />
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button
-                          type="button"
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-content-lighter hover:text-primary transition-colors"
-                          aria-label="Open calendar"
-                        >
-                          <CalendarDays className="w-5 h-5" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 rounded-2xl border-divider" align="start">
-                        <Calendar
-                          mode="single"
-                          captionLayout="dropdown"
-                          startMonth={new Date(1900, 0)}
-                          endMonth={new Date()}
-                          selected={watch(`passengers.${idx}.dateOfBirth`) ? new Date(watch(`passengers.${idx}.dateOfBirth`)) : undefined}
-                          onSelect={(date) => {
-                            setValue(`passengers.${idx}.dateOfBirth`, date ? format(date, 'yyyy-MM-dd') : '', { shouldValidate: true });
-                          }}
-                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                          initialFocus
-                          className="w-full p-3"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  {fieldError(idx, 'dateOfBirth')}
-                </div>
+                <DobField
+                  idx={idx}
+                  formValue={watch(`passengers.${idx}.dateOfBirth`)}
+                  hasError={hasError(idx, 'dateOfBirth')}
+                  errorNode={fieldError(idx, 'dateOfBirth')}
+                  onDateChange={(iso) => setValue(`passengers.${idx}.dateOfBirth`, iso, { shouldValidate: true })}
+                  inputBase={inputBase}
+                  inputOk={inputOk}
+                  inputErr={inputErr}
+                />
 
                 {/* Email & Phone — primary passenger only */}
                 {isPrimary && (

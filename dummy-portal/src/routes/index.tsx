@@ -7,7 +7,7 @@ export const Route = createFileRoute('/')({ component: App })
 
 function App() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-100 via-primary-50 to-white font-sans text-content overflow-x-hidden">
+    <div className="min-h-screen bg-linear-to-b from-primary-100 via-primary-50 to-white font-sans text-content overflow-x-hidden">
       <Navbar />
       <HeroSection />
       <DestinationsSection />

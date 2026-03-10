@@ -12,6 +12,7 @@ interface ConfirmationState {
   adults: number;
   children: number;
   total: number;
+  paymentIntentId?: string;
 }
 
 export const Route = createFileRoute('/confirmation/$bookingId')({
@@ -143,6 +144,14 @@ Thank you for booking with FlySmart!
           >
             {bookingId}
           </div>
+          {bookingState.paymentIntentId && (
+            <div className="mt-3 pt-3 border-t border-primary/20">
+              <div className="text-sm font-medium text-content-muted mb-1">Payment Reference</div>
+              <div className="text-sm font-mono text-content-muted" data-testid="payment-reference">
+                {bookingState.paymentIntentId}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Flight Summary */}
