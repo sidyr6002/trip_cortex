@@ -5,6 +5,7 @@ import Navbar from '../components/home/Navbar'
 import SearchWidget from '../components/home/SearchWidget'
 import FlightFilterSidebar, { SORT_LABELS } from '../components/search/FlightFilterSidebar'
 import type { FilterState, SortOption } from '../components/search/FlightFilterSidebar'
+import MobileFilterBar from '../components/search/MobileFilterBar'
 import DateTabs from '../components/search/DateTabs'
 import FlightCard from '../components/search/FlightCard'
 import { searchFlights } from '../data/searchFlights'
@@ -169,8 +170,8 @@ function SearchRoute() {
             <div className="max-w-[1400px] mx-auto px-4 py-6">
                 <div className="flex flex-col lg:flex-row gap-8 items-start">
 
-                    {/* Left Sidebar */}
-                    <div className="w-full lg:w-72 shrink-0 space-y-6">
+                    {/* Left Sidebar — desktop only */}
+                    <div className="hidden lg:block w-72 shrink-0 space-y-6">
                         {/* Your Flight Summary — only for round trip */}
                         {isRoundTrip && fromAirport && toAirport && (
                             <div className="bg-white rounded-2xl shadow-sm border border-divider-light p-5">
@@ -246,6 +247,15 @@ function SearchRoute() {
 
                     {/* Main Content Area */}
                     <div className="flex-1 w-full min-w-0">
+                        {/* Mobile filter/sort pills */}
+                        <MobileFilterBar
+                            filters={filters}
+                            onFiltersChange={setFilters}
+                            flights={allFlights}
+                            sortBy={sortBy}
+                            onSortChange={setSortBy}
+                        />
+
                         <DateTabs
                             departureDate={effectiveDate}
                             from={effectiveFrom}
