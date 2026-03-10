@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { getFlightById, TAX_RATE } from '../data/helpers';
+import { getFlightById } from '../data/helpers';
+import { calculatePricing } from '../data/calculatePricing';
 import Navbar from '../components/home/Navbar';
 import BookingStepper from '../components/booking/BookingStepper';
 import ReviewStep from '../components/booking/ReviewStep';
@@ -52,15 +53,10 @@ function BookingRoute() {
   const returnFlight = returnFlightId ? getFlightById(returnFlightId) : undefined;
 
   // Memoize price calculations (combined for round-trip)
-  const pricing = useMemo(() => {
-    if (!flight) return { subtotal: 0, taxes: 0, total: 0 };
-    const totalPassengers = adults + children;
-    const outboundSubtotal = flight.pricing.pricePerPassenger * totalPassengers;
-    const returnSubtotal = returnFlight ? returnFlight.pricing.pricePerPassenger * totalPassengers : 0;
-    const subtotal = outboundSubtotal + returnSubtotal;
-    const taxes = subtotal * TAX_RATE;
-    return { subtotal, taxes, total: subtotal + taxes };
-  }, [flight, returnFlight, adults, children]);
+  const pricing = useMemo(
+    () => flight ? calculatePricing(flight, adults, children, returnFlight) : { outboundSubtotal: 0, returnSubtotal: 0, subtotal: 0, taxes: 0, total: 0 },
+    [flight, returnFlight, adults, children],
+  );
 
   if (!flight) {
     return (
