@@ -1,9 +1,10 @@
 import type { FlightListing } from '../../data/schema';
 import { formatDuration } from '../../data/mockData';
+import { formatDate } from '../../lib/dateUtils';
 import { Plane, Calendar, Users, Briefcase } from 'lucide-react';
 
 function FlightSummaryCard({ flight }: { flight: FlightListing }) {
-  const departureDate = new Date(flight.segments[0].departureTime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const departureDate = formatDate(flight.segments[0].departureTime);
 
   return (
     <div className="bg-white rounded-3xl p-1 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-divider-light/60 overflow-hidden relative">

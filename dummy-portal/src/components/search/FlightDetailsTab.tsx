@@ -1,5 +1,6 @@
 import type { FlightListing } from '../../data/schema';
 import { formatDuration } from '../../data/mockData';
+import { formatDateShort, formatTime } from '../../lib/dateUtils';
 import { Briefcase, Utensils, MonitorPlay, Wifi, BatteryCharging, Info, Clock } from 'lucide-react';
 import { FlightRouteMap } from './FlightRouteMap';
 
@@ -8,12 +9,6 @@ interface Props {
 }
 
 export default function FlightDetailsTab({ flight }: Props) {
-    const formatDate = (dateStr: string) => {
-        const d = new Date(dateStr);
-        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-    };
-
-    const formatTime = (dateStr: string) => dateStr.split('T')[1].substring(0, 5);
 
     const hasFacility = (segment: typeof flight.segments[0], icon: string) =>
         segment.facilities.some(f => f.iconName === icon);
@@ -38,7 +33,7 @@ export default function FlightDetailsTab({ flight }: Props) {
                         <div key={seg.id} className="flex flex-col items-center w-full">
                             {/* Departure time */}
                             <div className="text-sm font-bold text-content">{formatTime(seg.departureTime)}</div>
-                            <div className="text-xs text-content-muted mb-2">{formatDate(seg.departureTime)}</div>
+                            <div className="text-xs text-content-muted mb-2">{formatDateShort(seg.departureTime)}</div>
                             <div className="w-3 h-3 rounded-full border-2 border-primary bg-white z-10"></div>
 
                             {/* Line with duration */}
@@ -54,7 +49,7 @@ export default function FlightDetailsTab({ flight }: Props) {
                             {/* Arrival circle */}
                             <div className="w-3 h-3 rounded-full bg-primary z-10 border-2 border-primary"></div>
                             <div className="text-sm font-bold text-content mt-2">{formatTime(seg.arrivalTime)}</div>
-                            <div className="text-xs text-content-muted">{formatDate(seg.arrivalTime)}</div>
+                            <div className="text-xs text-content-muted">{formatDateShort(seg.arrivalTime)}</div>
 
                             {/* Layover indicator between segments */}
                             {idx < flight.layovers.length && (

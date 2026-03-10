@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { cn } from "../../lib/utils";
 import { searchFlights } from '../../data/searchFlights';
+import { toISODate } from '../../lib/dateUtils';
 
 interface DateTabsProps {
     departureDate?: string;
@@ -24,10 +25,6 @@ function formatDate(d: Date) {
     return d.toLocaleDateString('en-US', {
         weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC',
     });
-}
-
-function toISODate(d: Date) {
-    return d.toISOString().split('T')[0];
 }
 
 function getCheapestPrice(date: string, from?: string, to?: string, classId?: string): number | null | 'sold-out' {

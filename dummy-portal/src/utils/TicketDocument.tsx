@@ -2,6 +2,7 @@ import { Document, Page, View, Text, StyleSheet, Svg, Path, G } from '@react-pdf
 import type { FlightListing, PassengerData } from '../data/schema'
 import { formatDuration } from '../data/mockData'
 import { TAX_RATE } from '../data/helpers'
+import { formatDateLong, formatTimePM } from '../lib/dateUtils'
 
 export interface TicketData {
   bookingId: string
@@ -87,8 +88,8 @@ const S = StyleSheet.create({
   payRef: { fontSize: 7, color: '#94a3b8', marginTop: 6 },
 })
 
-const fmt = (iso: string) => new Date(iso).toLocaleString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
-const fmtTime = (iso: string) => new Date(iso).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+const fmt = formatDateLong
+const fmtTime = formatTimePM
 
 function FlightCard({ flight, label }: { flight: FlightListing; label?: string }) {
   const dep = flight.segments[0].departureTime

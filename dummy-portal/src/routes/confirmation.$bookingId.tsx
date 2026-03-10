@@ -4,6 +4,7 @@ import Navbar from '../components/home/Navbar';
 import { CheckCircle, Download, Printer } from 'lucide-react';
 import type { FlightListing, PassengerData } from '../data/schema';
 import { formatDuration } from '../data/mockData';
+import { formatDateTime } from '../lib/dateUtils';
 import { TAX_RATE } from '../data/helpers';
 import { generateTicketPdf } from '../utils/generateTicketPdf';
 
@@ -42,14 +43,14 @@ function FlightDetailBlock({ flight }: { flight: FlightListing }) {
           <div className="text-content-muted mb-1">Departure</div>
           <div className="font-semibold text-content">{flight.departureAirport.name} ({flight.departureAirport.code})</div>
           <div className="text-content-muted">
-            {new Date(flight.segments[0].departureTime).toLocaleString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            {formatDateTime(flight.segments[0].departureTime)}
           </div>
         </div>
         <div>
           <div className="text-content-muted mb-1">Arrival</div>
           <div className="font-semibold text-content">{flight.arrivalAirport.name} ({flight.arrivalAirport.code})</div>
           <div className="text-content-muted">
-            {new Date(flight.segments[flight.segments.length - 1].arrivalTime).toLocaleString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            {formatDateTime(flight.segments[flight.segments.length - 1].arrivalTime)}
           </div>
         </div>
         <div>
