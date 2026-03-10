@@ -68,7 +68,7 @@ export default function UserMenu() {
           <button
             onClick={() => {
               setOpen(false)
-              navigate({ to: '/' })
+              navigate({ to: '/bookings' })
             }}
             className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
           >

@@ -43,6 +43,9 @@ export default function Navbar({ simplified = false }: { simplified?: boolean })
             <Link to="/deals" className="nav-link">Deals</Link>
           </>
         )}
+        <SignedIn>
+          <Link to="/bookings" className="nav-link">My Bookings</Link>
+        </SignedIn>
         <SignedOut>
           <Link to="/login/$" search={{ redirect_url: currentUrl }} className="btn-outline">Login</Link>
         </SignedOut>
