@@ -53,6 +53,7 @@ export function useFlightSearch(searchParams: SearchParams) {
     const [activeLeg, setActiveLeg] = useState<'outbound' | 'return'>('outbound');
     const [selectedOutbound, setSelectedOutbound] = useState<FlightListing | null>(null);
     const [sortBy, setSortBy] = useState<SortOption>(DEFAULT_SORT);
+    const [searchError, setSearchError] = useState<string | null>(null);
 
     const classId = searchParams.class ? getClassIdByName(searchParams.class) : undefined;
     const isReturnLeg = isRoundTrip && activeLeg === 'return';
@@ -61,13 +62,21 @@ export function useFlightSearch(searchParams: SearchParams) {
     const effectiveTo = isReturnLeg ? searchParams.from : searchParams.to;
     const effectiveDate = isReturnLeg ? searchParams.returnDate : searchParams.date;
 
-    const allFlights = useMemo(() => searchFlights({
-        originAirportCode: effectiveFrom,
-        destinationAirportCode: effectiveTo,
-        departureDate: effectiveDate,
-        classId,
-        excludeSoldOut: false,
-    }), [effectiveFrom, effectiveTo, effectiveDate, classId]);
+    const allFlights = useMemo(() => {
+        try {
+            setSearchError(null);
+            return searchFlights({
+                originAirportCode: effectiveFrom,
+                destinationAirportCode: effectiveTo,
+                departureDate: effectiveDate,
+                classId,
+                excludeSoldOut: false,
+            });
+        } catch {
+            setSearchError('Failed to load flights. Please try again.');
+            return [] as FlightListing[];
+        }
+    }, [effectiveFrom, effectiveTo, effectiveDate, classId]);
 
     const prices = allFlights.map(f => f.pricing.pricePerPassenger);
     const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
@@ -115,6 +124,7 @@ export function useFlightSearch(searchParams: SearchParams) {
         setFilters,
         sortBy,
         setSortBy,
+        searchError,
         isRoundTrip,
         activeLeg,
         setActiveLeg,

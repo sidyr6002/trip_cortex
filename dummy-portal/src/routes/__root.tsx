@@ -7,6 +7,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { ClerkProvider } from '@clerk/tanstack-react-start'
+import ErrorBoundary from '../components/ErrorBoundary'
 
 import appCss from '../styles.css?url'
 
@@ -61,7 +62,9 @@ function RootComponent() {
       </head>
       <body className="font-sans antialiased text-gray-900 overflow-x-hidden border-box min-h-screen">
         <ClerkProvider>
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </ClerkProvider>
         <TanStackDevtools
           config={{

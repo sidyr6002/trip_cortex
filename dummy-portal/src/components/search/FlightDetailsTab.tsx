@@ -2,7 +2,8 @@ import type { FlightListing } from '../../data/schema';
 import { formatDuration, formatDateShort, formatTime } from '../../lib/dateUtils';
 import { hasFacility } from '../../lib/flightUtils';
 import { Briefcase, Utensils, MonitorPlay, Wifi, BatteryCharging, Info, Clock } from 'lucide-react';
-import { FlightRouteMap } from './FlightRouteMap';
+import { lazy, Suspense } from 'react';
+const FlightRouteMap = lazy(() => import('./FlightRouteMap').then(m => ({ default: m.FlightRouteMap })));
 
 interface Props {
     flight: FlightListing;
@@ -130,7 +131,9 @@ export default function FlightDetailsTab({ flight }: Props) {
 
             {/* Right Column: Interactive Route Map */}
             <div className="w-full lg:w-72 xl:w-80 h-64 lg:h-auto shrink-0">
-                <FlightRouteMap airports={routeAirports} />
+                <Suspense fallback={<div className="w-full h-full bg-surface-muted rounded-xl animate-pulse" />}>
+                    <FlightRouteMap airports={routeAirports} />
+                </Suspense>
             </div>
         </div>
     );
