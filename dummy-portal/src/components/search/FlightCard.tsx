@@ -24,11 +24,12 @@ interface FlightCardProps {
     flight: FlightListing;
     adults?: number;
     children?: number;
+    onSelect?: (flight: FlightListing) => void;
 }
 
 type TabType = 'details' | 'price' | 'promos' | null;
 
-export default function FlightCard({ flight, adults = 1, children = 0 }: FlightCardProps) {
+export default function FlightCard({ flight, adults = 1, children = 0, onSelect }: FlightCardProps) {
     const [activeTab, setActiveTab] = useState<TabType>(null);
     const [showLoginDialog, setShowLoginDialog] = useState(false);
     const { isSignedIn } = useAuth();
@@ -150,7 +151,11 @@ export default function FlightCard({ flight, adults = 1, children = 0 }: FlightC
                         <button
                             onClick={() => {
                                 if (isSignedIn) {
-                                    navigate({ to: '/book/$flightId', params: { flightId: flight.id }, search: { adults, children } });
+                                    if (onSelect) {
+                                        onSelect(flight);
+                                    } else {
+                                        navigate({ to: '/book/$flightId', params: { flightId: flight.id }, search: { adults, children } });
+                                    }
                                 } else {
                                     setShowLoginDialog(true);
                                 }
@@ -172,7 +177,11 @@ export default function FlightCard({ flight, adults = 1, children = 0 }: FlightC
                     <button
                         onClick={() => {
                             if (isSignedIn) {
-                                navigate({ to: '/book/$flightId', params: { flightId: flight.id }, search: { adults, children } });
+                                if (onSelect) {
+                                    onSelect(flight);
+                                } else {
+                                    navigate({ to: '/book/$flightId', params: { flightId: flight.id }, search: { adults, children } });
+                                }
                             } else {
                                 setShowLoginDialog(true);
                             }

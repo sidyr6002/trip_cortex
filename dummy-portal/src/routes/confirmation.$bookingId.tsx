@@ -9,6 +9,7 @@ import { generateTicketPdf } from '../utils/generateTicketPdf';
 
 interface ConfirmationState {
   flight: FlightListing;
+  returnFlight?: FlightListing | null;
   passengers: PassengerData[];
   adults: number;
   children: number;
@@ -19,6 +20,50 @@ interface ConfirmationState {
 export const Route = createFileRoute('/confirmation/$bookingId')({
   component: ConfirmationRoute,
 });
+
+function FlightDetailBlock({ flight }: { flight: FlightListing }) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 pb-4 border-b border-divider-light">
+        <div className="w-12 h-12 rounded-full bg-surface-muted flex items-center justify-center">
+          <div className="text-xs font-bold text-primary">
+            {flight.segments[0].airline.name.split(' ').map(w => w[0]).join('')}
+          </div>
+        </div>
+        <div>
+          <h3 className="font-semibold text-content">{flight.segments[0].airline.name}</h3>
+          <p className="text-sm text-content-muted">
+            {flight.segments.map(s => s.flightNumber).join(' → ')} · {flight.flightClass.name}
+          </p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <div className="text-content-muted mb-1">Departure</div>
+          <div className="font-semibold text-content">{flight.departureAirport.name} ({flight.departureAirport.code})</div>
+          <div className="text-content-muted">
+            {new Date(flight.segments[0].departureTime).toLocaleString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </div>
+        <div>
+          <div className="text-content-muted mb-1">Arrival</div>
+          <div className="font-semibold text-content">{flight.arrivalAirport.name} ({flight.arrivalAirport.code})</div>
+          <div className="text-content-muted">
+            {new Date(flight.segments[flight.segments.length - 1].arrivalTime).toLocaleString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </div>
+        <div>
+          <div className="text-content-muted mb-1">Duration</div>
+          <div className="font-semibold text-content">{formatDuration(flight.totalDurationMinutes)}</div>
+        </div>
+        <div>
+          <div className="text-content-muted mb-1">Transit</div>
+          <div className="font-semibold text-content">{flight.transitType}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ConfirmationRoute() {
   const { bookingId } = Route.useParams();
@@ -64,9 +109,11 @@ function ConfirmationRoute() {
     );
   }
 
-  const { flight, passengers, adults, children, total } = bookingState;
+  const { flight, returnFlight, passengers, adults, children, total } = bookingState;
   const totalPassengers = adults + children;
-  const subtotal = flight.pricing.pricePerPassenger * totalPassengers;
+  const outboundSubtotal = flight.pricing.pricePerPassenger * totalPassengers;
+  const returnSubtotal = returnFlight ? returnFlight.pricing.pricePerPassenger * totalPassengers : 0;
+  const subtotal = outboundSubtotal + returnSubtotal;
   const taxes = subtotal * TAX_RATE;
 
   const handleDownload = () => {
@@ -82,7 +129,7 @@ function ConfirmationRoute() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-primary-100 via-primary-50 to-white">
+    <div className="min-h-screen bg-primary-100">
       <Navbar />
 
       <div className="container mx-auto px-4 py-12 max-w-4xl">
@@ -116,67 +163,18 @@ function ConfirmationRoute() {
         <div className="bg-white rounded-xl border border-divider-light p-6 mb-6">
           <h2 className="text-xl font-bold text-content mb-4">Flight Details</h2>
 
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 pb-4 border-b border-divider-light">
-              <div className="w-12 h-12 rounded-full bg-surface-muted flex items-center justify-center">
-                <div className="text-xs font-bold text-primary">
-                  {flight.segments[0].airline.name.split(' ').map(w => w[0]).join('')}
-                </div>
-              </div>
-              <div>
-                <h3 className="font-semibold text-content">{flight.segments[0].airline.name}</h3>
-                <p className="text-sm text-content-muted">
-                  {flight.segments.map(s => s.flightNumber).join(' → ')} · {flight.flightClass.name}
-                </p>
-              </div>
-            </div>
+          {returnFlight && (
+            <div className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Outbound</div>
+          )}
+          <FlightDetailBlock flight={flight} />
 
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <div className="text-content-muted mb-1">Departure</div>
-                <div className="font-semibold text-content">
-                  {flight.departureAirport.name} ({flight.departureAirport.code})
-                </div>
-                <div className="text-content-muted">
-                  {new Date(flight.segments[0].departureTime).toLocaleString('en-US', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-content-muted mb-1">Arrival</div>
-                <div className="font-semibold text-content">
-                  {flight.arrivalAirport.name} ({flight.arrivalAirport.code})
-                </div>
-                <div className="text-content-muted">
-                  {new Date(flight.segments[flight.segments.length - 1].arrivalTime).toLocaleString('en-US', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-content-muted mb-1">Duration</div>
-                <div className="font-semibold text-content">{formatDuration(flight.totalDurationMinutes)}</div>
-              </div>
-
-              <div>
-                <div className="text-content-muted mb-1">Transit</div>
-                <div className="font-semibold text-content">{flight.transitType}</div>
-              </div>
-            </div>
-          </div>
+          {returnFlight && (
+            <>
+              <div className="my-4 border-t border-divider-light" />
+              <div className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Return</div>
+              <FlightDetailBlock flight={returnFlight} />
+            </>
+          )}
         </div>
 
         {/* Passenger Details */}
@@ -212,16 +210,24 @@ function ConfirmationRoute() {
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <span className="text-content-muted">
-                Base Fare ({totalPassengers} × ${flight.pricing.pricePerPassenger})
+                {returnFlight ? 'Outbound' : 'Base Fare'} ({totalPassengers} × ${flight.pricing.pricePerPassenger})
               </span>
-              <span className="text-content">${subtotal.toFixed(2)}</span>
+              <span className="text-content">${outboundSubtotal.toFixed(2)}</span>
             </div>
+            {returnFlight && (
+              <div className="flex justify-between text-sm">
+                <span className="text-content-muted">
+                  Return ({totalPassengers} × ${returnFlight.pricing.pricePerPassenger})
+                </span>
+                <span className="text-content">${returnSubtotal.toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm">
               <span className="text-content-muted">Taxes & Fees</span>
               <span className="text-content">${taxes.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-lg font-bold pt-3 border-t border-divider-light">
-              <span className="text-content">Total Paid</span>
+              <span className="text-content">Total Paid{returnFlight ? ' (Round Trip)' : ''}</span>
               <span className="text-primary" data-testid="total-amount">${total.toFixed(2)}</span>
             </div>
           </div>

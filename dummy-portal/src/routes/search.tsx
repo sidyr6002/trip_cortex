@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import Navbar from '../components/home/Navbar'
 import SearchWidget from '../components/home/SearchWidget'
@@ -109,8 +109,10 @@ function applySorting(flights: FlightListing[], sort: SortOption): FlightListing
 
 function SearchRoute() {
     const searchParams = Route.useSearch();
+    const navigate = useNavigate();
     const isRoundTrip = searchParams.tripType === 'round-trip';
     const [activeLeg, setActiveLeg] = useState<'outbound' | 'return'>('outbound');
+    const [selectedOutbound, setSelectedOutbound] = useState<FlightListing | null>(null);
     const [sortBy, setSortBy] = useState<SortOption>('direct-first');
     const [sortOpen, setSortOpen] = useState(false);
     const sortRef = useRef<HTMLDivElement>(null);
@@ -167,6 +169,35 @@ function SearchRoute() {
     const fromAirport = searchParams.from ? getAirportByCode(searchParams.from) : undefined;
     const toAirport = searchParams.to ? getAirportByCode(searchParams.to) : undefined;
 
+    const handleFlightSelect = (flight: FlightListing) => {
+        if (isRoundTrip && activeLeg === 'outbound') {
+            // Store outbound selection and switch to return leg
+            setSelectedOutbound(flight);
+            setActiveLeg('return');
+        } else if (isRoundTrip && activeLeg === 'return' && selectedOutbound) {
+            // Both legs selected — navigate to booking with both flight IDs
+            navigate({
+                to: '/book/$flightId',
+                params: { flightId: selectedOutbound.id },
+                search: {
+                    adults: searchParams.adults || 1,
+                    children: searchParams.children || 0,
+                    returnFlightId: flight.id,
+                },
+            });
+        } else {
+            // One-way — navigate directly
+            navigate({
+                to: '/book/$flightId',
+                params: { flightId: flight.id },
+                search: {
+                    adults: searchParams.adults || 1,
+                    children: searchParams.children || 0,
+                },
+            });
+        }
+    };
+
     return (
         <div className="min-h-screen bg-primary-100 font-sans text-content overflow-x-hidden">
             <Navbar simplified />
@@ -188,20 +219,29 @@ function SearchRoute() {
                                 </h3>
                                 <div className="space-y-4 relative before:absolute before:left-3.5 before:top-8 before:bottom-8 before:w-px before:bg-divider-light">
                                     <button
-                                        onClick={() => setActiveLeg('outbound')}
+                                        onClick={() => { setActiveLeg('outbound'); setSelectedOutbound(null); }}
                                         className={`flex gap-4 relative z-10 bg-white group cursor-pointer w-full text-left transition-opacity ${activeLeg === 'return' ? 'opacity-60 hover:opacity-100' : ''}`}
                                     >
-                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${activeLeg === 'outbound' ? 'bg-primary text-white shadow-sm shadow-primary/30' : 'bg-surface-muted text-content-muted'}`}>
-                                            <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l6 4-4 4-2.8-.9c-.4-.1-.8.1-1 .5L1 17l4 2 2 4 .7-.1c.4-.2.6-.6.5-1L7.3 19l4-4 4 6h1.2c.4 0 .7-.4.6-.9z" /></svg>
+                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${activeLeg === 'outbound' ? 'bg-primary text-white shadow-sm shadow-primary/30' : selectedOutbound ? 'bg-green-500 text-white' : 'bg-surface-muted text-content-muted'}`}>
+                                            {selectedOutbound && activeLeg !== 'outbound' ? (
+                                                <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                                            ) : (
+                                                <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l6 4-4 4-2.8-.9c-.4-.1-.8.1-1 .5L1 17l4 2 2 4 .7-.1c.4-.2.6-.6.5-1L7.3 19l4-4 4 6h1.2c.4 0 .7-.4.6-.9z" /></svg>
+                                            )}
                                         </div>
                                         <div>
                                             <div className="font-medium text-sm text-content-muted">{searchParams.date ? formatSidebarDate(searchParams.date) : 'Departure'}</div>
                                             <div className="font-semibold text-content mt-0.5 group-hover:text-primary transition-colors">{fromAirport.cityName} → {toAirport.cityName}</div>
+                                            {selectedOutbound && (
+                                                <div className="text-sm font-semibold text-green-600 mt-1">
+                                                    {selectedOutbound.segments[0].airline.name} · {selectedOutbound.pricing.currency} {selectedOutbound.pricing.pricePerPassenger.toFixed(2)}/pax
+                                                </div>
+                                            )}
                                         </div>
                                     </button>
                                     <button
-                                        onClick={() => setActiveLeg('return')}
-                                        className={`flex gap-4 relative z-10 bg-white group cursor-pointer w-full text-left transition-opacity ${activeLeg === 'outbound' ? 'opacity-60 hover:opacity-100' : ''}`}
+                                        onClick={() => { if (selectedOutbound) setActiveLeg('return'); }}
+                                        className={`flex gap-4 relative z-10 bg-white group w-full text-left transition-opacity ${!selectedOutbound ? 'opacity-40 cursor-not-allowed' : activeLeg === 'outbound' ? 'opacity-60 hover:opacity-100 cursor-pointer' : 'cursor-pointer'}`}
                                     >
                                         <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${activeLeg === 'return' ? 'bg-primary text-white shadow-sm shadow-primary/30' : 'bg-surface-muted text-content-muted'}`}>
                                             <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l6 4-4 4-2.8-.9c-.4-.1-.8.1-1 .5L1 17l4 2 2 4 .7-.1c.4-.2.6-.6.5-1L7.3 19l4-4 4 6h1.2c.4 0 .7-.4.6-.9z" /></svg>
@@ -209,9 +249,25 @@ function SearchRoute() {
                                         <div>
                                             <div className="font-medium text-sm text-content-muted">{searchParams.returnDate ? formatSidebarDate(searchParams.returnDate) : 'Return'}</div>
                                             <div className="font-semibold text-content mt-0.5 group-hover:text-primary transition-colors">{toAirport.cityName} → {fromAirport.cityName}</div>
+                                            {!selectedOutbound && (
+                                                <div className="text-xs text-content-muted mt-1">Select outbound first</div>
+                                            )}
                                         </div>
                                     </button>
                                 </div>
+
+                                {/* Combined price summary */}
+                                {selectedOutbound && (
+                                    <div className="mt-4 pt-4 border-t border-divider-light">
+                                        <div className="flex justify-between text-sm text-content-muted">
+                                            <span>Outbound</span>
+                                            <span className="font-semibold text-content">{selectedOutbound.pricing.currency} {selectedOutbound.pricing.pricePerPassenger.toFixed(2)}/pax</span>
+                                        </div>
+                                        {activeLeg === 'return' && (
+                                            <div className="text-xs text-primary mt-2 font-medium">Select a return flight to see total</div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -279,6 +335,7 @@ function SearchRoute() {
                                     flight={flight} 
                                     adults={searchParams.adults || 1}
                                     children={searchParams.children || 0}
+                                    onSelect={handleFlightSelect}
                                 />
                             )) : (
                                 <div className="bg-white rounded-2xl shadow-sm border border-divider-light p-12 text-center">

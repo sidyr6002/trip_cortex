@@ -14,6 +14,7 @@ import type { PassengerData } from '../data/schema';
 interface BookingSearch {
   adults: number;
   children: number;
+  returnFlightId?: string;
 }
 
 // Simple hash function for deterministic booking IDs
@@ -31,13 +32,14 @@ export const Route = createFileRoute('/book/$flightId')({
   validateSearch: (search: Record<string, unknown>): BookingSearch => ({
     adults: Number(search.adults) || 1,
     children: Number(search.children) || 0,
+    returnFlightId: search.returnFlightId as string | undefined,
   }),
   component: BookingRoute,
 });
 
 function BookingRoute() {
   const { flightId } = Route.useParams();
-  const { adults, children } = Route.useSearch();
+  const { adults, children, returnFlightId } = Route.useSearch();
   const navigate = useNavigate();
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -47,15 +49,18 @@ function BookingRoute() {
   const [isLoadingPayment, setIsLoadingPayment] = useState(false);
 
   const flight = getFlightById(flightId);
+  const returnFlight = returnFlightId ? getFlightById(returnFlightId) : undefined;
 
-  // Memoize price calculations
+  // Memoize price calculations (combined for round-trip)
   const pricing = useMemo(() => {
     if (!flight) return { subtotal: 0, taxes: 0, total: 0 };
     const totalPassengers = adults + children;
-    const subtotal = flight.pricing.pricePerPassenger * totalPassengers;
+    const outboundSubtotal = flight.pricing.pricePerPassenger * totalPassengers;
+    const returnSubtotal = returnFlight ? returnFlight.pricing.pricePerPassenger * totalPassengers : 0;
+    const subtotal = outboundSubtotal + returnSubtotal;
     const taxes = subtotal * TAX_RATE;
     return { subtotal, taxes, total: subtotal + taxes };
-  }, [flight, adults, children]);
+  }, [flight, returnFlight, adults, children]);
 
   if (!flight) {
     return (
@@ -99,6 +104,7 @@ function BookingRoute() {
     // Generate deterministic booking ID based on flight and passenger data
     const bookingData = JSON.stringify({
       flightId,
+      returnFlightId,
       passengers: passengerData.map(p => `${p.firstName}${p.lastName}${p.dateOfBirth}`),
       timestamp: new Date().toISOString().split('T')[0],
     });
@@ -107,6 +113,7 @@ function BookingRoute() {
     // Store booking data in localStorage for persistence
     const bookingState = {
       flight,
+      returnFlight: returnFlight || null,
       passengers: passengerData,
       adults,
       children,
@@ -132,6 +139,7 @@ function BookingRoute() {
         {currentStep === 1 && (
           <ReviewStep
             flight={flight}
+            returnFlight={returnFlight}
             adults={adults}
             children={children}
             pricing={pricing}
