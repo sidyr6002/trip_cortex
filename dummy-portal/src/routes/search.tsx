@@ -1,17 +1,14 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { useState, useRef, useEffect } from 'react'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import Navbar from '../components/home/Navbar'
 import SearchWidget from '../components/home/SearchWidget'
 import FlightFilterSidebar, { SORT_LABELS } from '../components/search/FlightFilterSidebar'
-import type { FilterState, SortOption } from '../components/search/FlightFilterSidebar'
+import type { SortOption } from '../components/search/FlightFilterSidebar'
 import MobileFilterBar from '../components/search/MobileFilterBar'
 import DateTabs from '../components/search/DateTabs'
 import FlightCard from '../components/search/FlightCard'
-import { searchFlights } from '../data/searchFlights'
-import { getClassIdByName, getAirportByCode } from '../data/helpers'
-import type { FlightListing } from '../data/schema'
-import { DEFAULT_SORT } from '../constants'
+import { useFlightSearch } from '../hooks/useFlightSearch'
 
 interface SearchParams {
     from?: string;
@@ -25,18 +22,16 @@ interface SearchParams {
 }
 
 export const Route = createFileRoute('/search')({
-    validateSearch: (search: Record<string, unknown>): SearchParams => {
-        return {
-            from: search.from as string | undefined,
-            to: search.to as string | undefined,
-            date: search.date as string | undefined,
-            returnDate: search.returnDate as string | undefined,
-            tripType: search.tripType as string | undefined,
-            class: search.class as string | undefined,
-            adults: Number(search.adults) || 1,
-            children: Number(search.children) || 0,
-        }
-    },
+    validateSearch: (search: Record<string, unknown>): SearchParams => ({
+        from: search.from as string | undefined,
+        to: search.to as string | undefined,
+        date: search.date as string | undefined,
+        returnDate: search.returnDate as string | undefined,
+        tripType: search.tripType as string | undefined,
+        class: search.class as string | undefined,
+        adults: Number(search.adults) || 1,
+        children: Number(search.children) || 0,
+    }),
     beforeLoad: ({ search }) => {
         if (!search.from || !search.to || !search.date) {
             throw redirect({
@@ -60,144 +55,30 @@ function formatSidebarDate(dateStr: string) {
     return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 
-function applyFilters(flights: FlightListing[], filters: FilterState): FlightListing[] {
-    return flights.filter(f => {
-        // Transit type filter
-        if (filters.transitTypes.length > 0 && !filters.transitTypes.includes(f.transitType as any)) {
-            return false;
-        }
-        // Price range filter
-        if (f.pricing.pricePerPassenger < filters.priceRange[0] || f.pricing.pricePerPassenger > filters.priceRange[1]) {
-            return false;
-        }
-        // Facility filter — flight must have ALL selected facilities
-        if (filters.facilities.length > 0) {
-            const flightFacilityIds = new Set(f.segments.flatMap(s => s.facilities.map(fac => fac.id)));
-            if (!filters.facilities.every(id => flightFacilityIds.has(id))) {
-                return false;
-            }
-        }
-        return true;
-    });
-}
-
-function applySorting(flights: FlightListing[], sort: SortOption): FlightListing[] {
-    const sorted = [...flights];
-    const compareFn = (a: FlightListing, b: FlightListing): number => {
-        // Always push sold-out flights to the bottom
-        if (a.status === 'sold-out' && b.status !== 'sold-out') return 1;
-        if (a.status !== 'sold-out' && b.status === 'sold-out') return -1;
-        
-        switch (sort) {
-            case 'price-asc':
-                return a.pricing.pricePerPassenger - b.pricing.pricePerPassenger;
-            case 'price-desc':
-                return b.pricing.pricePerPassenger - a.pricing.pricePerPassenger;
-            case 'duration-asc':
-                return a.totalDurationMinutes - b.totalDurationMinutes;
-            case 'departure-asc':
-                return a.segments[0].departureTime.localeCompare(b.segments[0].departureTime);
-            case 'direct-first': {
-                const order: Record<string, number> = { 'Direct': 0, '1 transit': 1, '2+ transit': 2 };
-                return (order[a.transitType] ?? 9) - (order[b.transitType] ?? 9) || a.pricing.pricePerPassenger - b.pricing.pricePerPassenger;
-            }
-            default:
-                return 0;
-        }
-    };
-    return sorted.sort(compareFn);
-}
-
 function SearchRoute() {
     const searchParams = Route.useSearch();
-    const navigate = useNavigate();
-    const isRoundTrip = searchParams.tripType === 'round-trip';
-    const [activeLeg, setActiveLeg] = useState<'outbound' | 'return'>('outbound');
-    const [selectedOutbound, setSelectedOutbound] = useState<FlightListing | null>(null);
-    const [sortBy, setSortBy] = useState<SortOption>(DEFAULT_SORT);
     const [sortOpen, setSortOpen] = useState(false);
     const sortRef = useRef<HTMLDivElement>(null);
 
-    const classId = searchParams.class ? getClassIdByName(searchParams.class) : undefined;
-    const isReturnLeg = isRoundTrip && activeLeg === 'return';
+    const {
+        allFlights, sortedFlights,
+        filters, setFilters,
+        sortBy, setSortBy,
+        isRoundTrip, activeLeg, setActiveLeg,
+        selectedOutbound, setSelectedOutbound,
+        effectiveFrom, effectiveTo, effectiveDate,
+        isReturnLeg, classId,
+        fromAirport, toAirport,
+        handleFlightSelect,
+    } = useFlightSearch(searchParams);
 
-    const effectiveFrom = isReturnLeg ? searchParams.to : searchParams.from;
-    const effectiveTo = isReturnLeg ? searchParams.from : searchParams.to;
-    const effectiveDate = isReturnLeg ? searchParams.returnDate : searchParams.date;
-
-    const allFlights = useMemo(() => searchFlights({
-        originAirportCode: effectiveFrom,
-        destinationAirportCode: effectiveTo,
-        departureDate: effectiveDate,
-        classId,
-        excludeSoldOut: false,
-    }), [effectiveFrom, effectiveTo, effectiveDate, classId]);
-
-    // Derive initial price range from flights
-    const prices = allFlights.map(f => f.pricing.pricePerPassenger);
-    const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-    const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
-
-    const [filters, setFilters] = useState<FilterState>({
-        transitTypes: [],
-        priceRange: [minPrice, maxPrice],
-        facilities: [],
-    });
-
-    // Reset filters when flights change (new search)
-    useEffect(() => {
-        setFilters({
-            transitTypes: [],
-            priceRange: [minPrice, maxPrice],
-            facilities: [],
-        });
-    }, [minPrice, maxPrice]);
-
-    // Close sort dropdown on outside click
     useEffect(() => {
         const handler = (e: MouseEvent) => {
-            if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
-                setSortOpen(false);
-            }
+            if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false);
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, []);
-
-    const filteredFlights = useMemo(() => applyFilters(allFlights, filters), [allFlights, filters]);
-    const sortedFlights = useMemo(() => applySorting(filteredFlights, sortBy), [filteredFlights, sortBy]);
-
-    const fromAirport = searchParams.from ? getAirportByCode(searchParams.from) : undefined;
-    const toAirport = searchParams.to ? getAirportByCode(searchParams.to) : undefined;
-
-    const handleFlightSelect = (flight: FlightListing) => {
-        if (isRoundTrip && activeLeg === 'outbound') {
-            // Store outbound selection and switch to return leg
-            setSelectedOutbound(flight);
-            setActiveLeg('return');
-        } else if (isRoundTrip && activeLeg === 'return' && selectedOutbound) {
-            // Both legs selected — navigate to booking with both flight IDs
-            navigate({
-                to: '/book/$flightId',
-                params: { flightId: selectedOutbound.id },
-                search: {
-                    adults: searchParams.adults || 1,
-                    children: searchParams.children || 0,
-                    returnFlightId: flight.id,
-                },
-            });
-        } else {
-            // One-way — navigate directly
-            navigate({
-                to: '/book/$flightId',
-                params: { flightId: flight.id },
-                search: {
-                    adults: searchParams.adults || 1,
-                    children: searchParams.children || 0,
-                },
-            });
-        }
-    };
 
     return (
         <div className="min-h-screen bg-primary-100 font-sans text-content overflow-x-hidden">
@@ -212,12 +93,9 @@ function SearchRoute() {
 
                     {/* Left Sidebar — desktop only */}
                     <div className="hidden lg:block w-72 shrink-0 space-y-6">
-                        {/* Your Flight Summary — only for round trip */}
                         {isRoundTrip && fromAirport && toAirport && (
                             <div className="bg-white rounded-2xl shadow-sm border border-divider-light p-5">
-                                <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
-                                    Your Flight
-                                </h3>
+                                <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">Your Flight</h3>
                                 <div className="space-y-4 relative before:absolute before:left-3.5 before:top-8 before:bottom-8 before:w-px before:bg-divider-light">
                                     <button
                                         onClick={() => { setActiveLeg('outbound'); setSelectedOutbound(null); }}
@@ -250,29 +128,22 @@ function SearchRoute() {
                                         <div>
                                             <div className="font-medium text-sm text-content-muted">{searchParams.returnDate ? formatSidebarDate(searchParams.returnDate) : 'Return'}</div>
                                             <div className="font-semibold text-content mt-0.5 group-hover:text-primary transition-colors">{toAirport.cityName} → {fromAirport.cityName}</div>
-                                            {!selectedOutbound && (
-                                                <div className="text-xs text-content-muted mt-1">Select outbound first</div>
-                                            )}
+                                            {!selectedOutbound && <div className="text-xs text-content-muted mt-1">Select outbound first</div>}
                                         </div>
                                     </button>
                                 </div>
-
-                                {/* Combined price summary */}
                                 {selectedOutbound && (
                                     <div className="mt-4 pt-4 border-t border-divider-light">
                                         <div className="flex justify-between text-sm text-content-muted">
                                             <span>Outbound</span>
                                             <span className="font-semibold text-content">{selectedOutbound.pricing.currency} {selectedOutbound.pricing.pricePerPassenger.toFixed(2)}/pax</span>
                                         </div>
-                                        {activeLeg === 'return' && (
-                                            <div className="text-xs text-primary mt-2 font-medium">Select a return flight to see total</div>
-                                        )}
+                                        {activeLeg === 'return' && <div className="text-xs text-primary mt-2 font-medium">Select a return flight to see total</div>}
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* Sort By Dropdown */}
                         <div className="bg-white rounded-2xl shadow-sm border border-divider-light p-5">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm font-medium text-content-muted">Sort by:</span>
@@ -302,17 +173,12 @@ function SearchRoute() {
                         </div>
 
                         <div className="bg-white rounded-2xl shadow-sm border border-divider-light p-5">
-                            <FlightFilterSidebar
-                                filters={filters}
-                                onFiltersChange={setFilters}
-                                flights={allFlights}
-                            />
+                            <FlightFilterSidebar filters={filters} onFiltersChange={setFilters} flights={allFlights} />
                         </div>
                     </div>
 
                     {/* Main Content Area */}
                     <div className="flex-1 w-full min-w-0">
-                        {/* Mobile filter/sort pills */}
                         <MobileFilterBar
                             filters={filters}
                             onFiltersChange={setFilters}
@@ -320,7 +186,6 @@ function SearchRoute() {
                             sortBy={sortBy}
                             onSortChange={setSortBy}
                         />
-
                         <DateTabs
                             departureDate={effectiveDate}
                             from={effectiveFrom}
@@ -328,12 +193,11 @@ function SearchRoute() {
                             flightClass={classId}
                             isReturnLeg={isReturnLeg}
                         />
-
                         <div className="space-y-4">
                             {sortedFlights.length > 0 ? sortedFlights.map((flight) => (
-                                <FlightCard 
-                                    key={flight.id} 
-                                    flight={flight} 
+                                <FlightCard
+                                    key={flight.id}
+                                    flight={flight}
                                     adults={searchParams.adults || 1}
                                     children={searchParams.children || 0}
                                     onSelect={handleFlightSelect}
