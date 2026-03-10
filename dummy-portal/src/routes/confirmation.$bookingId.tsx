@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import Navbar from '../components/home/Navbar';
 import { CheckCircle, Download, Printer } from 'lucide-react';
 import type { FlightListing, PassengerData } from '../data/schema';
 import { formatDuration } from '../data/mockData';
 import { TAX_RATE } from '../data/helpers';
+import { generateTicketPdf } from '../utils/generateTicketPdf';
 
 interface ConfirmationState {
   flight: FlightListing;
@@ -22,15 +23,14 @@ export const Route = createFileRoute('/confirmation/$bookingId')({
 function ConfirmationRoute() {
   const { bookingId } = Route.useParams();
   const navigate = useNavigate();
-  const downloadLinkRef = useRef<HTMLAnchorElement>(null);
-  
+
   // Try to get state from navigation or localStorage
   const [bookingState, setBookingState] = useState<ConfirmationState | null>(null);
 
   useEffect(() => {
     // First try navigation state
     const navState = window.history.state?.usr as ConfirmationState | undefined;
-    
+
     if (navState) {
       setBookingState(navState);
     } else {
@@ -70,57 +70,15 @@ function ConfirmationRoute() {
   const taxes = subtotal * TAX_RATE;
 
   const handleDownload = () => {
-    // Sanitize user input
-    const sanitize = (str: string) => str.replace(/[<>]/g, '');
-    
-    const itinerary = `
-FLYSMART BOOKING CONFIRMATION
-==============================
-
-Booking Reference: ${bookingId}
-
-FLIGHT DETAILS
---------------
-${sanitize(flight.segments[0].airline.name)}
-Flight: ${flight.segments.map(s => sanitize(s.flightNumber)).join(' → ')}
-Class: ${sanitize(flight.flightClass.name)}
-
-Departure: ${sanitize(flight.departureAirport.name)} (${flight.departureAirport.code})
-           ${new Date(flight.segments[0].departureTime).toLocaleString()}
-
-Arrival:   ${sanitize(flight.arrivalAirport.name)} (${flight.arrivalAirport.code})
-           ${new Date(flight.segments[flight.segments.length - 1].arrivalTime).toLocaleString()}
-
-Duration: ${formatDuration(flight.totalDurationMinutes)}
-Transit: ${flight.transitType}
-
-PASSENGERS
-----------
-${passengers.map((p, i) => `${i + 1}. ${sanitize(p.firstName)} ${sanitize(p.lastName)} (DOB: ${p.dateOfBirth})`).join('\n')}
-
-PRICE BREAKDOWN
----------------
-Base Fare (${totalPassengers} passengers): $${subtotal.toFixed(2)}
-Taxes & Fees: $${taxes.toFixed(2)}
-Total: $${total.toFixed(2)}
-
-Contact: ${sanitize(passengers[0].email || '')}
-Phone: ${sanitize(passengers[0].phone || '')}
-
-Thank you for booking with FlySmart!
-    `.trim();
-
-    const blob = new Blob([itinerary], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    
-    if (downloadLinkRef.current) {
-      downloadLinkRef.current.href = url;
-      downloadLinkRef.current.download = `FlySmart-${bookingId}.txt`;
-      downloadLinkRef.current.click();
-    }
-    
-    // Cleanup
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    generateTicketPdf({
+      bookingId,
+      flight,
+      passengers,
+      adults,
+      children,
+      total,
+      paymentIntentId: bookingState.paymentIntentId,
+    });
   };
 
   return (
@@ -138,7 +96,7 @@ Thank you for booking with FlySmart!
         {/* Booking Reference */}
         <div className="bg-primary/10 border-2 border-primary rounded-xl p-6 mb-6 text-center">
           <div className="text-sm font-medium text-content-muted mb-1">Booking Reference</div>
-          <div 
+          <div
             className="text-3xl font-bold text-primary font-mono tracking-wider"
             data-testid="booking-reference"
           >
@@ -157,7 +115,7 @@ Thank you for booking with FlySmart!
         {/* Flight Summary */}
         <div className="bg-white rounded-xl border border-divider-light p-6 mb-6">
           <h2 className="text-xl font-bold text-content mb-4">Flight Details</h2>
-          
+
           <div className="space-y-4">
             <div className="flex items-center gap-3 pb-4 border-b border-divider-light">
               <div className="w-12 h-12 rounded-full bg-surface-muted flex items-center justify-center">
@@ -226,8 +184,8 @@ Thank you for booking with FlySmart!
           <h2 className="text-xl font-bold text-content mb-4">Passenger Details</h2>
           <div className="space-y-3">
             {passengers.map((passenger, idx) => (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className="flex justify-between items-center py-2 border-b border-divider-light last:border-0"
                 data-testid={`passenger-${idx}`}
               >
@@ -273,11 +231,11 @@ Thank you for booking with FlySmart!
         <div className="flex gap-4">
           <button
             onClick={handleDownload}
-            className="flex-1 bg-surface-muted text-content py-4 rounded-xl font-semibold hover:bg-divider-light transition-colors flex items-center justify-center gap-2"
+            className="flex-1 bg-primary text-white py-4 rounded-xl font-semibold hover:bg-primary-hover transition-colors flex items-center justify-center gap-2"
             data-testid="download-itinerary"
           >
             <Download className="w-5 h-5" />
-            Download Itinerary
+            Download PDF Ticket
           </button>
           <button
             onClick={() => window.print()}
@@ -297,9 +255,6 @@ Thank you for booking with FlySmart!
             Book Another Flight
           </button>
         </div>
-
-        {/* Hidden download link for React-idiomatic approach */}
-        <a ref={downloadLinkRef} className="hidden" aria-hidden="true" />
       </div>
     </div>
   );
