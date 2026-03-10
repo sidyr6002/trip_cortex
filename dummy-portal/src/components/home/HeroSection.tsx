@@ -1,4 +1,4 @@
-import SearchWidget from './SearchWidget'
+import SearchWidget from './search-widget/SearchWidget'
 
 export default function HeroSection() {
     return (
