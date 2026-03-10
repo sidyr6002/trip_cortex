@@ -1,5 +1,5 @@
 import type { FlightListing } from './schema';
-import { TAX_RATE } from './helpers';
+import { TAX_RATE } from '../constants';
 
 export interface PricingBreakdown {
   outboundSubtotal: number;

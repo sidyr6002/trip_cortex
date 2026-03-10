@@ -16,6 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { AIRPORT_TABLE, CLASS_TABLE } from "../../data/mockData";
 import { getAirportByCode, getClassNameById } from "../../data/helpers";
 import type { Airport } from "../../data/schema";
+import { DATE_RANGE_OFFSET_DAYS, DEFAULT_ADULTS, DEFAULT_CHILDREN } from "../../constants";
 
 const CLASSES = CLASS_TABLE.map(c => c.name);
 
@@ -32,11 +33,11 @@ export default function SearchWidget() {
     const [date, setDate] = useState<Date>(new Date());
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
         from: new Date(),
-        to: new Date(new Date().setDate(new Date().getDate() + 7)),
+        to: new Date(new Date().setDate(new Date().getDate() + DATE_RANGE_OFFSET_DAYS)),
     });
 
-    const [adults, setAdults] = useState(1);
-    const [children, setChildren] = useState(0);
+    const [adults, setAdults] = useState(DEFAULT_ADULTS);
+    const [children, setChildren] = useState(DEFAULT_CHILDREN);
 
     const [flightClass, setFlightClass] = useState("Economy");
 
@@ -60,7 +61,7 @@ export default function SearchWidget() {
             if (!isNaN(parsedDate.getTime())) {
                 setDate(parsedDate);
                 if (searchParams.tripType === 'round-trip') {
-                    const returnDate = searchParams.returnDate ? new Date(searchParams.returnDate) : new Date(parsedDate.getTime() + 7 * 86400000);
+                    const returnDate = searchParams.returnDate ? new Date(searchParams.returnDate) : new Date(parsedDate.getTime() + DATE_RANGE_OFFSET_DAYS * 86400000);
                     setDateRange({ from: parsedDate, to: returnDate });
                 }
             }

@@ -1,6 +1,5 @@
 import { AIRPORT_TABLE, CLASS_TABLE } from './mockData';
-
-export const TAX_RATE = 0.12; // 12% tax rate
+export { TAX_RATE } from '../constants';
 import { searchFlights } from './searchFlights';
 import type { FlightListing } from './schema';
 

@@ -11,6 +11,7 @@ import FlightCard from '../components/search/FlightCard'
 import { searchFlights } from '../data/searchFlights'
 import { getClassIdByName, getAirportByCode } from '../data/helpers'
 import type { FlightListing } from '../data/schema'
+import { DEFAULT_SORT } from '../constants'
 
 interface SearchParams {
     from?: string;
@@ -113,7 +114,7 @@ function SearchRoute() {
     const isRoundTrip = searchParams.tripType === 'round-trip';
     const [activeLeg, setActiveLeg] = useState<'outbound' | 'return'>('outbound');
     const [selectedOutbound, setSelectedOutbound] = useState<FlightListing | null>(null);
-    const [sortBy, setSortBy] = useState<SortOption>('direct-first');
+    const [sortBy, setSortBy] = useState<SortOption>(DEFAULT_SORT);
     const [sortOpen, setSortOpen] = useState(false);
     const sortRef = useRef<HTMLDivElement>(null);
 
