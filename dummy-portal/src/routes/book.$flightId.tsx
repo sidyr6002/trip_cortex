@@ -113,7 +113,7 @@ function BookingRoute() {
     // Store booking data in localStorage for persistence
     const bookingState = {
       flight,
-      returnFlight: returnFlight || null,
+      returnFlight: returnFlight ?? null,
       passengers: passengerData,
       adults,
       children,

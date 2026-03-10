@@ -116,10 +116,11 @@ function ConfirmationRoute() {
   const subtotal = outboundSubtotal + returnSubtotal;
   const taxes = subtotal * TAX_RATE;
 
-  const handleDownload = () => {
-    generateTicketPdf({
+  const handleDownload = async () => {
+    await generateTicketPdf({
       bookingId,
       flight,
+      returnFlight: returnFlight ?? undefined,
       passengers,
       adults,
       children,

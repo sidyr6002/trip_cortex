@@ -2,13 +2,14 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { SignedIn } from '@clerk/tanstack-react-start';
 import Navbar from '../components/home/Navbar';
-import { Download, Calendar, Users, DollarSign, Plane, ArrowLeft } from 'lucide-react';
+import { Download, Calendar, Users, DollarSign, Plane, ArrowLeft, ArrowRightLeft } from 'lucide-react';
 import { generateTicketPdf } from '../utils/generateTicketPdf';
 import type { FlightListing, PassengerData } from '../data/schema';
 
 interface StoredBooking {
   bookingId: string;
   flight: FlightListing;
+  returnFlight?: FlightListing | null;
   passengers: PassengerData[];
   adults: number;
   children: number;
@@ -46,10 +47,11 @@ function BookingsRoute() {
     setBookings(stored.reverse());
   }, []);
 
-  const handleDownload = (booking: StoredBooking) => {
-    generateTicketPdf({
+  const handleDownload = async (booking: StoredBooking) => {
+    await generateTicketPdf({
       bookingId: booking.bookingId,
       flight: booking.flight,
+      returnFlight: booking.returnFlight,
       passengers: booking.passengers,
       adults: booking.adults,
       children: booking.children,
@@ -87,6 +89,10 @@ function BookingsRoute() {
             <div className="grid gap-4">
               {bookings.map((booking) => {
                 const departureTime = new Date(booking.flight.segments[0].departureTime);
+                const isRoundTrip = !!booking.returnFlight;
+                const returnDepartureTime = isRoundTrip
+                  ? new Date(booking.returnFlight!.segments[0].departureTime)
+                  : null;
                 const totalPassengers = booking.adults + booking.children;
 
                 return (
@@ -95,43 +101,99 @@ function BookingsRoute() {
                     href={`/confirmation/${booking.bookingId}`}
                     className="bg-white rounded-xl border border-divider-light p-6 hover:shadow-lg transition-shadow cursor-pointer"
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+                    {/* Trip type badge */}
+                    {isRoundTrip && (
+                      <div className="flex items-center gap-1.5 mb-3">
+                        <ArrowRightLeft className="w-3.5 h-3.5 text-accent" />
+                        <span className="text-xs font-semibold text-accent">Round Trip</span>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
                       {/* Route */}
-                      <div className="md:col-span-2">
-                        <div className="text-sm text-content-muted mb-1">Route</div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-lg font-bold text-primary">
-                            {booking.flight.departureAirport.code}
+                      <div className="md:col-span-2 space-y-3">
+                        {/* Outbound */}
+                        <div>
+                          <div className="text-xs text-content-muted mb-1">
+                            {isRoundTrip ? 'Outbound' : 'Route'}
                           </div>
-                          <Plane className="w-4 h-4 text-content-muted" />
-                          <div className="text-lg font-bold text-primary">
-                            {booking.flight.arrivalAirport.code}
+                          <div className="flex items-center gap-2">
+                            <div className="text-lg font-bold text-primary">
+                              {booking.flight.departureAirport.code}
+                            </div>
+                            <Plane className="w-4 h-4 text-content-muted" />
+                            <div className="text-lg font-bold text-primary">
+                              {booking.flight.arrivalAirport.code}
+                            </div>
+                          </div>
+                          <div className="text-xs text-content-muted">
+                            {booking.flight.segments[0].airline.name}
                           </div>
                         </div>
-                        <div className="text-xs text-content-muted mt-1">
-                          {booking.flight.segments[0].airline.name}
-                        </div>
+
+                        {/* Return */}
+                        {isRoundTrip && booking.returnFlight && (
+                          <div>
+                            <div className="text-xs text-content-muted mb-1">Return</div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-lg font-bold text-primary">
+                                {booking.returnFlight.departureAirport.code}
+                              </div>
+                              <Plane className="w-4 h-4 text-content-muted rotate-180" />
+                              <div className="text-lg font-bold text-primary">
+                                {booking.returnFlight.arrivalAirport.code}
+                              </div>
+                            </div>
+                            <div className="text-xs text-content-muted">
+                              {booking.returnFlight.segments[0].airline.name}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Date */}
-                      <div>
-                        <div className="text-sm text-content-muted mb-1 flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          Date
+                      <div className="space-y-3">
+                        <div>
+                          <div className="text-sm text-content-muted mb-1 flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            {isRoundTrip ? 'Departure' : 'Date'}
+                          </div>
+                          <div className="font-semibold text-content">
+                            {departureTime.toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </div>
+                          <div className="text-xs text-content-muted">
+                            {departureTime.toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </div>
                         </div>
-                        <div className="font-semibold text-content">
-                          {departureTime.toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
-                        </div>
-                        <div className="text-xs text-content-muted">
-                          {departureTime.toLocaleTimeString('en-US', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </div>
+
+                        {isRoundTrip && returnDepartureTime && (
+                          <div>
+                            <div className="text-sm text-content-muted mb-1 flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              Return
+                            </div>
+                            <div className="font-semibold text-content">
+                              {returnDepartureTime.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </div>
+                            <div className="text-xs text-content-muted">
+                              {returnDepartureTime.toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Passengers */}
