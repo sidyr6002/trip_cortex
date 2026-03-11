@@ -63,6 +63,10 @@ Resources:
         StackPrefix: !Ref AWS::StackName
 
   # ── Step Functions ───────────────────────────────────────────────────────────
+  # Lambda ARNs are derived from the known SAM function naming convention
+  # ({StackName}-{LogicalId}-{Hash}) — we use !Sub with the stack name prefix
+  # to avoid a circular dependency between WorkflowStack and FunctionsStack.
+  # The three polling Lambdas are named deterministically via SAM.
 
   WorkflowStack:
     Type: AWS::Serverless::Application
@@ -71,6 +75,9 @@ Resources:
       Parameters:
         Environment: !Ref Environment
         StackPrefix: !Ref AWS::StackName
+        CheckBdaStatusFunctionArn: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-CheckBdaStatusFunction"
+        IngestionCompleteFunctionArn: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-IngestionCompleteFunction"
+        IngestionFailedFunctionArn: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-IngestionFailedFunction"
 
   # ── Lambda Functions ─────────────────────────────────────────────────────────
 
@@ -97,6 +104,7 @@ Resources:
         LambdaSecurityGroupId: !GetAtt NetworkStack.Outputs.LambdaSecurityGroupId
         PrivateSubnetIds: !GetAtt NetworkStack.Outputs.PrivateSubnetIds
         ClerkSecretKeyArn: !Ref ClerkSecretKeyArn
+        IngestionPollingWorkflowArn: !GetAtt WorkflowStack.Outputs.IngestionPollingWorkflowArn
 
   # ── API Gateway WebSocket ────────────────────────────────────────────────────
 

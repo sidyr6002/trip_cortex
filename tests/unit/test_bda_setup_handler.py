@@ -61,9 +61,7 @@ def test_bda_setup_handler_service_error(mock_service_class, mock_get_bda_client
 
     mock_service = MagicMock()
     mock_service_class.return_value = mock_service
-    mock_service.get_or_create_project.side_effect = TripCortexError(
-        "BDA API failed", code=ErrorCode.INTERNAL_ERROR
-    )
+    mock_service.get_or_create_project.side_effect = TripCortexError("BDA API failed", code=ErrorCode.INTERNAL_ERROR)
 
     with pytest.raises(TripCortexError):
         handler({}, {})

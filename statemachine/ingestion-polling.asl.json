@@ -1,0 +1,54 @@
+{
+  "Comment": "Ingestion polling workflow — polls BDA job status with Wait/Choice loop",
+  "StartAt": "CheckBdaStatus",
+  "TimeoutSeconds": 900,
+  "States": {
+    "CheckBdaStatus": {
+      "Type": "Task",
+      "Resource": "${CheckBdaStatusFunctionArn}",
+      "ResultPath": "$",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Next": "IsComplete"
+    },
+    "IsComplete": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.status",
+          "StringEquals": "SUCCESS",
+          "Next": "IngestionComplete"
+        },
+        {
+          "Variable": "$.status",
+          "StringEquals": "FAILED",
+          "Next": "IngestionFailed"
+        }
+      ],
+      "Default": "WaitForBda"
+    },
+    "WaitForBda": {
+      "Type": "Wait",
+      "Seconds": 15,
+      "Next": "CheckBdaStatus"
+    },
+    "IngestionComplete": {
+      "Type": "Task",
+      "Resource": "${IngestionCompleteFunctionArn}",
+      "ResultPath": "$",
+      "End": true
+    },
+    "IngestionFailed": {
+      "Type": "Task",
+      "Resource": "${IngestionFailedFunctionArn}",
+      "ResultPath": "$",
+      "End": true
+    }
+  }
+}

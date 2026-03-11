@@ -43,6 +43,9 @@ Parameters:
   WebSocketManagementEndpoint:
     Type: String
     Default: ""
+  IngestionPollingWorkflowArn:
+    Type: String
+    Default: ""
 
 Conditions:
   IsNotDev: !Not [!Equals [!Ref Environment, dev]]
@@ -303,6 +306,120 @@ Resources:
               Action: ssm:PutParameter
               Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/trip-cortex/*"
 
+  StartIngestionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../src/
+      Handler: handlers.start_ingestion.handler
+      Description: S3-triggered Lambda that starts BDA ingestion for policy PDFs
+      Timeout: 60
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroupId
+        SubnetIds: !Split [",", !Ref PrivateSubnetIds]
+      Environment:
+        Variables:
+          BDA_PROJECT_ARN: !Sub "{{resolve:ssm:/trip-cortex/${Environment}/bda-project-arn}}"
+          INGESTION_WORKFLOW_ARN: !Ref IngestionPollingWorkflowArn
+          AURORA_HOST: !Ref AuroraClusterEndpoint
+          AURORA_PORT: !Ref AuroraPort
+          AURORA_DATABASE: !Ref AuroraDatabaseName
+          AURORA_SECRET_ARN: !Ref AuroraSecretArn
+          POLICY_BUCKET: !Ref PolicyDocumentsBucketName
+      Events:
+        PolicyUpload:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.s3
+              detail-type:
+                - Object Created
+              detail:
+                bucket:
+                  name:
+                    - !Ref PolicyDocumentsBucketName
+                object:
+                  key:
+                    - prefix: uploads/
+                    - suffix: .pdf
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action: bedrock:InvokeDataAutomation
+              Resource: "*"
+            - Effect: Allow
+              Action: s3:GetObject
+              Resource: !Sub "${PolicyDocumentsBucketArn}/uploads/*"
+            - Effect: Allow
+              Action: states:StartExecution
+              Resource: !Ref IngestionPollingWorkflowArn
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref AuroraSecretArn
+
+  CheckBdaStatusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../src/
+      Handler: handlers.check_bda_status.handler
+      Description: Polls BDA job status — invoked by ingestion polling Step Functions
+      Timeout: 30
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: bedrock:GetDataAutomationStatus
+              Resource: "*"
+
+  IngestionCompleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../src/
+      Handler: handlers.ingestion_complete.handler
+      Description: Marks policy ingestion as complete in Aurora
+      Timeout: 30
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroupId
+        SubnetIds: !Split [",", !Ref PrivateSubnetIds]
+      Environment:
+        Variables:
+          AURORA_HOST: !Ref AuroraClusterEndpoint
+          AURORA_PORT: !Ref AuroraPort
+          AURORA_DATABASE: !Ref AuroraDatabaseName
+          AURORA_SECRET_ARN: !Ref AuroraSecretArn
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref AuroraSecretArn
+
+  IngestionFailedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../src/
+      Handler: handlers.ingestion_failed.handler
+      Description: Marks policy ingestion as failed in Aurora
+      Timeout: 30
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroupId
+        SubnetIds: !Split [",", !Ref PrivateSubnetIds]
+      Environment:
+        Variables:
+          AURORA_HOST: !Ref AuroraClusterEndpoint
+          AURORA_PORT: !Ref AuroraPort
+          AURORA_DATABASE: !Ref AuroraDatabaseName
+          AURORA_SECRET_ARN: !Ref AuroraSecretArn
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref AuroraSecretArn
+
 Outputs:
   WebSocketAuthorizerFunctionArn:
     Value: !GetAtt WebSocketAuthorizerFunction.Arn
@@ -326,3 +443,9 @@ Outputs:
     Value: !GetAtt HeartbeatFunction.Arn
   BdaSetupFunctionArn:
     Value: !GetAtt BdaSetupFunction.Arn
+  CheckBdaStatusFunctionArn:
+    Value: !GetAtt CheckBdaStatusFunction.Arn
+  IngestionCompleteFunctionArn:
+    Value: !GetAtt IngestionCompleteFunction.Arn
+  IngestionFailedFunctionArn:
+    Value: !GetAtt IngestionFailedFunction.Arn

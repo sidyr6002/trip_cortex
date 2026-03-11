@@ -28,6 +28,9 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
       LifecycleConfiguration:
         Rules:
           - Id: BdaOutputToIA

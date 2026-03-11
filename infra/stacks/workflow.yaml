@@ -7,6 +7,12 @@ Parameters:
     Type: String
   StackPrefix:
     Type: String
+  CheckBdaStatusFunctionArn:
+    Type: String
+  IngestionCompleteFunctionArn:
+    Type: String
+  IngestionFailedFunctionArn:
+    Type: String
 
 Resources:
 
@@ -35,6 +41,44 @@ Resources:
         Project: trip-cortex
         ManagedBy: sam
 
+  IngestionPollingLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/states/${StackPrefix}-ingestion-polling"
+      RetentionInDays: 30
+
+  IngestionPollingWorkflow:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub "${StackPrefix}-ingestion-polling"
+      Type: STANDARD
+      DefinitionUri: ../../statemachine/ingestion-polling.asl.json
+      DefinitionSubstitutions:
+        CheckBdaStatusFunctionArn: !Ref CheckBdaStatusFunctionArn
+        IngestionCompleteFunctionArn: !Ref IngestionCompleteFunctionArn
+        IngestionFailedFunctionArn: !Ref IngestionFailedFunctionArn
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt IngestionPollingLogGroup.Arn
+        IncludeExecutionData: false
+        Level: ERROR
+      Policies:
+        - CloudWatchLogsFullAccess
+        - Statement:
+            - Effect: Allow
+              Action: lambda:InvokeFunction
+              Resource:
+                - !Ref CheckBdaStatusFunctionArn
+                - !Ref IngestionCompleteFunctionArn
+                - !Ref IngestionFailedFunctionArn
+      Tags:
+        Environment: !Ref Environment
+        Project: trip-cortex
+        ManagedBy: sam
+
 Outputs:
   BookingWorkflowArn:
     Value: !Ref BookingWorkflow
+  IngestionPollingWorkflowArn:
+    Value: !Ref IngestionPollingWorkflow
