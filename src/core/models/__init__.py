@@ -8,7 +8,13 @@ from core.models.booking import (
     PolicyConstraints,
     PolicySource,
 )
-from core.models.ingestion import BdaProjectResult
+from core.models.ingestion import (
+    BdaProjectResult,
+    BdaStatusResult,
+    IngestionCompleteResult,
+    IngestionRequest,
+    IngestionStartResult,
+)
 from core.models.retrieval import PolicyChunkResult
 
 __all__ = [
@@ -18,4 +24,8 @@ __all__ = [
     "PolicySource",
     "PolicyChunkResult",
     "BdaProjectResult",
+    "IngestionRequest",
+    "IngestionStartResult",
+    "BdaStatusResult",
+    "IngestionCompleteResult",
 ]
