@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { SignedIn } from '@clerk/tanstack-react-start';
 import Navbar from '../components/home/Navbar';
 import { Download, Calendar, Users, DollarSign, Plane, ArrowLeft, ArrowRightLeft } from 'lucide-react';
-import { generateTicketPdf } from '../utils/generateTicketPdf';
 import type { FlightListing, PassengerData } from '../data/schema';
 
 interface StoredBooking {
@@ -48,6 +47,7 @@ function BookingsRoute() {
   }, []);
 
   const handleDownload = async (booking: StoredBooking) => {
+    const { generateTicketPdf } = await import('../utils/generateTicketPdf');
     await generateTicketPdf({
       bookingId: booking.bookingId,
       flight: booking.flight,

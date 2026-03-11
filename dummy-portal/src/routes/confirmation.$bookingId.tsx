@@ -5,7 +5,6 @@ import { CheckCircle, Download, Printer } from 'lucide-react';
 import type { FlightListing, PassengerData } from '../data/schema';
 import { formatDuration, formatDateTime } from '../lib/dateUtils';
 import { calculatePricing } from '../data/calculatePricing';
-import { generateTicketPdf } from '../utils/generateTicketPdf';
 
 interface ConfirmationState {
   flight: FlightListing;
@@ -118,6 +117,7 @@ function ConfirmationRoute() {
   const { outboundSubtotal, returnSubtotal, taxes } = calculatePricing(flight, adults, children, returnFlight);
 
   const handleDownload = async () => {
+    const { generateTicketPdf } = await import('../utils/generateTicketPdf');
     await generateTicketPdf({
       bookingId,
       flight,
