@@ -38,6 +38,7 @@ class Config(BaseModel):
     clerk_secret_key: str = ""
     environment: str
     websocket_endpoint: str = ""
+    bda_project_arn: str = ""
 
 
 @lru_cache(maxsize=1)
@@ -59,6 +60,7 @@ def get_config() -> Config:
         clerk_secret_key=_resolve_clerk_secret(),
         environment=environ.get("ENVIRONMENT", "local"),
         websocket_endpoint=environ.get("WEBSOCKET_ENDPOINT", ""),
+        bda_project_arn=environ.get("BDA_PROJECT_ARN", ""),
     )
 
 

@@ -285,6 +285,24 @@ Resources:
                 - dynamodb:DeleteItem
               Resource: !Ref ConnectionsTableArn
 
+  BdaSetupFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../src/
+      Handler: handlers.bda_setup.handler
+      Description: One-time BDA project setup — creates BDA project and stores ARN in SSM
+      Timeout: 60
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:CreateDataAutomationProject
+                - bedrock:ListDataAutomationProjects
+              Resource: "*"
+            - Effect: Allow
+              Action: ssm:PutParameter
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/trip-cortex/*"
+
 Outputs:
   WebSocketAuthorizerFunctionArn:
     Value: !GetAtt WebSocketAuthorizerFunction.Arn
@@ -306,3 +324,5 @@ Outputs:
     Value: !GetAtt ResponseSenderFunction.Arn
   HeartbeatFunctionArn:
     Value: !GetAtt HeartbeatFunction.Arn
+  BdaSetupFunctionArn:
+    Value: !GetAtt BdaSetupFunction.Arn
