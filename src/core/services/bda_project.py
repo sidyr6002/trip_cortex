@@ -61,23 +61,13 @@ class BdaProjectService:
         return {
             "document": {
                 "extraction": {
-                    "granularity": {
-                        "types": ["DOCUMENT", "PAGE", "ELEMENT"]
-                    },
-                    "boundingBox": {
-                        "state": "ENABLED"
-                    }
+                    "granularity": {"types": ["DOCUMENT", "PAGE", "ELEMENT"]},
+                    "boundingBox": {"state": "ENABLED"},
                 },
-                "generativeField": {
-                    "state": "ENABLED"
-                },
+                "generativeField": {"state": "ENABLED"},
                 "outputFormat": {
-                    "textFormat": {
-                        "types": ["PLAIN_TEXT", "MARKDOWN"]
-                    },
-                    "additionalFileFormat": {
-                        "state": "ENABLED"
-                    }
-                }
+                    "textFormat": {"types": ["PLAIN_TEXT", "MARKDOWN"]},
+                    "additionalFileFormat": {"state": "ENABLED"},
+                },
             }
         }

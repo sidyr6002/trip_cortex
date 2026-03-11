@@ -122,9 +122,7 @@ class IngestionService:
             TripCortexError: If BDA API call fails
         """
         try:
-            response = self.bda_runtime_client.get_data_automation_status(
-                invocationArn=invocation_arn
-            )
+            response = self.bda_runtime_client.get_data_automation_status(invocationArn=invocation_arn)
 
             status = response.get("status")
             output_s3_uri = None
