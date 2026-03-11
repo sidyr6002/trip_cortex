@@ -310,7 +310,7 @@ export default function PassengerStep({ adults, children, onContinue, onBack }: 
         <button
           type="button"
           onClick={onBack}
-          className="w-full sm:w-1/3 py-5 rounded-2xl font-semibold text-lg border-2 border-divider hover:border-divider-focus hover:bg-surface-muted text-content transition-all duration-300"
+          className="w-full sm:w-1/3 py-5 rounded-2xl font-semibold text-lg border-2 border-divider bg-zinc-400 hover:bg-zinc-500 text-content hover:text-white transition-all duration-300 cursor-pointer"
         >
           Back
         </button>
