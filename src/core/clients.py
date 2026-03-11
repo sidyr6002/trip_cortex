@@ -33,3 +33,9 @@ def get_bda_client() -> Any:
 def get_bda_runtime_client() -> Any:
     config = get_config()
     return boto3.client("bedrock-data-automation-runtime", region_name=config.aws_region)
+
+
+@lru_cache(maxsize=1)
+def get_sfn_client() -> Any:
+    config = get_config()
+    return boto3.client("stepfunctions", region_name=config.aws_region)
