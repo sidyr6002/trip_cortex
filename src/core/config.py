@@ -39,6 +39,7 @@ class Config(BaseModel):
     environment: str
     websocket_endpoint: str = ""
     bda_project_arn: str = ""
+    bda_profile_arn: str = ""
     ingestion_workflow_arn: str = ""
     policy_bucket: str = ""
 
@@ -63,6 +64,7 @@ def get_config() -> Config:
         environment=environ.get("ENVIRONMENT", "local"),
         websocket_endpoint=environ.get("WEBSOCKET_ENDPOINT", ""),
         bda_project_arn=environ.get("BDA_PROJECT_ARN", ""),
+        bda_profile_arn=environ.get("BDA_PROFILE_ARN", ""),
         ingestion_workflow_arn=environ.get("INGESTION_WORKFLOW_ARN", ""),
         policy_bucket=environ.get("POLICY_BUCKET", ""),
     )

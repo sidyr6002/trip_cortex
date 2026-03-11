@@ -13,10 +13,16 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Start BDA ingestion when policy PDF is uploaded to S3."""
     config = get_config()
 
-    # Parse S3 event
-    record = event["Records"][0]
-    bucket = record["s3"]["bucket"]["name"]
-    key = record["s3"]["object"]["key"]
+    # Parse event — supports both native S3 notification and EventBridge formats
+    if "Records" in event:
+        # Native S3 notification format
+        record = event["Records"][0]
+        bucket = record["s3"]["bucket"]["name"]
+        key = record["s3"]["object"]["key"]
+    else:
+        # EventBridge format: detail.bucket.name / detail.object.key
+        bucket = event["detail"]["bucket"]["name"]
+        key = event["detail"]["object"]["key"]
 
     # Skip non-PDF files
     if not key.endswith(".pdf"):
@@ -32,7 +38,7 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     aurora_client.connect()
     try:
         service = IngestionService(get_bda_runtime_client(), aurora_client)
-        result = service.start_ingestion(request, config.bda_project_arn, config.policy_bucket)
+        result = service.start_ingestion(request, config.bda_project_arn, config.policy_bucket, config.bda_profile_arn)
 
         # Start Step Functions execution
         sfn_client = get_sfn_client()

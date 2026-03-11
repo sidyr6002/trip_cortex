@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Trip Cortex - Lambda Functions
+Description: Trip Cortex - Lambda Functions & Step Functions Workflows
 
 Parameters:
   Environment:
@@ -12,8 +12,6 @@ Parameters:
   AuditLogTableArn:
     Type: String
   PolicyDocumentsBucketArn:
-    Type: String
-  BookingWorkflowArn:
     Type: String
   BookingsTableName:
     Type: String
@@ -37,13 +35,12 @@ Parameters:
     Type: String
   PrivateSubnetIds:
     Type: String
+  StackPrefix:
+    Type: String
   ClerkSecretKeyArn:
     Type: String
     Description: ARN of the Secrets Manager secret containing the Clerk secret key
   WebSocketManagementEndpoint:
-    Type: String
-    Default: ""
-  IngestionPollingWorkflowArn:
     Type: String
     Default: ""
 
@@ -67,9 +64,74 @@ Globals:
         AUDIT_LOG_TABLE: !Ref AuditLogTableName
         POLICY_BUCKET: !Ref PolicyDocumentsBucketName
         ARTIFACTS_BUCKET: !Ref NovaActArtifactsBucketName
-        BOOKING_WORKFLOW_ARN: !Ref BookingWorkflowArn
+        BOOKING_WORKFLOW_ARN: !Ref BookingWorkflow
 
 Resources:
+
+  # ── Step Functions ───────────────────────────────────────────────────────────
+
+  BookingWorkflowLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/states/${StackPrefix}-booking-workflow"
+      RetentionInDays: 30
+
+  BookingWorkflow:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub "${StackPrefix}-booking-workflow"
+      Type: STANDARD
+      DefinitionUri: ../../statemachine/booking-workflow.asl.json
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt BookingWorkflowLogGroup.Arn
+        IncludeExecutionData: false
+        Level: ERROR
+      Policies:
+        - CloudWatchLogsFullAccess
+      Tags:
+        Environment: !Ref Environment
+        Project: trip-cortex
+        ManagedBy: sam
+
+  IngestionPollingLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/states/${StackPrefix}-ingestion-polling"
+      RetentionInDays: 30
+
+  IngestionPollingWorkflow:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub "${StackPrefix}-ingestion-polling"
+      Type: STANDARD
+      DefinitionUri: ../../statemachine/ingestion-polling.asl.json
+      DefinitionSubstitutions:
+        CheckBdaStatusFunctionArn: !GetAtt CheckBdaStatusFunction.Arn
+        IngestionCompleteFunctionArn: !GetAtt IngestionCompleteFunction.Arn
+        IngestionFailedFunctionArn: !GetAtt IngestionFailedFunction.Arn
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt IngestionPollingLogGroup.Arn
+        IncludeExecutionData: false
+        Level: ERROR
+      Policies:
+        - CloudWatchLogsFullAccess
+        - Statement:
+            - Effect: Allow
+              Action: lambda:InvokeFunction
+              Resource:
+                - !GetAtt CheckBdaStatusFunction.Arn
+                - !GetAtt IngestionCompleteFunction.Arn
+                - !GetAtt IngestionFailedFunction.Arn
+      Tags:
+        Environment: !Ref Environment
+        Project: trip-cortex
+        ManagedBy: sam
+
+  # ── Lambda Functions ─────────────────────────────────────────────────────────
 
   WebSocketAuthorizerFunction:
     Type: AWS::Serverless::Function
@@ -127,7 +189,7 @@ Resources:
         - Statement:
             - Effect: Allow
               Action: states:StartExecution
-              Resource: !Ref BookingWorkflowArn
+              Resource: !Ref BookingWorkflow
             - Effect: Allow
               Action:
                 - dynamodb:PutItem
@@ -320,7 +382,8 @@ Resources:
       Environment:
         Variables:
           BDA_PROJECT_ARN: !Sub "{{resolve:ssm:/trip-cortex/${Environment}/bda-project-arn}}"
-          INGESTION_WORKFLOW_ARN: !Ref IngestionPollingWorkflowArn
+          BDA_PROFILE_ARN: !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:data-automation-profile/us.data-automation-v1"
+          INGESTION_WORKFLOW_ARN: !Ref IngestionPollingWorkflow
           AURORA_HOST: !Ref AuroraClusterEndpoint
           AURORA_PORT: !Ref AuroraPort
           AURORA_DATABASE: !Ref AuroraDatabaseName
@@ -347,14 +410,19 @@ Resources:
         - AWSLambdaVPCAccessExecutionRole
         - Statement:
             - Effect: Allow
-              Action: bedrock:InvokeDataAutomation
+              Action: bedrock:InvokeDataAutomationAsync
               Resource: "*"
             - Effect: Allow
-              Action: s3:GetObject
-              Resource: !Sub "${PolicyDocumentsBucketArn}/uploads/*"
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:ListBucket
+              Resource:
+                - !Sub "${PolicyDocumentsBucketArn}/*"
+                - !Ref PolicyDocumentsBucketArn
             - Effect: Allow
               Action: states:StartExecution
-              Resource: !Ref IngestionPollingWorkflowArn
+              Resource: !Ref IngestionPollingWorkflow
             - Effect: Allow
               Action: secretsmanager:GetSecretValue
               Resource: !Ref AuroraSecretArn
@@ -421,6 +489,10 @@ Resources:
               Resource: !Ref AuroraSecretArn
 
 Outputs:
+  BookingWorkflowArn:
+    Value: !Ref BookingWorkflow
+  IngestionPollingWorkflowArn:
+    Value: !Ref IngestionPollingWorkflow
   WebSocketAuthorizerFunctionArn:
     Value: !GetAtt WebSocketAuthorizerFunction.Arn
   MigrateFunctionArn:

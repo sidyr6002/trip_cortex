@@ -20,7 +20,7 @@ class IngestionService:
         self.aurora_client = aurora_client
 
     def start_ingestion(
-        self, request: IngestionRequest, bda_project_arn: str, output_bucket: str
+        self, request: IngestionRequest, bda_project_arn: str, output_bucket: str, bda_profile_arn: str = ""
     ) -> IngestionStartResult:
         """
         Start BDA ingestion for a policy document.
@@ -66,6 +66,7 @@ class IngestionService:
                     "dataAutomationProjectArn": bda_project_arn,
                     "stage": "LIVE",
                 },
+                dataAutomationProfileArn=bda_profile_arn,
             )
             invocation_arn = bda_response["invocationArn"]
 
@@ -124,7 +125,7 @@ class IngestionService:
         try:
             response = self.bda_runtime_client.get_data_automation_status(invocationArn=invocation_arn)
 
-            status = response.get("status")
+            status = response.get("status", "").upper()
             output_s3_uri = None
             error_message = None
 
@@ -167,10 +168,10 @@ class IngestionService:
                 cur.execute(
                     """
                     UPDATE policies
-                    SET status = %s, metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{bda_output_s3_uri}', %s)
+                    SET status = %s, updated_at = NOW()
                     WHERE id = %s
                     """,
-                    ("ready", f'"{bda_output_s3_uri}"', policy_id),
+                    ("ready", policy_id),
                 )
             conn.commit()
 

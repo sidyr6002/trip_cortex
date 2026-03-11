@@ -6,7 +6,7 @@
     "CheckBdaStatus": {
       "Type": "Task",
       "Resource": "${CheckBdaStatusFunctionArn}",
-      "ResultPath": "$",
+      "ResultPath": "$.bda_status",
       "Retry": [
         {
           "ErrorEquals": ["States.TaskFailed"],
@@ -21,12 +21,12 @@
       "Type": "Choice",
       "Choices": [
         {
-          "Variable": "$.status",
+          "Variable": "$.bda_status.status",
           "StringEquals": "SUCCESS",
           "Next": "IngestionComplete"
         },
         {
-          "Variable": "$.status",
+          "Variable": "$.bda_status.status",
           "StringEquals": "FAILED",
           "Next": "IngestionFailed"
         }
