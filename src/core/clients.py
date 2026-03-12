@@ -51,3 +51,9 @@ def get_bedrock_runtime_client() -> Any:
 def get_s3_client() -> Any:
     config = get_config()
     return boto3.client("s3", region_name=config.aws_region)
+
+
+def get_query_embedding_service() -> "QueryEmbeddingService":  # type: ignore[name-defined]
+    from core.services.query_embedding import QueryEmbeddingService
+    config = get_config()
+    return QueryEmbeddingService(get_bedrock_runtime_client(), config.nova_embeddings_model_id)
