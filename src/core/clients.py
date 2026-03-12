@@ -10,6 +10,7 @@ from core.config import get_config
 if TYPE_CHECKING:
     from core.services.policy_retrieval import PolicyRetrievalService
     from core.services.query_embedding import QueryEmbeddingService
+    from core.services.reasoning import ReasoningService
 
 
 @lru_cache(maxsize=1)
@@ -70,3 +71,10 @@ def get_policy_retrieval_service() -> "PolicyRetrievalService":
 
     config = get_config()
     return PolicyRetrievalService(get_query_embedding_service(), AuroraClient(config), config)
+
+
+def get_reasoning_service() -> "ReasoningService":
+    from core.services.reasoning import ReasoningService
+
+    config = get_config()
+    return ReasoningService(get_bedrock_runtime_client(), config.nova_lite_model_id)
