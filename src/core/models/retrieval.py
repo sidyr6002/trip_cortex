@@ -45,3 +45,19 @@ class RetrievalResult(BaseModel):
     context_text: str
     total_chunks: int
     latency_ms: float
+
+
+class EmbedAndRetrieveRequest(BaseModel):
+    booking_id: str = Field(min_length=1)
+    employee_id: str = Field(min_length=1)
+    user_query: str = Field(min_length=1, max_length=10_000)
+
+
+class EmbedAndRetrieveResponse(BaseModel):
+    booking_id: str
+    employee_id: str
+    user_query: str
+    context_text: str
+    confidence: ConfidenceAssessment
+    total_chunks: int
+    retrieval_latency_ms: float

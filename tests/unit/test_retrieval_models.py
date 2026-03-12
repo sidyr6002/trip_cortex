@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from core.models.retrieval import QueryEmbeddingRequest, QueryEmbeddingResult, ConfidenceLevel, ConfidenceAssessment, RetrievalResult, PolicyChunkResult
+from core.models.retrieval import QueryEmbeddingRequest, QueryEmbeddingResult, ConfidenceLevel, ConfidenceAssessment, RetrievalResult, PolicyChunkResult, EmbedAndRetrieveRequest, EmbedAndRetrieveResponse
 
 
 def test_query_embedding_request_valid():
@@ -81,3 +81,54 @@ def test_retrieval_result_empty_chunks_valid():
     )
     assert result.total_chunks == 0
     assert result.context_text == ""
+
+
+# --- EmbedAndRetrieveRequest ---
+
+def test_embed_and_retrieve_request_valid():
+    req = EmbedAndRetrieveRequest(booking_id="b-1", employee_id="emp-1", user_query="book a flight to Chicago")
+    assert req.booking_id == "b-1"
+
+
+def test_embed_and_retrieve_request_empty_user_query_rejected():
+    with pytest.raises(ValidationError):
+        EmbedAndRetrieveRequest(booking_id="b-1", employee_id="emp-1", user_query="")
+
+
+def test_embed_and_retrieve_request_user_query_over_limit_rejected():
+    with pytest.raises(ValidationError):
+        EmbedAndRetrieveRequest(booking_id="b-1", employee_id="emp-1", user_query="x" * 10_001)
+
+
+def test_embed_and_retrieve_request_empty_booking_id_rejected():
+    with pytest.raises(ValidationError):
+        EmbedAndRetrieveRequest(booking_id="", employee_id="emp-1", user_query="fly to NYC")
+
+
+# --- EmbedAndRetrieveResponse ---
+
+def test_embed_and_retrieve_response_confidence_serializes_as_string():
+    resp = EmbedAndRetrieveResponse(
+        booking_id="b-1",
+        employee_id="emp-1",
+        user_query="fly to NYC",
+        context_text="[Section: Air Travel]\nEconomy only.",
+        confidence=ConfidenceAssessment(level=ConfidenceLevel.HIGH, max_similarity=0.89, action="normal"),
+        total_chunks=1,
+        retrieval_latency_ms=120.5,
+    )
+    dumped = resp.model_dump()
+    assert dumped["confidence"]["level"] == "high"
+
+
+def test_embed_and_retrieve_response_round_trip():
+    resp = EmbedAndRetrieveResponse(
+        booking_id="b-1",
+        employee_id="emp-1",
+        user_query="fly to NYC",
+        context_text="",
+        confidence=ConfidenceAssessment(level=ConfidenceLevel.NONE, max_similarity=0.0, action="apply_strict_defaults"),
+        total_chunks=0,
+        retrieval_latency_ms=55.0,
+    )
+    assert EmbedAndRetrieveResponse(**resp.model_dump()) == resp
