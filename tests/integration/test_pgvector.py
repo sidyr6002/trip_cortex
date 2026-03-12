@@ -217,11 +217,9 @@ def test_cascade_delete_removes_chunks(pg_connection):
 
 
 @pytest.mark.integration
-def test_hnsw_index_used(pg_connection, pg_policy_id):
-    """Test that HNSW index is used for similarity queries."""
-    vector = [0.5] * 1024
-    vector_str = "[" + ",".join(str(v) for v in vector) + "]"
-
+def test_hnsw_index_scan_verified(pg_connection, pg_policy_id):
+    """HNSW index is used for similarity queries when seq scan is disabled."""
+    vector_str = "[" + ",".join(["0.5"] * 1024) + "]"
     with pg_connection.cursor() as cur:
         cur.execute(
             "INSERT INTO policy_chunks (policy_id, content_type, content_text, embedding) "
@@ -230,10 +228,40 @@ def test_hnsw_index_used(pg_connection, pg_policy_id):
         )
         pg_connection.commit()
 
+        cur.execute("SET enable_seqscan = off")
         cur.execute(
-            "EXPLAIN (FORMAT TEXT) SELECT id FROM policy_chunks "
-            "WHERE policy_id = %s ORDER BY embedding <=> %s::vector LIMIT 1",
+            "EXPLAIN (ANALYZE, FORMAT JSON) "
+            "SELECT id FROM policy_chunks ORDER BY embedding <=> %s::vector LIMIT 5",
+            (vector_str,),
+        )
+        plan = cur.fetchone()[0]
+        cur.execute("SET enable_seqscan = on")
+
+    plan_text = str(plan).lower()
+    assert "index scan" in plan_text
+    assert "idx_policy_chunks_embedding" in plan_text
+
+
+@pytest.mark.integration
+def test_ef_search_parameter_respected(pg_connection, pg_policy_id):
+    """SET LOCAL hnsw.ef_search executes without error and returns results."""
+    vector_str = "[" + ",".join(["0.5"] * 1024) + "]"
+    with pg_connection.cursor() as cur:
+        cur.execute(
+            "INSERT INTO policy_chunks (policy_id, content_type, content_text, embedding) "
+            "VALUES (%s, 'text', 'ef_search test', %s::vector)",
             (pg_policy_id, vector_str),
         )
-        explain_output = "\n".join([row[0] for row in cur.fetchall()])
-        assert "policy_chunks" in explain_output.lower()
+        pg_connection.commit()
+
+    with pg_connection.transaction():
+        with pg_connection.cursor() as cur:
+            cur.execute("SET LOCAL hnsw.ef_search = 100")
+            cur.execute(
+                "SELECT id, 1 - (embedding <=> %s::vector) AS similarity "
+                "FROM policy_chunks ORDER BY embedding <=> %s::vector LIMIT 5",
+                (vector_str, vector_str),
+            )
+            results = cur.fetchall()
+
+    assert len(results) >= 1

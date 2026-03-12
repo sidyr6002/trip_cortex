@@ -69,6 +69,27 @@ class AuroraClient:
             password=creds.get("password", self._config.aurora_password),
         )
         register_vector(self._conn)
+        self.verify_hnsw_index()
+
+    def verify_hnsw_index(self) -> bool:
+        """Verify HNSW index exists with expected configuration. Logs error but does not raise."""
+        conn = self._require_connection()
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT indexdef FROM pg_indexes "
+                "WHERE tablename = 'policy_chunks' AND indexname = 'idx_policy_chunks_embedding'"
+            )
+            row = cur.fetchone()
+        if row is None:
+            logger.error("hnsw_index_missing", index="idx_policy_chunks_embedding")
+            return False
+        indexdef = row[0].lower()
+        valid = "hnsw" in indexdef and "vector_cosine_ops" in indexdef
+        if valid:
+            logger.info("hnsw_index_verified", index="idx_policy_chunks_embedding")
+        else:
+            logger.error("hnsw_index_misconfigured", indexdef=indexdef)
+        return valid
 
     def disconnect(self) -> None:
         if self._conn and not self._conn.closed:
@@ -136,12 +157,15 @@ class AuroraClient:
         query_embedding: list[float],
         threshold: float = 0.65,
         top_k: int = 5,
+        ef_search: int = 40,
     ) -> list[PolicyChunkResult]:
         conn = self._require_connection()
         try:
-            with conn.cursor() as cur:
-                cur.execute(_SIMILARITY_SEARCH_SQL, (query_embedding, threshold, top_k))
-                rows = cur.fetchall()
+            with conn.transaction():
+                with conn.cursor() as cur:
+                    cur.execute(f"SET LOCAL hnsw.ef_search = {int(ef_search)}")
+                    cur.execute(_SIMILARITY_SEARCH_SQL, (query_embedding, threshold, top_k))
+                    rows = cur.fetchall()
         except Exception as e:
             raise PolicyRetrievalError(
                 f"Similarity search failed: {e}",

@@ -92,6 +92,13 @@ def test_aurora_client_health_check():
 
 
 @pytest.mark.integration
+def test_verify_hnsw_index_returns_true():
+    """verify_hnsw_index() returns True when index exists with correct config."""
+    with AuroraClient(get_config()) as client:
+        assert client.verify_hnsw_index() is True
+
+
+@pytest.mark.integration
 def test_aurora_client_similarity_search(pg_connection, pg_policy_id):
     # Insert two chunks: one similar to query, one dissimilar
     similar_vec = [1.0] * 512 + [0.0] * 512
