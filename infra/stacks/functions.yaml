@@ -86,6 +86,12 @@ Resources:
       Name: !Sub "${StackPrefix}-booking-workflow"
       Type: STANDARD
       DefinitionUri: ../../statemachine/booking-workflow.asl.json
+      DefinitionSubstitutions:
+        EmbedAndRetrieveFunctionArn: !GetAtt EmbedAndRetrieveFunction.Arn
+        ReasonAndPlanFunctionArn: !GetAtt ReasonAndPlanFunction.Arn
+        GracefulDegradationFunctionArn: !GetAtt GracefulDegradationFunction.Arn
+        ValidatePlanFunctionArn: !GetAtt ValidatePlanFunction.Arn
+        ResponseSenderFunctionArn: !GetAtt ResponseSenderFunction.Arn
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
@@ -94,6 +100,15 @@ Resources:
         Level: ERROR
       Policies:
         - CloudWatchLogsFullAccess
+        - Statement:
+            - Effect: Allow
+              Action: lambda:InvokeFunction
+              Resource:
+                - !GetAtt EmbedAndRetrieveFunction.Arn
+                - !GetAtt ReasonAndPlanFunction.Arn
+                - !GetAtt GracefulDegradationFunction.Arn
+                - !GetAtt ValidatePlanFunction.Arn
+                - !GetAtt ResponseSenderFunction.Arn
       Tags:
         Environment: !Ref Environment
         Project: trip-cortex
@@ -302,6 +317,20 @@ Resources:
                 - dynamodb:GetItem
                 - dynamodb:Query
               Resource: !Ref BookingsTableArn
+
+  GracefulDegradationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../src/
+      Handler: handlers.graceful_degradation.handler
+      Description: Applies strict defaults when reasoning fails — no Bedrock calls
+      Timeout: 30
+      MemorySize: 128
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: dynamodb:PutItem
+              Resource: !Ref AuditLogTableArn
 
   ResponseSenderFunction:
     Type: AWS::Serverless::Function
@@ -560,6 +589,8 @@ Outputs:
     Value: !GetAtt ReasonAndPlanFunction.Arn
   ValidatePlanFunctionArn:
     Value: !GetAtt ValidatePlanFunction.Arn
+  GracefulDegradationFunctionArn:
+    Value: !GetAtt GracefulDegradationFunction.Arn
   ResponseSenderFunctionArn:
     Value: !GetAtt ResponseSenderFunction.Arn
   HeartbeatFunctionArn:
