@@ -23,6 +23,8 @@ class BookingParameters(BaseModel):
     @field_validator("origin", "destination", mode="before")
     @classmethod
     def normalize_airport_code(cls, v: str) -> str:
+        if v is None:
+            raise ValueError("airport code must not be null")
         return v.strip().upper()
 
     @field_validator("departure_date")

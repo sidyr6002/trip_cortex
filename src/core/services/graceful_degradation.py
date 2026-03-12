@@ -1,6 +1,6 @@
 """Graceful degradation service — applies strictest defaults when reasoning fails."""
 
-from datetime import date
+from datetime import date, timedelta
 
 import structlog
 
@@ -12,24 +12,16 @@ logger = structlog.get_logger()
 def apply_graceful_degradation(
     booking_id: str,
     employee_id: str,
-    origin: str,
-    destination: str,
-    departure_date: str,
-    return_date: str | None = None,
+    user_query: str = "",
     error: str = "",
     cause: str = "",
 ) -> ReasoningResult:
     """Return a ReasoningResult built from strict defaults when reasoning has failed.
 
-    Args:
-        booking_id: Booking identifier for traceability.
-        employee_id: Employee identifier for traceability.
-        origin: IATA origin code from the upstream EmbedAndRetrieve output.
-        destination: IATA destination code.
-        departure_date: ISO 8601 date string (YYYY-MM-DD).
-        return_date: ISO 8601 date string or None.
-        error: Step Functions error name (logged server-side only).
-        cause: Step Functions error cause (logged server-side only).
+    Uses placeholder airport codes and a 30-day-out departure date since the
+    structured parameters were never extracted (reasoning failed before producing them).
+    The plan requires mandatory human approval, so the placeholders will be corrected
+    during the HITL review step.
     """
     logger.warning(
         "graceful_degradation_applied",
@@ -38,10 +30,9 @@ def apply_graceful_degradation(
     )
 
     plan = BookingPlan.strict_defaults(
-        origin=origin,
-        destination=destination,
-        departure_date=date.fromisoformat(departure_date),
-        return_date=date.fromisoformat(return_date) if return_date else None,
+        origin="ZZZ",
+        destination="ZZY",
+        departure_date=date.today() + timedelta(days=30),
     )
 
     return ReasoningResult(

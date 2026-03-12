@@ -1,5 +1,5 @@
 {
-  "Comment": "Trip Cortex booking workflow — EmbedAndRetrieve → ReasonAndPlan → GracefulDegradation → ValidatePlan",
+  "Comment": "Trip Cortex booking workflow — EmbedAndRetrieve → ReasonAndPlan → ValidatePlan",
   "StartAt": "EmbedAndRetrieve",
   "States": {
     "EmbedAndRetrieve": {
@@ -26,6 +26,14 @@
     "ReasonAndPlan": {
       "Type": "Task",
       "Resource": "${ReasonAndPlanFunctionArn}",
+      "Parameters": {
+        "booking_id.$": "$.booking_id",
+        "employee_id.$": "$.employee_id",
+        "user_query.$": "$.user_query",
+        "context_text.$": "$.context_text",
+        "confidence_level.$": "$.confidence.level",
+        "max_similarity.$": "$.confidence.max_similarity"
+      },
       "ResultPath": "$",
       "Retry": [
         {
@@ -50,10 +58,7 @@
       "Parameters": {
         "booking_id.$": "$.booking_id",
         "employee_id.$": "$.employee_id",
-        "origin.$": "$.origin",
-        "destination.$": "$.destination",
-        "departure_date.$": "$.departure_date",
-        "return_date.$": "$.return_date",
+        "user_query.$": "$.user_query",
         "error.$": "$.error_info.Error",
         "cause.$": "$.error_info.Cause"
       },
@@ -84,7 +89,6 @@
       "Type": "Task",
       "Resource": "${ResponseSenderFunctionArn}",
       "Parameters": {
-        "connection_id.$": "$.connection_id",
         "type": "error",
         "message": "Unable to process your booking request. Please try again."
       },

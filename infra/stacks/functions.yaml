@@ -68,7 +68,6 @@ Globals:
         AUDIT_LOG_TABLE: !Ref AuditLogTableName
         POLICY_BUCKET: !Ref PolicyDocumentsBucketName
         ARTIFACTS_BUCKET: !Ref NovaActArtifactsBucketName
-        BOOKING_WORKFLOW_ARN: !Ref BookingWorkflow
 
 Resources:
 
@@ -208,6 +207,9 @@ Resources:
       Handler: handlers.booking_request.handler
       Description: Validates booking request and starts Step Functions execution
       ReservedConcurrentExecutions: !If [IsNotDev, 10, !Ref AWS::NoValue]
+      Environment:
+        Variables:
+          BOOKING_WORKFLOW_ARN: !Ref BookingWorkflow
       Policies:
         - Statement:
             - Effect: Allow
@@ -294,9 +296,21 @@ Resources:
       Policies:
         - AWSLambdaVPCAccessExecutionRole
         - Statement:
-            - Effect: Allow
+            - Sid: GrantNovaLiteInferenceProfileAccess
+              Effect: Allow
               Action: bedrock:InvokeModel
-              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/us.amazon.nova-2-lite-v1:0"
+              Resource:
+                - !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.amazon.nova-2-lite-v1:0"
+            - Sid: GrantNovaLiteModelAccess
+              Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource:
+                - "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-2-lite-v1:0"
+                - "arn:aws:bedrock:us-east-2::foundation-model/amazon.nova-2-lite-v1:0"
+                - "arn:aws:bedrock:us-west-2::foundation-model/amazon.nova-2-lite-v1:0"
+              Condition:
+                StringEquals:
+                  bedrock:InferenceProfileArn: !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.amazon.nova-2-lite-v1:0"
             - Effect: Allow
               Action: dynamodb:PutItem
               Resource: !Ref AuditLogTableArn

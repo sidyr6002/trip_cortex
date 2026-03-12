@@ -13,10 +13,7 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     result = apply_graceful_degradation(
         booking_id=event["booking_id"],
         employee_id=event["employee_id"],
-        origin=event["origin"],
-        destination=event["destination"],
-        departure_date=event["departure_date"],
-        return_date=event.get("return_date"),
+        user_query=event.get("user_query", ""),
         error=event.get("error", ""),
         cause=event.get("cause", ""),
     )
