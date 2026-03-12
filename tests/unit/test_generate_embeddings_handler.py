@@ -15,9 +15,7 @@ OUTPUT_URI = "s3://bucket/bda-output/test-policy-id/"
 
 DIRECT_EVENT = {"policy_id": POLICY_ID, "output_s3_uri": OUTPUT_URI}
 
-SQS_EVENT = {
-    "Records": [{"body": json.dumps({"policy_id": POLICY_ID, "output_s3_uri": OUTPUT_URI})}]
-}
+SQS_EVENT = {"Records": [{"body": json.dumps({"policy_id": POLICY_ID, "output_s3_uri": OUTPUT_URI})}]}
 
 EMBEDDING_RESULT = EmbeddingResult(
     policy_id=POLICY_ID,
@@ -132,4 +130,3 @@ def test_handler_aurora_disconnect_on_error(mock_config, mock_aurora_client, moc
             pass
 
         mock_aurora_client.disconnect.assert_called_once()
-

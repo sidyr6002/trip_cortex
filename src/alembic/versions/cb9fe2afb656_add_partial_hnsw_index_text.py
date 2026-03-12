@@ -5,13 +5,14 @@ Revises: add_unique_bda_entity
 Create Date: 2026-03-12 19:12:02.471862
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = 'cb9fe2afb656'
-down_revision: Union[str, Sequence[str], None] = 'add_unique_bda_entity'
+revision: str = "cb9fe2afb656"
+down_revision: Union[str, Sequence[str], None] = "add_unique_bda_entity"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

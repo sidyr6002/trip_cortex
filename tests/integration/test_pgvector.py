@@ -149,9 +149,17 @@ def test_insert_chunk_with_full_metadata(pg_connection, pg_policy_id):
             VALUES (%s, 'text', %s, %s, %s, %s, %s, %s, %s::vector, %s)
             RETURNING id
             """,
-            (pg_policy_id, "Book 14 days in advance.", 3, "Air Travel Policy",
-             5, "bda-entity-001", "PARAGRAPH", vector_str,
-             Json({"bounding_box": {"x": 0.1, "y": 0.2}})),
+            (
+                pg_policy_id,
+                "Book 14 days in advance.",
+                3,
+                "Air Travel Policy",
+                5,
+                "bda-entity-001",
+                "PARAGRAPH",
+                vector_str,
+                Json({"bounding_box": {"x": 0.1, "y": 0.2}}),
+            ),
         )
         chunk_id = cur.fetchone()[0]
         pg_connection.commit()
@@ -231,8 +239,7 @@ def test_hnsw_index_scan_verified(pg_connection, pg_policy_id):
 
         cur.execute("SET enable_seqscan = off")
         cur.execute(
-            "EXPLAIN (ANALYZE, FORMAT JSON) "
-            "SELECT id FROM policy_chunks ORDER BY embedding <=> %s::vector LIMIT 5",
+            "EXPLAIN (ANALYZE, FORMAT JSON) SELECT id FROM policy_chunks ORDER BY embedding <=> %s::vector LIMIT 5",
             (vector_str,),
         )
         plan = cur.fetchone()[0]

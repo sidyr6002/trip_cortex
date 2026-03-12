@@ -134,9 +134,16 @@ class AuroraClient:
         conn = self._require_connection()
         rows = [
             (
-                c["policy_id"], c["content_type"], c["content_text"], c["source_page"],
-                c["section_title"], c["reading_order"], c["bda_entity_id"],
-                c["bda_entity_subtype"], c["embedding"], c["metadata"],
+                c["policy_id"],
+                c["content_type"],
+                c["content_text"],
+                c["source_page"],
+                c["section_title"],
+                c["reading_order"],
+                c["bda_entity_id"],
+                c["bda_entity_subtype"],
+                c["embedding"],
+                c["metadata"],
             )
             for c in chunks
         ]
@@ -148,9 +155,7 @@ class AuroraClient:
         except Exception as e:
             conn.rollback()
             logger.error("insert_chunks_failed", exc_info=True)
-            raise PolicyRetrievalError(
-                f"Failed to insert chunks: {e}", code=ErrorCode.RETRIEVAL_FAILED
-            ) from e
+            raise PolicyRetrievalError(f"Failed to insert chunks: {e}", code=ErrorCode.RETRIEVAL_FAILED) from e
 
     def update_policy_status(self, policy_id: str, status: str, total_chunks: int) -> None:
         """Update policy status and chunk count after embedding."""
@@ -164,9 +169,7 @@ class AuroraClient:
             conn.commit()
         except Exception as e:
             conn.rollback()
-            raise PolicyRetrievalError(
-                f"Failed to update policy status: {e}", code=ErrorCode.RETRIEVAL_FAILED
-            ) from e
+            raise PolicyRetrievalError(f"Failed to update policy status: {e}", code=ErrorCode.RETRIEVAL_FAILED) from e
 
     def similarity_search(
         self,
