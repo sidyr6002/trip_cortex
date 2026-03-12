@@ -137,31 +137,131 @@ def test_cosine_similarity_search(pg_connection, pg_policy_id):
 
 
 @pytest.mark.integration
-def test_hnsw_index_used(pg_connection, pg_policy_id):
-    """Test that HNSW index is used for similarity queries."""
-    vector = [0.5] * 1024
-    vector_str = "[" + ",".join(str(v) for v in vector) + "]"
-
+def test_insert_chunk_with_full_metadata(pg_connection, pg_policy_id):
+    """All metadata columns round-trip correctly."""
+    vector_str = "[" + ",".join(["0.1"] * 1024) + "]"
     with pg_connection.cursor() as cur:
         cur.execute(
             """
-            INSERT INTO policy_chunks (policy_id, content_type, content_text, embedding)
-            VALUES (%s, 'text', 'Test chunk', %s::vector)
-        """,
+            INSERT INTO policy_chunks
+                (policy_id, content_type, content_text, source_page, section_title,
+                 reading_order, bda_entity_id, bda_entity_subtype, embedding, metadata)
+            VALUES (%s, 'text', %s, %s, %s, %s, %s, %s, %s::vector, %s)
+            RETURNING id
+            """,
+            (pg_policy_id, "Book 14 days in advance.", 3, "Air Travel Policy",
+             5, "bda-entity-001", "PARAGRAPH", vector_str,
+             Json({"bounding_box": {"x": 0.1, "y": 0.2}})),
+        )
+        chunk_id = cur.fetchone()[0]
+        pg_connection.commit()
+
+        cur.execute(
+            "SELECT section_title, source_page, reading_order, bda_entity_id, bda_entity_subtype, metadata "
+            "FROM policy_chunks WHERE id = %s",
+            (chunk_id,),
+        )
+        row = cur.fetchone()
+
+    assert row[0] == "Air Travel Policy"
+    assert row[1] == 3
+    assert row[2] == 5
+    assert row[3] == "bda-entity-001"
+    assert row[4] == "PARAGRAPH"
+    assert row[5]["bounding_box"]["x"] == 0.1
+
+
+@pytest.mark.integration
+def test_upsert_on_duplicate_bda_entity_id(pg_connection, pg_policy_id):
+    """Re-ingesting the same entity updates embedding, no duplicate row."""
+    vector_str = "[" + ",".join(["0.1"] * 1024) + "]"
+    new_vector_str = "[" + ",".join(["0.9"] * 1024) + "]"
+    upsert_sql = """
+        INSERT INTO policy_chunks (policy_id, content_type, content_text, embedding, bda_entity_id)
+        VALUES (%s, 'text', %s, %s::vector, %s)
+        ON CONFLICT (policy_id, bda_entity_id) DO UPDATE SET embedding = EXCLUDED.embedding
+    """
+    with pg_connection.cursor() as cur:
+        cur.execute(upsert_sql, (pg_policy_id, "Original", vector_str, "bda-dup-001"))
+        cur.execute(upsert_sql, (pg_policy_id, "Updated", new_vector_str, "bda-dup-001"))
+        pg_connection.commit()
+        cur.execute(
+            "SELECT COUNT(*) FROM policy_chunks WHERE policy_id = %s AND bda_entity_id = 'bda-dup-001'",
+            (pg_policy_id,),
+        )
+        assert cur.fetchone()[0] == 1
+
+
+@pytest.mark.integration
+def test_cascade_delete_removes_chunks(pg_connection):
+    """Deleting a policy removes all its chunks."""
+    # Create a dedicated policy so teardown doesn't conflict
+    with pg_connection.cursor() as cur:
+        cur.execute(
+            "INSERT INTO policies (source_s3_uri, file_name) VALUES ('s3://test/cascade.pdf', 'cascade.pdf') RETURNING id"
+        )
+        policy_id = cur.fetchone()[0]
+        pg_connection.commit()
+
+    vector_str = "[" + ",".join(["0.5"] * 1024) + "]"
+    with pg_connection.cursor() as cur:
+        cur.execute(
+            "INSERT INTO policy_chunks (policy_id, content_type, content_text, embedding) "
+            "VALUES (%s, 'text', 'test', %s::vector)",
+            (policy_id, vector_str),
+        )
+        cur.execute("DELETE FROM policies WHERE id = %s", (policy_id,))
+        pg_connection.commit()
+        cur.execute("SELECT COUNT(*) FROM policy_chunks WHERE policy_id = %s", (policy_id,))
+        assert cur.fetchone()[0] == 0
+
+
+@pytest.mark.integration
+def test_hnsw_index_scan_verified(pg_connection, pg_policy_id):
+    """HNSW index is used for similarity queries when seq scan is disabled."""
+    vector_str = "[" + ",".join(["0.5"] * 1024) + "]"
+    with pg_connection.cursor() as cur:
+        cur.execute(
+            "INSERT INTO policy_chunks (policy_id, content_type, content_text, embedding) "
+            "VALUES (%s, 'text', 'Test chunk', %s::vector)",
             (pg_policy_id, vector_str),
         )
         pg_connection.commit()
 
-        query_str = vector_str
+        cur.execute("SET enable_seqscan = off")
         cur.execute(
-            """
-            EXPLAIN (FORMAT TEXT)
-            SELECT id FROM policy_chunks
-            WHERE policy_id = %s
-            ORDER BY embedding <=> %s::vector LIMIT 1
-        """,
-            (pg_policy_id, query_str),
+            "EXPLAIN (ANALYZE, FORMAT JSON) "
+            "SELECT id FROM policy_chunks ORDER BY embedding <=> %s::vector LIMIT 5",
+            (vector_str,),
         )
+        plan = cur.fetchone()[0]
+        cur.execute("SET enable_seqscan = on")
 
-        explain_output = "\n".join([row[0] for row in cur.fetchall()])
-        assert "policy_chunks" in explain_output.lower()
+    plan_text = str(plan).lower()
+    assert "index scan" in plan_text
+    assert "idx_policy_chunks_embedding" in plan_text
+
+
+@pytest.mark.integration
+def test_ef_search_parameter_respected(pg_connection, pg_policy_id):
+    """SET LOCAL hnsw.ef_search executes without error and returns results."""
+    vector_str = "[" + ",".join(["0.5"] * 1024) + "]"
+    with pg_connection.cursor() as cur:
+        cur.execute(
+            "INSERT INTO policy_chunks (policy_id, content_type, content_text, embedding) "
+            "VALUES (%s, 'text', 'ef_search test', %s::vector)",
+            (pg_policy_id, vector_str),
+        )
+        pg_connection.commit()
+
+    with pg_connection.transaction():
+        with pg_connection.cursor() as cur:
+            cur.execute("SET LOCAL hnsw.ef_search = 100")
+            cur.execute(
+                "SELECT id, 1 - (embedding <=> %s::vector) AS similarity "
+                "FROM policy_chunks ORDER BY embedding <=> %s::vector LIMIT 5",
+                (vector_str, vector_str),
+            )
+            results = cur.fetchall()
+
+    assert len(results) >= 1

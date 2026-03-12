@@ -38,6 +38,11 @@ class Config(BaseModel):
     clerk_secret_key: str = ""
     environment: str
     websocket_endpoint: str = ""
+    bda_project_arn: str = ""
+    bda_profile_arn: str = ""
+    ingestion_workflow_arn: str = ""
+    policy_bucket: str = ""
+    hnsw_ef_search: int = 40
 
 
 @lru_cache(maxsize=1)
@@ -59,6 +64,11 @@ def get_config() -> Config:
         clerk_secret_key=_resolve_clerk_secret(),
         environment=environ.get("ENVIRONMENT", "local"),
         websocket_endpoint=environ.get("WEBSOCKET_ENDPOINT", ""),
+        bda_project_arn=environ.get("BDA_PROJECT_ARN", ""),
+        bda_profile_arn=environ.get("BDA_PROFILE_ARN", ""),
+        ingestion_workflow_arn=environ.get("INGESTION_WORKFLOW_ARN", ""),
+        policy_bucket=environ.get("POLICY_BUCKET", ""),
+        hnsw_ef_search=int(environ.get("HNSW_EF_SEARCH", "40")),
     )
 
 

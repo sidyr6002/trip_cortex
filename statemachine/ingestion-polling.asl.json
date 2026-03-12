@@ -1,0 +1,82 @@
+{
+  "Comment": "Ingestion polling workflow — polls BDA job status with Wait/Choice loop",
+  "StartAt": "CheckBdaStatus",
+  "TimeoutSeconds": 900,
+  "States": {
+    "CheckBdaStatus": {
+      "Type": "Task",
+      "Resource": "${CheckBdaStatusFunctionArn}",
+      "ResultPath": "$.bda_status",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Next": "IsComplete"
+    },
+    "IsComplete": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.bda_status.status",
+          "StringEquals": "SUCCESS",
+          "Next": "PublishToEmbeddingQueue"
+        },
+        {
+          "Variable": "$.bda_status.status",
+          "StringEquals": "FAILED",
+          "Next": "IngestionFailed"
+        }
+      ],
+      "Default": "WaitForBda"
+    },
+    "WaitForBda": {
+      "Type": "Wait",
+      "Seconds": 15,
+      "Next": "CheckBdaStatus"
+    },
+    "PublishToEmbeddingQueue": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sqs:sendMessage",
+      "Parameters": {
+        "QueueUrl": "${EmbeddingQueueUrl}",
+        "MessageBody": {
+          "policy_id.$": "$.policy_id",
+          "output_s3_uri.$": "$.bda_status.output_s3_uri"
+        }
+      },
+      "ResultPath": "$.sqs_result",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "IngestionFailed",
+          "ResultPath": "$.error"
+        }
+      ],
+      "Next": "IngestionComplete"
+    },
+    "IngestionComplete": {
+      "Type": "Task",
+      "Resource": "${IngestionCompleteFunctionArn}",
+      "ResultPath": "$",
+      "End": true
+    },
+    "IngestionFailed": {
+      "Type": "Task",
+      "Resource": "${IngestionFailedFunctionArn}",
+      "ResultPath": "$",
+      "End": true
+    }
+  }
+}

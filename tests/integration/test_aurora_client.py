@@ -92,6 +92,37 @@ def test_aurora_client_health_check():
 
 
 @pytest.mark.integration
+def test_verify_hnsw_index_returns_true():
+    """verify_hnsw_index() returns True when index exists with correct config."""
+    with AuroraClient(get_config()) as client:
+        assert client.verify_hnsw_index() is True
+
+
+@pytest.mark.integration
+def test_similarity_search_content_type_filter(pg_connection, pg_policy_id):
+    """content_type filter returns only matching rows and uses partial index."""
+    vec_str = "[" + ",".join(["0.5"] * 1024) + "]"
+    with pg_connection.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO policy_chunks (policy_id, content_type, content_text, embedding)
+            VALUES
+                (%s, 'text',   'text chunk',   %s::vector),
+                (%s, 'figure', 'figure chunk', %s::vector)
+            """,
+            (pg_policy_id, vec_str, pg_policy_id, vec_str),
+        )
+        pg_connection.commit()
+
+    with AuroraClient(get_config()) as client:
+        results = client.similarity_search([0.5] * 1024, threshold=0.0, top_k=10, content_type="text")
+
+    assert all(r.content_type == "text" for r in results)
+    assert any(r.content_text == "text chunk" for r in results)
+    assert not any(r.content_text == "figure chunk" for r in results)
+
+
+@pytest.mark.integration
 def test_aurora_client_similarity_search(pg_connection, pg_policy_id):
     # Insert two chunks: one similar to query, one dissimilar
     similar_vec = [1.0] * 512 + [0.0] * 512

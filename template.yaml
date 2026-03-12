@@ -62,17 +62,7 @@ Resources:
         Environment: !Ref Environment
         StackPrefix: !Ref AWS::StackName
 
-  # ── Step Functions ───────────────────────────────────────────────────────────
-
-  WorkflowStack:
-    Type: AWS::Serverless::Application
-    Properties:
-      Location: infra/stacks/workflow.yaml
-      Parameters:
-        Environment: !Ref Environment
-        StackPrefix: !Ref AWS::StackName
-
-  # ── Lambda Functions ─────────────────────────────────────────────────────────
+  # ── Lambda Functions & Step Functions ────────────────────────────────────────
 
   FunctionsStack:
     Type: AWS::Serverless::Application
@@ -80,11 +70,11 @@ Resources:
       Location: infra/stacks/functions.yaml
       Parameters:
         Environment: !Ref Environment
+        StackPrefix: !Ref AWS::StackName
         BookingsTableArn: !GetAtt TablesStack.Outputs.BookingsTableArn
         ConnectionsTableArn: !GetAtt TablesStack.Outputs.ConnectionsTableArn
         AuditLogTableArn: !GetAtt TablesStack.Outputs.AuditLogTableArn
         PolicyDocumentsBucketArn: !GetAtt StorageStack.Outputs.PolicyDocumentsBucketArn
-        BookingWorkflowArn: !GetAtt WorkflowStack.Outputs.BookingWorkflowArn
         BookingsTableName: !GetAtt TablesStack.Outputs.BookingsTableName
         ConnectionsTableName: !GetAtt TablesStack.Outputs.ConnectionsTableName
         AuditLogTableName: !GetAtt TablesStack.Outputs.AuditLogTableName
@@ -97,6 +87,8 @@ Resources:
         LambdaSecurityGroupId: !GetAtt NetworkStack.Outputs.LambdaSecurityGroupId
         PrivateSubnetIds: !GetAtt NetworkStack.Outputs.PrivateSubnetIds
         ClerkSecretKeyArn: !Ref ClerkSecretKeyArn
+        EmbeddingQueueArn: !GetAtt StorageStack.Outputs.EmbeddingQueueArn
+        EmbeddingQueueUrl: !GetAtt StorageStack.Outputs.EmbeddingQueueUrl
 
   # ── API Gateway WebSocket ────────────────────────────────────────────────────
 
@@ -175,9 +167,14 @@ Outputs:
       Name: !Sub "${AWS::StackName}-NovaActArtifactsBucketArn"
 
   BookingWorkflowArn:
-    Value: !GetAtt WorkflowStack.Outputs.BookingWorkflowArn
+    Value: !GetAtt FunctionsStack.Outputs.BookingWorkflowArn
     Export:
       Name: !Sub "${AWS::StackName}-BookingWorkflowArn"
+
+  IngestionPollingWorkflowArn:
+    Value: !GetAtt FunctionsStack.Outputs.IngestionPollingWorkflowArn
+    Export:
+      Name: !Sub "${AWS::StackName}-IngestionPollingWorkflowArn"
 
   ConnectFunctionArn:
     Value: !GetAtt FunctionsStack.Outputs.ConnectFunctionArn

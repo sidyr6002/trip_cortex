@@ -1,0 +1,14 @@
+{
+  "Records": [
+    {
+      "s3": {
+        "bucket": {
+          "name": "trip-cortex-dev-policy-docs-123456789012"
+        },
+        "object": {
+          "key": "uploads/policy.pdf"
+        }
+      }
+    }
+  ]
+}
