@@ -8,6 +8,7 @@ import structlog
 from core.db.aurora import AuroraClient
 from core.errors import ErrorCode, PolicyRetrievalError
 from core.models.ingestion import BdaEntity, EmbeddingResult, FailedEntity
+from core.services.nova_mme import invoke_nova_mme
 
 logger = structlog.get_logger()
 
@@ -193,29 +194,7 @@ class EmbeddingService:
 
     def _embed_text(self, text: str) -> list[float]:
         """Generate embedding for text using Nova MME."""
-        request_body = {
-            "taskType": "SINGLE_EMBEDDING",
-            "singleEmbeddingParams": {
-                "embeddingPurpose": "GENERIC_INDEX",
-                "embeddingDimension": 1024,
-                "text": {"truncationMode": "END", "value": text},
-            },
-        }
-
-        try:
-            response = self.bedrock_runtime_client.invoke_model(
-                modelId=self.model_id,
-                body=json.dumps(request_body),
-                accept="application/json",
-                contentType="application/json",
-            )
-            result = json.loads(response["body"].read())
-            return list(result["embeddings"][0]["embedding"])
-        except Exception as e:
-            raise PolicyRetrievalError(
-                f"Text embedding failed: {e}",
-                code=ErrorCode.RETRIEVAL_FAILED,
-            ) from e
+        return invoke_nova_mme(self.bedrock_runtime_client, self.model_id, text, purpose="GENERIC_INDEX")
 
     def _embed_image(self, s3_uri: str) -> list[float]:
         """Generate embedding for image using Nova MME."""
