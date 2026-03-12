@@ -4,11 +4,25 @@ import json
 
 import boto3
 import psycopg
+import structlog
 from pgvector.psycopg import register_vector
 
 from core.config import Config
 from core.errors import ErrorCode, PolicyRetrievalError, TripCortexError
 from core.models.retrieval import PolicyChunkResult
+
+logger = structlog.get_logger()
+
+_INSERT_CHUNK_SQL = """
+    INSERT INTO policy_chunks
+        (policy_id, content_type, content_text, source_page, section_title,
+         reading_order, bda_entity_id, bda_entity_subtype, embedding, metadata)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    ON CONFLICT (policy_id, bda_entity_id)
+    DO UPDATE SET
+        embedding = EXCLUDED.embedding,
+        updated_at = NOW()
+"""
 
 _SIMILARITY_SEARCH_SQL = """
     WITH query AS (
@@ -75,6 +89,47 @@ class AuroraClient:
             return True
         except Exception:
             return False
+
+    def insert_chunks(self, chunks: list[dict]) -> int:
+        """Batch upsert policy chunks. Returns count inserted."""
+        if not chunks:
+            return 0
+        conn = self._require_connection()
+        rows = [
+            (
+                c["policy_id"], c["content_type"], c["content_text"], c["source_page"],
+                c["section_title"], c["reading_order"], c["bda_entity_id"],
+                c["bda_entity_subtype"], c["embedding"], c["metadata"],
+            )
+            for c in chunks
+        ]
+        try:
+            with conn.cursor() as cur:
+                cur.executemany(_INSERT_CHUNK_SQL, rows)
+            conn.commit()
+            return len(chunks)
+        except Exception as e:
+            conn.rollback()
+            logger.error("insert_chunks_failed", exc_info=True)
+            raise PolicyRetrievalError(
+                f"Failed to insert chunks: {e}", code=ErrorCode.RETRIEVAL_FAILED
+            ) from e
+
+    def update_policy_status(self, policy_id: str, status: str, total_chunks: int) -> None:
+        """Update policy status and chunk count after embedding."""
+        conn = self._require_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE policies SET status = %s, total_chunks = %s WHERE id = %s",
+                    (status, total_chunks, policy_id),
+                )
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise PolicyRetrievalError(
+                f"Failed to update policy status: {e}", code=ErrorCode.RETRIEVAL_FAILED
+            ) from e
 
     def similarity_search(
         self,
