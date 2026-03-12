@@ -43,6 +43,10 @@ Parameters:
   WebSocketManagementEndpoint:
     Type: String
     Default: ""
+  EmbeddingQueueArn:
+    Type: String
+  EmbeddingQueueUrl:
+    Type: String
 
 Conditions:
   IsNotDev: !Not [!Equals [!Ref Environment, dev]]
@@ -109,7 +113,7 @@ Resources:
       DefinitionUri: ../../statemachine/ingestion-polling.asl.json
       DefinitionSubstitutions:
         CheckBdaStatusFunctionArn: !GetAtt CheckBdaStatusFunction.Arn
-        GenerateEmbeddingsFunctionArn: !GetAtt GenerateEmbeddingsFunction.Arn
+        EmbeddingQueueUrl: !Ref EmbeddingQueueUrl
         IngestionCompleteFunctionArn: !GetAtt IngestionCompleteFunction.Arn
         IngestionFailedFunctionArn: !GetAtt IngestionFailedFunction.Arn
       Logging:
@@ -125,9 +129,11 @@ Resources:
               Action: lambda:InvokeFunction
               Resource:
                 - !GetAtt CheckBdaStatusFunction.Arn
-                - !GetAtt GenerateEmbeddingsFunction.Arn
                 - !GetAtt IngestionCompleteFunction.Arn
                 - !GetAtt IngestionFailedFunction.Arn
+            - Effect: Allow
+              Action: sqs:SendMessage
+              Resource: !Ref EmbeddingQueueArn
       Tags:
         Environment: !Ref Environment
         Project: trip-cortex
@@ -477,6 +483,19 @@ Resources:
             - Effect: Allow
               Action: secretsmanager:GetSecretValue
               Resource: !Ref AuroraSecretArn
+            - Effect: Allow
+              Action:
+                - sqs:ReceiveMessage
+                - sqs:DeleteMessage
+                - sqs:GetQueueAttributes
+              Resource: !Ref EmbeddingQueueArn
+      Events:
+        EmbeddingQueue:
+          Type: SQS
+          Properties:
+            Queue: !Ref EmbeddingQueueArn
+            BatchSize: 1
+            Enabled: true
 
   IngestionCompleteFunction:
     Type: AWS::Serverless::Function

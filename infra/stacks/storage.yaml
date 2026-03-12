@@ -73,6 +73,32 @@ Resources:
         - Key: ManagedBy
           Value: sam
 
+  EmbeddingDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600  # 14 days
+      SqsManagedSseEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+
+  EmbeddingQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 1800  # 6x Lambda timeout (300s)
+      MessageRetentionPeriod: 345600  # 4 days
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt EmbeddingDLQ.Arn
+        maxReceiveCount: 3
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+
 Outputs:
   PolicyDocumentsBucketName:
     Value: !Ref PolicyDocumentsBucket
@@ -82,3 +108,9 @@ Outputs:
     Value: !Ref NovaActArtifactsBucket
   NovaActArtifactsBucketArn:
     Value: !GetAtt NovaActArtifactsBucket.Arn
+  EmbeddingQueueArn:
+    Value: !GetAtt EmbeddingQueue.Arn
+  EmbeddingQueueUrl:
+    Value: !Ref EmbeddingQueue
+  EmbeddingDLQArn:
+    Value: !GetAtt EmbeddingDLQ.Arn

@@ -1,7 +1,7 @@
 {
   "Comment": "Ingestion polling workflow — polls BDA job status with Wait/Choice loop",
   "StartAt": "CheckBdaStatus",
-  "TimeoutSeconds": 1200,
+  "TimeoutSeconds": 900,
   "States": {
     "CheckBdaStatus": {
       "Type": "Task",
@@ -23,7 +23,7 @@
         {
           "Variable": "$.bda_status.status",
           "StringEquals": "SUCCESS",
-          "Next": "GenerateEmbeddings"
+          "Next": "PublishToEmbeddingQueue"
         },
         {
           "Variable": "$.bda_status.status",
@@ -38,19 +38,22 @@
       "Seconds": 15,
       "Next": "CheckBdaStatus"
     },
-    "GenerateEmbeddings": {
+    "PublishToEmbeddingQueue": {
       "Type": "Task",
-      "Resource": "${GenerateEmbeddingsFunctionArn}",
+      "Resource": "arn:aws:states:::sqs:sendMessage",
       "Parameters": {
-        "policy_id.$": "$.policy_id",
-        "output_s3_uri.$": "$.bda_status.output_s3_uri"
+        "QueueUrl": "${EmbeddingQueueUrl}",
+        "MessageBody": {
+          "policy_id.$": "$.policy_id",
+          "output_s3_uri.$": "$.bda_status.output_s3_uri"
+        }
       },
-      "ResultPath": "$.embedding_result",
+      "ResultPath": "$.sqs_result",
       "Retry": [
         {
           "ErrorEquals": ["States.TaskFailed"],
-          "IntervalSeconds": 10,
-          "MaxAttempts": 2,
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
           "BackoffRate": 2.0
         }
       ],

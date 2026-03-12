@@ -87,6 +87,8 @@ Resources:
         LambdaSecurityGroupId: !GetAtt NetworkStack.Outputs.LambdaSecurityGroupId
         PrivateSubnetIds: !GetAtt NetworkStack.Outputs.PrivateSubnetIds
         ClerkSecretKeyArn: !Ref ClerkSecretKeyArn
+        EmbeddingQueueArn: !GetAtt StorageStack.Outputs.EmbeddingQueueArn
+        EmbeddingQueueUrl: !GetAtt StorageStack.Outputs.EmbeddingQueueUrl
 
   # ── API Gateway WebSocket ────────────────────────────────────────────────────
 
