@@ -1,5 +1,7 @@
 """Pydantic models for policy retrieval results."""
 
+from enum import Enum
+
 from pydantic import BaseModel, Field
 
 
@@ -22,4 +24,24 @@ class QueryEmbeddingResult(BaseModel):
     embedding: list[float]
     model_id: str
     dimension: int
+    latency_ms: float
+
+
+class ConfidenceLevel(str, Enum):
+    HIGH = "high"
+    LOW = "low"
+    NONE = "none"
+
+
+class ConfidenceAssessment(BaseModel):
+    level: ConfidenceLevel
+    max_similarity: float
+    action: str
+
+
+class RetrievalResult(BaseModel):
+    chunks: list[PolicyChunkResult]
+    confidence: ConfidenceAssessment
+    context_text: str
+    total_chunks: int
     latency_ms: float

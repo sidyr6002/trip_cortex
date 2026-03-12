@@ -57,3 +57,10 @@ def get_query_embedding_service() -> "QueryEmbeddingService":  # type: ignore[na
     from core.services.query_embedding import QueryEmbeddingService
     config = get_config()
     return QueryEmbeddingService(get_bedrock_runtime_client(), config.nova_embeddings_model_id)
+
+
+def get_policy_retrieval_service() -> "PolicyRetrievalService":  # type: ignore[name-defined]
+    from core.db.aurora import AuroraClient
+    from core.services.policy_retrieval import PolicyRetrievalService
+    config = get_config()
+    return PolicyRetrievalService(get_query_embedding_service(), AuroraClient(config), config)

@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from core.models.retrieval import QueryEmbeddingRequest, QueryEmbeddingResult
+from core.models.retrieval import QueryEmbeddingRequest, QueryEmbeddingResult, ConfidenceLevel, ConfidenceAssessment, RetrievalResult, PolicyChunkResult
 
 
 def test_query_embedding_request_valid():
@@ -42,3 +42,42 @@ def test_query_embedding_result_round_trip():
     data = result.model_dump()
     restored = QueryEmbeddingResult(**data)
     assert restored == result
+
+
+def test_confidence_level_serializes_to_string():
+    assert ConfidenceLevel.HIGH.value == "high"
+    assert ConfidenceLevel.LOW.value == "low"
+    assert ConfidenceLevel.NONE.value == "none"
+
+
+def test_confidence_assessment_valid():
+    ca = ConfidenceAssessment(level=ConfidenceLevel.HIGH, max_similarity=0.89, action="normal")
+    assert ca.level == ConfidenceLevel.HIGH
+    assert ca.action == "normal"
+
+
+def test_retrieval_result_round_trip():
+    chunk = PolicyChunkResult(
+        id="abc", content_text="text", section_title="S1",
+        source_page=1, content_type="text", bda_entity_subtype=None, similarity=0.89,
+    )
+    result = RetrievalResult(
+        chunks=[chunk],
+        confidence=ConfidenceAssessment(level=ConfidenceLevel.HIGH, max_similarity=0.89, action="normal"),
+        context_text="[Section: S1]\ntext",
+        total_chunks=1,
+        latency_ms=55.0,
+    )
+    assert RetrievalResult(**result.model_dump()) == result
+
+
+def test_retrieval_result_empty_chunks_valid():
+    result = RetrievalResult(
+        chunks=[],
+        confidence=ConfidenceAssessment(level=ConfidenceLevel.NONE, max_similarity=0.0, action="apply_strict_defaults"),
+        context_text="",
+        total_chunks=0,
+        latency_ms=10.0,
+    )
+    assert result.total_chunks == 0
+    assert result.context_text == ""
