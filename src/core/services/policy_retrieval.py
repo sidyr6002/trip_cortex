@@ -60,9 +60,7 @@ class PolicyRetrievalService:
 
     def _assess_confidence(self, chunks: list[PolicyChunkResult]) -> ConfidenceAssessment:
         if not chunks:
-            return ConfidenceAssessment(
-                level=ConfidenceLevel.NONE, max_similarity=0.0, action="apply_strict_defaults"
-            )
+            return ConfidenceAssessment(level=ConfidenceLevel.NONE, max_similarity=0.0, action="apply_strict_defaults")
         max_sim = max(c.similarity for c in chunks)
         if max_sim > self._config.high_confidence_threshold:
             return ConfidenceAssessment(level=ConfidenceLevel.HIGH, max_similarity=max_sim, action="normal")
@@ -72,7 +70,8 @@ class PolicyRetrievalService:
         if not chunks:
             return ""
         parts = [
-            f"[Section: {c.section_title} | Page: {c.source_page} | Type: {c.content_type} | Similarity: {c.similarity:.2f}]\n{c.content_text}"
+            f"[Section: {c.section_title} | Page: {c.source_page} | Type: {c.content_type}"
+            f" | Similarity: {c.similarity:.2f}]\n{c.content_text}"
             for c in chunks
         ]
         return "\n---\n".join(parts)

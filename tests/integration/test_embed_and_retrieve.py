@@ -18,9 +18,25 @@ def _vec_str(value: float) -> str:
 def seeded_chunks(pg_connection, pg_policy_id):
     """Insert 3 policy chunks with known embeddings; clean up on teardown."""
     rows = [
-        (pg_policy_id, "text",  "Economy class only for domestic flights.", 3, "Domestic Air Travel", "bda-e-001", _vec_str(0.9)),
-        (pg_policy_id, "table", "Max budget: $500 domestic, $1500 international.", 7, "Expense Limits",    "bda-e-002", _vec_str(0.5)),
-        (pg_policy_id, "text",  "Book at least 14 days in advance.",          5, "Booking Deadlines",  "bda-e-003", _vec_str(0.1)),
+        (
+            pg_policy_id,
+            "text",
+            "Economy class only for domestic flights.",
+            3,
+            "Domestic Air Travel",
+            "bda-e-001",
+            _vec_str(0.9),
+        ),
+        (
+            pg_policy_id,
+            "table",
+            "Max budget: $500 domestic, $1500 international.",
+            7,
+            "Expense Limits",
+            "bda-e-002",
+            _vec_str(0.5),
+        ),
+        (pg_policy_id, "text", "Book at least 14 days in advance.", 5, "Booking Deadlines", "bda-e-003", _vec_str(0.1)),
     ]
     with pg_connection.cursor() as cur:
         for policy_id, ctype, text, page, section, entity_id, vec in rows:
@@ -46,6 +62,7 @@ def test_handler_returns_valid_response(seeded_chunks):
 
     with patch("core.services.query_embedding.QueryEmbeddingService.embed_query", return_value=query_embedding):
         from handlers.embed_and_retrieve import handler
+
         response = handler(
             {"booking_id": "b-integ-1", "employee_id": "emp-integ-1", "user_query": "book a domestic flight"},
             None,
@@ -65,6 +82,7 @@ def test_handler_confidence_level_is_high_for_close_vector(seeded_chunks):
 
     with patch("core.services.query_embedding.QueryEmbeddingService.embed_query", return_value=query_embedding):
         from handlers.embed_and_retrieve import handler
+
         response = handler(
             {"booking_id": "b-integ-2", "employee_id": "emp-integ-2", "user_query": "domestic flight policy"},
             None,
@@ -78,6 +96,7 @@ def test_handler_confidence_level_is_high_for_close_vector(seeded_chunks):
 def test_handler_writes_audit_record(seeded_chunks, audit_log_table):
     """Audit record is written to DynamoDB with correct bookingId."""
     import boto3
+
     from core.config import get_config
 
     config = get_config()
@@ -95,10 +114,9 @@ def test_handler_writes_audit_record(seeded_chunks, audit_log_table):
         patch("handlers.embed_and_retrieve.get_dynamo_client", return_value=dynamo_client),
         patch("handlers.embed_and_retrieve.get_config") as mock_cfg,
     ):
-        mock_cfg.return_value = config.__class__(
-            **{**config.model_dump(), "audit_log_table": "TripCortexAuditLog"}
-        )
+        mock_cfg.return_value = config.__class__(**{**config.model_dump(), "audit_log_table": "TripCortexAuditLog"})
         from handlers.embed_and_retrieve import handler
+
         handler(
             {"booking_id": "b-integ-audit", "employee_id": "emp-integ-3", "user_query": "flight booking policy"},
             None,
@@ -133,10 +151,10 @@ def test_handler_no_chunks_returns_none_confidence(pg_connection, pg_policy_id):
 
     with patch("core.services.query_embedding.QueryEmbeddingService.embed_query", return_value=query_embedding):
         from handlers.embed_and_retrieve import handler
+
         response = handler(
             {"booking_id": "b-integ-none", "employee_id": "emp-integ-4", "user_query": "unrelated query"},
             None,
         )
 
     assert response["confidence"]["level"] in ("none", "low")
-    assert response["context_text"] == "" or response["total_chunks"] == 0 or response["confidence"]["level"] in ("none", "low")

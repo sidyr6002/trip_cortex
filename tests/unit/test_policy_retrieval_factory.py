@@ -23,9 +23,10 @@ def test_factory_returns_policy_retrieval_service():
 
 
 def test_factory_wires_correct_model_id():
-    with patch("boto3.client"), patch.dict(os.environ, {"NOVA_EMBEDDINGS_MODEL_ID": "amazon.nova-2-multimodal-embeddings-v1:0"}):
+    model_id = "amazon.nova-2-multimodal-embeddings-v1:0"
+    with patch("boto3.client"), patch.dict(os.environ, {"NOVA_EMBEDDINGS_MODEL_ID": model_id}):
         svc = get_policy_retrieval_service()
-    assert svc._query_embedding_service.model_id == "amazon.nova-2-multimodal-embeddings-v1:0"
+    assert svc._query_embedding_service.model_id == model_id
 
 
 def test_factory_wires_config():

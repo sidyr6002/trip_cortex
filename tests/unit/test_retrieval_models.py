@@ -3,7 +3,16 @@
 import pytest
 from pydantic import ValidationError
 
-from core.models.retrieval import QueryEmbeddingRequest, QueryEmbeddingResult, ConfidenceLevel, ConfidenceAssessment, RetrievalResult, PolicyChunkResult, EmbedAndRetrieveRequest, EmbedAndRetrieveResponse
+from core.models.retrieval import (
+    ConfidenceAssessment,
+    ConfidenceLevel,
+    EmbedAndRetrieveRequest,
+    EmbedAndRetrieveResponse,
+    PolicyChunkResult,
+    QueryEmbeddingRequest,
+    QueryEmbeddingResult,
+    RetrievalResult,
+)
 
 
 def test_query_embedding_request_valid():
@@ -58,8 +67,13 @@ def test_confidence_assessment_valid():
 
 def test_retrieval_result_round_trip():
     chunk = PolicyChunkResult(
-        id="abc", content_text="text", section_title="S1",
-        source_page=1, content_type="text", bda_entity_subtype=None, similarity=0.89,
+        id="abc",
+        content_text="text",
+        section_title="S1",
+        source_page=1,
+        content_type="text",
+        bda_entity_subtype=None,
+        similarity=0.89,
     )
     result = RetrievalResult(
         chunks=[chunk],
@@ -85,6 +99,7 @@ def test_retrieval_result_empty_chunks_valid():
 
 # --- EmbedAndRetrieveRequest ---
 
+
 def test_embed_and_retrieve_request_valid():
     req = EmbedAndRetrieveRequest(booking_id="b-1", employee_id="emp-1", user_query="book a flight to Chicago")
     assert req.booking_id == "b-1"
@@ -106,6 +121,7 @@ def test_embed_and_retrieve_request_empty_booking_id_rejected():
 
 
 # --- EmbedAndRetrieveResponse ---
+
 
 def test_embed_and_retrieve_response_confidence_serializes_as_string():
     resp = EmbedAndRetrieveResponse(

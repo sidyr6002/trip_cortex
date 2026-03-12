@@ -37,14 +37,16 @@ def invoke_nova_mme(
     Returns:
         list[float] of length `dimension`
     """
-    request_body = json.dumps({
-        "taskType": "SINGLE_EMBEDDING",
-        "singleEmbeddingParams": {
-            "embeddingPurpose": purpose,
-            "embeddingDimension": dimension,
-            "text": {"truncationMode": "END", "value": text},
-        },
-    })
+    request_body = json.dumps(
+        {
+            "taskType": "SINGLE_EMBEDDING",
+            "singleEmbeddingParams": {
+                "embeddingPurpose": purpose,
+                "embeddingDimension": dimension,
+                "text": {"truncationMode": "END", "value": text},
+            },
+        }
+    )
 
     for attempt in range(2):
         try:
@@ -66,3 +68,4 @@ def invoke_nova_mme(
                 f"Nova MME embedding failed: {error_code}",
                 code=ErrorCode.RETRIEVAL_FAILED,
             ) from e
+    raise PolicyRetrievalError("Nova MME embedding failed after retries", code=ErrorCode.RETRIEVAL_FAILED)

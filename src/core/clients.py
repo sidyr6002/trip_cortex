@@ -1,11 +1,15 @@
 """Lazy-initialized boto3 clients — reused across warm Lambda invocations."""
 
 from functools import lru_cache
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import boto3
 
 from core.config import get_config
+
+if TYPE_CHECKING:
+    from core.services.policy_retrieval import PolicyRetrievalService
+    from core.services.query_embedding import QueryEmbeddingService
 
 
 @lru_cache(maxsize=1)
@@ -53,14 +57,16 @@ def get_s3_client() -> Any:
     return boto3.client("s3", region_name=config.aws_region)
 
 
-def get_query_embedding_service() -> "QueryEmbeddingService":  # type: ignore[name-defined]
+def get_query_embedding_service() -> "QueryEmbeddingService":
     from core.services.query_embedding import QueryEmbeddingService
+
     config = get_config()
     return QueryEmbeddingService(get_bedrock_runtime_client(), config.nova_embeddings_model_id)
 
 
-def get_policy_retrieval_service() -> "PolicyRetrievalService":  # type: ignore[name-defined]
+def get_policy_retrieval_service() -> "PolicyRetrievalService":
     from core.db.aurora import AuroraClient
     from core.services.policy_retrieval import PolicyRetrievalService
+
     config = get_config()
     return PolicyRetrievalService(get_query_embedding_service(), AuroraClient(config), config)

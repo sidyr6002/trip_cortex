@@ -55,6 +55,7 @@ def test_build_retrieval_audit_entry_structure(entry):
 def test_build_retrieval_audit_entry_no_query_text(entry):
     # user_query must never appear in the audit record
     import json
+
     serialized = json.dumps(entry)
     assert "user_query" not in serialized
     assert "query_text" not in serialized
@@ -62,6 +63,7 @@ def test_build_retrieval_audit_entry_no_query_text(entry):
 
 def test_build_retrieval_audit_entry_audit_id_is_uuid(entry):
     import re
+
     assert re.match(r"^[0-9a-f-]{36}$", entry["auditId"])
 
 

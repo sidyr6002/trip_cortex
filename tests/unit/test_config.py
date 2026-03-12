@@ -64,11 +64,14 @@ def test_retrieval_config_defaults():
 
 
 def test_retrieval_config_custom_env_vars():
-    with patch.dict(os.environ, {
-        "SIMILARITY_THRESHOLD": "0.70",
-        "HIGH_CONFIDENCE_THRESHOLD": "0.85",
-        "RETRIEVAL_TOP_K": "10",
-    }):
+    with patch.dict(
+        os.environ,
+        {
+            "SIMILARITY_THRESHOLD": "0.70",
+            "HIGH_CONFIDENCE_THRESHOLD": "0.85",
+            "RETRIEVAL_TOP_K": "10",
+        },
+    ):
         config = get_config()
         assert config.similarity_threshold == 0.70
         assert config.high_confidence_threshold == 0.85

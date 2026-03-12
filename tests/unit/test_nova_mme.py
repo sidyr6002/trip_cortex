@@ -1,7 +1,7 @@
 """Unit tests for invoke_nova_mme shared helper."""
 
 import json
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
 import pytest
 from botocore.exceptions import ClientError
@@ -32,9 +32,7 @@ def _make_retry_client(error_code: str, success_vector: list[float]):
     """Client that fails once with error_code then succeeds."""
     client = MagicMock()
     error = ClientError({"Error": {"Code": error_code, "Message": ""}}, "InvokeModel")
-    success = {
-        "body": MagicMock(read=lambda: json.dumps({"embeddings": [{"embedding": success_vector}]}).encode())
-    }
+    success = {"body": MagicMock(read=lambda: json.dumps({"embeddings": [{"embedding": success_vector}]}).encode())}
     client.invoke_model.side_effect = [error, success]
     return client
 
