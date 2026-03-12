@@ -12,6 +12,7 @@ from core.models.ingestion import (
     BdaEntity,
     BdaProjectResult,
     BdaStatusResult,
+    EmbeddingMessage,
     EmbeddingResult,
     FailedEntity,
     IngestionCompleteResult,
@@ -33,5 +34,6 @@ __all__ = [
     "IngestionCompleteResult",
     "BdaEntity",
     "FailedEntity",
+    "EmbeddingMessage",
     "EmbeddingResult",
 ]

@@ -70,6 +70,13 @@ class FailedEntity(BaseModel):
     error: str
 
 
+class EmbeddingMessage(BaseModel):
+    """SQS message body for embedding generation."""
+
+    policy_id: str
+    output_s3_uri: str
+
+
 class EmbeddingResult(BaseModel):
     """Result of embedding generation for a policy."""
 
