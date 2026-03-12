@@ -39,3 +39,15 @@ def get_bda_runtime_client() -> Any:
 def get_sfn_client() -> Any:
     config = get_config()
     return boto3.client("stepfunctions", region_name=config.aws_region)
+
+
+@lru_cache(maxsize=1)
+def get_bedrock_runtime_client() -> Any:
+    config = get_config()
+    return boto3.client("bedrock-runtime", region_name=config.aws_region)
+
+
+@lru_cache(maxsize=1)
+def get_s3_client() -> Any:
+    config = get_config()
+    return boto3.client("s3", region_name=config.aws_region)

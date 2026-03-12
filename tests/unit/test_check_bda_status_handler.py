@@ -1,6 +1,6 @@
 """Unit tests for check_bda_status handler."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from core.models.ingestion import BdaStatusResult
 

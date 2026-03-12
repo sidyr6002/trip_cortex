@@ -9,8 +9,11 @@ from core.models.booking import (
     PolicySource,
 )
 from core.models.ingestion import (
+    BdaEntity,
     BdaProjectResult,
     BdaStatusResult,
+    EmbeddingResult,
+    FailedEntity,
     IngestionCompleteResult,
     IngestionRequest,
     IngestionStartResult,
@@ -28,4 +31,7 @@ __all__ = [
     "IngestionStartResult",
     "BdaStatusResult",
     "IngestionCompleteResult",
+    "BdaEntity",
+    "FailedEntity",
+    "EmbeddingResult",
 ]

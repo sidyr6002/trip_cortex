@@ -109,6 +109,7 @@ Resources:
       DefinitionUri: ../../statemachine/ingestion-polling.asl.json
       DefinitionSubstitutions:
         CheckBdaStatusFunctionArn: !GetAtt CheckBdaStatusFunction.Arn
+        GenerateEmbeddingsFunctionArn: !GetAtt GenerateEmbeddingsFunction.Arn
         IngestionCompleteFunctionArn: !GetAtt IngestionCompleteFunction.Arn
         IngestionFailedFunctionArn: !GetAtt IngestionFailedFunction.Arn
       Logging:
@@ -124,6 +125,7 @@ Resources:
               Action: lambda:InvokeFunction
               Resource:
                 - !GetAtt CheckBdaStatusFunction.Arn
+                - !GetAtt GenerateEmbeddingsFunction.Arn
                 - !GetAtt IngestionCompleteFunction.Arn
                 - !GetAtt IngestionFailedFunction.Arn
       Tags:
@@ -440,6 +442,42 @@ Resources:
               Action: bedrock:GetDataAutomationStatus
               Resource: "*"
 
+  GenerateEmbeddingsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../src/
+      Handler: handlers.generate_embeddings.handler
+      Description: Generates Nova MME embeddings from BDA output and stores in pgvector
+      Timeout: 300
+      MemorySize: 1024
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroupId
+        SubnetIds: !Split [",", !Ref PrivateSubnetIds]
+      Environment:
+        Variables:
+          AURORA_HOST: !Ref AuroraClusterEndpoint
+          AURORA_PORT: !Ref AuroraPort
+          AURORA_DATABASE: !Ref AuroraDatabaseName
+          AURORA_SECRET_ARN: !Ref AuroraSecretArn
+          NOVA_EMBEDDINGS_MODEL_ID: amazon.nova-2-multimodal-embeddings-v1:0
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/amazon.nova-2-multimodal-embeddings-v1:0"
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:ListBucket
+              Resource:
+                - !Ref PolicyDocumentsBucketArn
+                - !Sub "${PolicyDocumentsBucketArn}/*"
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref AuroraSecretArn
+
   IngestionCompleteFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -517,6 +555,8 @@ Outputs:
     Value: !GetAtt BdaSetupFunction.Arn
   CheckBdaStatusFunctionArn:
     Value: !GetAtt CheckBdaStatusFunction.Arn
+  GenerateEmbeddingsFunctionArn:
+    Value: !GetAtt GenerateEmbeddingsFunction.Arn
   IngestionCompleteFunctionArn:
     Value: !GetAtt IngestionCompleteFunction.Arn
   IngestionFailedFunctionArn:

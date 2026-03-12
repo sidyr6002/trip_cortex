@@ -45,3 +45,36 @@ class IngestionCompleteResult(BaseModel):
     status: Literal["ready", "failed"]
     total_pages: int | None = None
     bda_output_s3_uri: str | None = None
+
+
+class BdaEntity(BaseModel):
+    """Parsed BDA document entity (TEXT, TABLE, or FIGURE)."""
+
+    entity_type: Literal["TEXT", "TABLE", "FIGURE"]
+    sub_type: str | None = None
+    content_text: str | None = None
+    markdown: str | None = None
+    crop_image_s3_uri: str | None = None
+    page_index: int | None = None
+    section_title: str | None = None
+    reading_order: int | None = None
+    entity_id: str
+    bounding_box: dict[str, object] | None = None
+
+
+class FailedEntity(BaseModel):
+    """Tracking for per-entity embedding failure."""
+
+    entity_id: str
+    entity_type: str
+    error: str
+
+
+class EmbeddingResult(BaseModel):
+    """Result of embedding generation for a policy."""
+
+    policy_id: str
+    chunks_created: int
+    chunks_failed: int
+    entity_types: dict[str, int]  # e.g. {"text": 5, "table": 2, "figure": 1}
+    failed_entities: list[FailedEntity]

@@ -34,7 +34,10 @@ class Policy(Base):
     chunks: Mapped[list["PolicyChunk"]] = relationship(back_populates="policy", cascade="all, delete-orphan")
 
     __table_args__ = (
-        CheckConstraint("status IN ('pending', 'processing', 'ready', 'failed')", name="chk_policies_status"),
+        CheckConstraint(
+            "status IN ('pending', 'processing', 'embedded', 'ready', 'failed')",
+            name="chk_policies_status",
+        ),
         Index("idx_policies_status", "status"),
         Index("idx_policies_uploaded_by", "uploaded_by"),
     )

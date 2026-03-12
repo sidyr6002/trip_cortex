@@ -125,7 +125,9 @@ class IngestionService:
         try:
             response = self.bda_runtime_client.get_data_automation_status(invocationArn=invocation_arn)
 
-            status = response.get("status", "").upper()
+            raw_status = response.get("status", "").upper()
+            # BDA returns "INPROGRESS" but our model expects "IN_PROGRESS"
+            status = "IN_PROGRESS" if raw_status == "INPROGRESS" else raw_status
             output_s3_uri = None
             error_message = None
 
