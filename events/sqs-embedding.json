@@ -1,0 +1,19 @@
+{
+  "Records": [
+    {
+      "messageId": "test-message-id",
+      "receiptHandle": "test-receipt-handle",
+      "body": "{\"policy_id\": \"00000000-0000-0000-0000-000000000001\", \"output_s3_uri\": \"s3://trip-cortex-dev-policy-docs-123456789012/bda-output/00000000-0000-0000-0000-000000000001/\"}",
+      "attributes": {
+        "ApproximateReceiveCount": "1",
+        "SentTimestamp": "1710000000000",
+        "ApproximateFirstReceiveTimestamp": "1710000001000"
+      },
+      "messageAttributes": {},
+      "md5OfBody": "test",
+      "eventSource": "aws:sqs",
+      "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:trip-cortex-dev-embedding-queue",
+      "awsRegion": "us-east-1"
+    }
+  ]
+}
