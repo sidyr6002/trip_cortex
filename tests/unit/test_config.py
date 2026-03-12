@@ -53,3 +53,29 @@ def test_config_is_immutable():
         config = get_config()
         with pytest.raises(pydantic.ValidationError):
             config.aws_region = "eu-west-1"  # type: ignore[misc]
+
+
+def test_retrieval_config_defaults():
+    with patch.dict(os.environ, {}, clear=True):
+        config = get_config()
+        assert config.similarity_threshold == 0.65
+        assert config.high_confidence_threshold == 0.75
+        assert config.retrieval_top_k == 5
+
+
+def test_retrieval_config_custom_env_vars():
+    with patch.dict(os.environ, {
+        "SIMILARITY_THRESHOLD": "0.70",
+        "HIGH_CONFIDENCE_THRESHOLD": "0.85",
+        "RETRIEVAL_TOP_K": "10",
+    }):
+        config = get_config()
+        assert config.similarity_threshold == 0.70
+        assert config.high_confidence_threshold == 0.85
+        assert config.retrieval_top_k == 10
+
+
+def test_retrieval_config_invalid_type_raises():
+    with patch.dict(os.environ, {"SIMILARITY_THRESHOLD": "not-a-float"}):
+        with pytest.raises((ValueError, pydantic.ValidationError)):
+            get_config()

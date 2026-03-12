@@ -43,6 +43,9 @@ class Config(BaseModel):
     ingestion_workflow_arn: str = ""
     policy_bucket: str = ""
     hnsw_ef_search: int = 40
+    similarity_threshold: float = 0.65
+    high_confidence_threshold: float = 0.75
+    retrieval_top_k: int = 5
 
 
 @lru_cache(maxsize=1)
@@ -69,6 +72,9 @@ def get_config() -> Config:
         ingestion_workflow_arn=environ.get("INGESTION_WORKFLOW_ARN", ""),
         policy_bucket=environ.get("POLICY_BUCKET", ""),
         hnsw_ef_search=int(environ.get("HNSW_EF_SEARCH", "40")),
+        similarity_threshold=float(environ.get("SIMILARITY_THRESHOLD", "0.65")),
+        high_confidence_threshold=float(environ.get("HIGH_CONFIDENCE_THRESHOLD", "0.75")),
+        retrieval_top_k=int(environ.get("RETRIEVAL_TOP_K", "5")),
     )
 
 
