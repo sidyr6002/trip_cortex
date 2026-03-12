@@ -1,6 +1,7 @@
 """Aurora PostgreSQL client — connection management and similarity search."""
 
 import json
+import time
 
 import boto3
 import psycopg
@@ -33,6 +34,20 @@ _SIMILARITY_SEARCH_SQL = """
            1 - (pc.embedding <=> q.vec) AS similarity
     FROM policy_chunks pc, query q
     WHERE 1 - (pc.embedding <=> q.vec) >= %s
+    ORDER BY pc.embedding <=> q.vec
+    LIMIT %s
+"""
+
+_SIMILARITY_SEARCH_FILTERED_SQL = """
+    WITH query AS (
+        SELECT %s::vector AS vec
+    )
+    SELECT pc.id, pc.content_text, pc.section_title, pc.source_page,
+           pc.content_type, pc.bda_entity_subtype,
+           1 - (pc.embedding <=> q.vec) AS similarity
+    FROM policy_chunks pc, query q
+    WHERE pc.content_type = %s
+      AND 1 - (pc.embedding <=> q.vec) >= %s
     ORDER BY pc.embedding <=> q.vec
     LIMIT %s
 """
@@ -158,13 +173,18 @@ class AuroraClient:
         threshold: float = 0.65,
         top_k: int = 5,
         ef_search: int = 40,
+        content_type: str | None = None,
     ) -> list[PolicyChunkResult]:
         conn = self._require_connection()
+        start = time.monotonic()
         try:
             with conn.transaction():
                 with conn.cursor() as cur:
                     cur.execute(f"SET LOCAL hnsw.ef_search = {int(ef_search)}")
-                    cur.execute(_SIMILARITY_SEARCH_SQL, (query_embedding, threshold, top_k))
+                    if content_type is not None:
+                        cur.execute(_SIMILARITY_SEARCH_FILTERED_SQL, (query_embedding, content_type, threshold, top_k))
+                    else:
+                        cur.execute(_SIMILARITY_SEARCH_SQL, (query_embedding, threshold, top_k))
                     rows = cur.fetchall()
         except Exception as e:
             raise PolicyRetrievalError(
@@ -172,7 +192,7 @@ class AuroraClient:
                 code=ErrorCode.RETRIEVAL_FAILED,
             ) from e
 
-        return [
+        results = [
             PolicyChunkResult(
                 id=str(row[0]),
                 content_text=row[1],
@@ -184,6 +204,17 @@ class AuroraClient:
             )
             for row in rows
         ]
+        logger.info(
+            "similarity_search",
+            ef_search=ef_search,
+            threshold=threshold,
+            top_k=top_k,
+            content_type=content_type,
+            results_count=len(results),
+            max_similarity=round(results[0].similarity, 4) if results else 0.0,
+            query_latency_ms=round((time.monotonic() - start) * 1000, 1),
+        )
+        return results
 
     def __enter__(self) -> "AuroraClient":
         self.connect()

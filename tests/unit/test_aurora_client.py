@@ -84,3 +84,28 @@ def test_verify_hnsw_index_missing(client):
     mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
 
     assert aurora.verify_hnsw_index() is False
+
+
+def test_similarity_search_logs_metrics(client):
+    """similarity_search emits structured log with scalar metrics (no embedding vector)."""
+    aurora, mock_conn = client
+
+    mock_cur = MagicMock()
+    mock_cur.fetchall.return_value = []
+    mock_conn.transaction.return_value.__enter__ = MagicMock(return_value=None)
+    mock_conn.transaction.return_value.__exit__ = MagicMock(return_value=False)
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cur)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+    with patch("core.db.aurora.logger") as mock_logger:
+        aurora.similarity_search([0.1] * 1024, threshold=0.7, top_k=3, ef_search=60)
+
+    mock_logger.info.assert_called_once()
+    _, kwargs = mock_logger.info.call_args
+    assert kwargs["ef_search"] == 60
+    assert kwargs["threshold"] == 0.7
+    assert kwargs["top_k"] == 3
+    assert kwargs["results_count"] == 0
+    assert "query_latency_ms" in kwargs
+    # Embedding vector must NOT be logged
+    assert "query_embedding" not in kwargs
