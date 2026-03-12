@@ -2,6 +2,7 @@
 
 import json
 import time
+from typing import Any
 
 import boto3
 import psycopg
@@ -126,7 +127,7 @@ class AuroraClient:
         except Exception:
             return False
 
-    def insert_chunks(self, chunks: list[dict]) -> int:
+    def insert_chunks(self, chunks: list[dict[str, Any]]) -> int:
         """Batch upsert policy chunks. Returns count inserted."""
         if not chunks:
             return 0

@@ -9,7 +9,12 @@ from core.models.ingestion import IngestionStartResult
 
 # Native S3 notification format
 S3_EVENT = {
-    "Records": [{"s3": {"bucket": {"name": "trip-cortex-policy-docs-123456789012"}, "object": {"key": "uploads/policy.pdf"}}}]
+    "Records": [{
+        "s3": {
+            "bucket": {"name": "trip-cortex-policy-docs-123456789012"},
+            "object": {"key": "uploads/policy.pdf"},
+        }
+    }]
 }
 
 # EventBridge format (used when EventBridgeEnabled=true on S3 bucket)

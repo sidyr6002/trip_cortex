@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, call, patch
 import pytest
 
 from core.db.aurora import AuroraClient
-from core.errors import PolicyRetrievalError
 
 
 @pytest.fixture
@@ -66,7 +65,8 @@ def test_verify_hnsw_index_true(client):
 
     mock_cur = MagicMock()
     mock_cur.fetchone.return_value = (
-        "CREATE INDEX idx_policy_chunks_embedding ON policy_chunks USING hnsw (embedding vector_cosine_ops) WITH (m='16', ef_construction='64')",
+        "CREATE INDEX idx_policy_chunks_embedding ON policy_chunks "
+        "USING hnsw (embedding vector_cosine_ops) WITH (m='16', ef_construction='64')",
     )
     mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cur)
     mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)

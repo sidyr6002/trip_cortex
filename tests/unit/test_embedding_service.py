@@ -1,7 +1,7 @@
 """Unit tests for EmbeddingService."""
 
 import json
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -97,7 +97,9 @@ def test_generate_embeddings_table_entities(embedding_service, mock_bedrock_clie
     assert result.entity_types == {"table": 1}
 
 
-def test_generate_embeddings_figure_entities(embedding_service, mock_bedrock_client, mock_s3_client, mock_aurora_client):
+def test_generate_embeddings_figure_entities(
+    embedding_service, mock_bedrock_client, mock_s3_client, mock_aurora_client
+):
     """Test embedding generation for FIGURE entities with image."""
     _mock_s3(mock_s3_client, [
         {
@@ -125,9 +127,21 @@ def test_generate_embeddings_figure_entities(embedding_service, mock_bedrock_cli
 def test_generate_embeddings_mixed_entities(embedding_service, mock_bedrock_client, mock_s3_client, mock_aurora_client):
     """Test embedding generation with mixed entity types."""
     _mock_s3(mock_s3_client, [
-        {"id": "text-1", "type": "TEXT", "representation": {"text": "Text", "markdown": "# Text"}, "reading_order": 1, "locations": [{"page_index": 0}]},
-        {"id": "table-1", "type": "TABLE", "representation": {"markdown": "| A | B |", "text": "Table"}, "reading_order": 2, "locations": [{"page_index": 0}]},
-        {"id": "figure-1", "type": "FIGURE", "crop_images": ["s3://bucket/fig.png"], "summary": "Fig", "reading_order": 3, "locations": [{"page_index": 0}]},
+        {
+            "id": "text-1", "type": "TEXT",
+            "representation": {"text": "Text", "markdown": "# Text"},
+            "reading_order": 1, "locations": [{"page_index": 0}],
+        },
+        {
+            "id": "table-1", "type": "TABLE",
+            "representation": {"markdown": "| A | B |", "text": "Table"},
+            "reading_order": 2, "locations": [{"page_index": 0}],
+        },
+        {
+            "id": "figure-1", "type": "FIGURE",
+            "crop_images": ["s3://bucket/fig.png"], "summary": "Fig",
+            "reading_order": 3, "locations": [{"page_index": 0}],
+        },
     ])
     _mock_bedrock(mock_bedrock_client)
     mock_aurora_client.insert_chunks.return_value = 3
@@ -167,7 +181,11 @@ def test_embed_image_request_body(embedding_service, mock_bedrock_client):
 def test_skips_empty_entities(embedding_service, mock_bedrock_client, mock_s3_client, mock_aurora_client):
     """Test that entities with no content are skipped and tracked."""
     _mock_s3(mock_s3_client, [
-        {"id": "empty-1", "type": "TEXT", "representation": {"text": None, "markdown": None}, "reading_order": 1, "locations": [{"page_index": 0}]}
+        {
+            "id": "empty-1", "type": "TEXT",
+            "representation": {"text": None, "markdown": None},
+            "reading_order": 1, "locations": [{"page_index": 0}],
+        }
     ])
 
     result = embedding_service.generate_embeddings("test-policy-id", "s3://bucket/prefix/")
@@ -180,8 +198,16 @@ def test_skips_empty_entities(embedding_service, mock_bedrock_client, mock_s3_cl
 def test_partial_failure_tracking(embedding_service, mock_bedrock_client, mock_s3_client, mock_aurora_client):
     """Test that one entity failure doesn't block others."""
     _mock_s3(mock_s3_client, [
-        {"id": "good-1", "type": "TEXT", "representation": {"text": "Good text", "markdown": "# Good"}, "reading_order": 1, "locations": [{"page_index": 0}]},
-        {"id": "bad-1", "type": "FIGURE", "crop_images": [], "summary": None, "reading_order": 2, "locations": [{"page_index": 0}]},
+        {
+            "id": "good-1", "type": "TEXT",
+            "representation": {"text": "Good text", "markdown": "# Good"},
+            "reading_order": 1, "locations": [{"page_index": 0}],
+        },
+        {
+            "id": "bad-1", "type": "FIGURE",
+            "crop_images": [], "summary": None,
+            "reading_order": 2, "locations": [{"page_index": 0}],
+        },
     ])
     _mock_bedrock(mock_bedrock_client)
     mock_aurora_client.insert_chunks.return_value = 1
@@ -196,7 +222,11 @@ def test_partial_failure_tracking(embedding_service, mock_bedrock_client, mock_s
 def test_policy_status_updated_to_embedded(embedding_service, mock_bedrock_client, mock_s3_client, mock_aurora_client):
     """Verify aurora_client.update_policy_status is called with 'embedded'."""
     _mock_s3(mock_s3_client, [
-        {"id": "entity-1", "type": "TEXT", "representation": {"text": "Text", "markdown": "# Text"}, "reading_order": 1, "locations": [{"page_index": 0}]}
+        {
+            "id": "entity-1", "type": "TEXT",
+            "representation": {"text": "Text", "markdown": "# Text"},
+            "reading_order": 1, "locations": [{"page_index": 0}],
+        }
     ])
     _mock_bedrock(mock_bedrock_client)
     mock_aurora_client.insert_chunks.return_value = 1

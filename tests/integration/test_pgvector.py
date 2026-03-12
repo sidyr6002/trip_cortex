@@ -198,7 +198,8 @@ def test_cascade_delete_removes_chunks(pg_connection):
     # Create a dedicated policy so teardown doesn't conflict
     with pg_connection.cursor() as cur:
         cur.execute(
-            "INSERT INTO policies (source_s3_uri, file_name) VALUES ('s3://test/cascade.pdf', 'cascade.pdf') RETURNING id"
+            "INSERT INTO policies (source_s3_uri, file_name) "
+            "VALUES ('s3://test/cascade.pdf', 'cascade.pdf') RETURNING id"
         )
         policy_id = cur.fetchone()[0]
         pg_connection.commit()

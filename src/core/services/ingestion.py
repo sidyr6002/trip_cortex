@@ -1,6 +1,6 @@
 """Service for managing policy document ingestion via BDA."""
 
-from typing import Any
+from typing import Any, Literal, cast
 
 from core.db.aurora import AuroraClient
 from core.errors import ErrorCode, TripCortexError
@@ -127,7 +127,10 @@ class IngestionService:
 
             raw_status = response.get("status", "").upper()
             # BDA returns "INPROGRESS" but our model expects "IN_PROGRESS"
-            status = "IN_PROGRESS" if raw_status == "INPROGRESS" else raw_status
+            status = cast(
+                Literal["IN_PROGRESS", "SUCCESS", "FAILED"],
+                "IN_PROGRESS" if raw_status == "INPROGRESS" else raw_status,
+            )
             output_s3_uri = None
             error_message = None
 
