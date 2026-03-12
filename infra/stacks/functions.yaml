@@ -275,6 +275,7 @@ Resources:
           AURORA_PORT: !Ref AuroraPort
           AURORA_DATABASE: !Ref AuroraDatabaseName
           AURORA_SECRET_ARN: !Ref AuroraSecretArn
+          NOVA_LITE_MODEL_ID: us.amazon.nova-2-lite-v1:0
       Policies:
         - AWSLambdaVPCAccessExecutionRole
         - Statement:
