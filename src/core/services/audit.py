@@ -78,6 +78,29 @@ def build_reasoning_audit_entry(
     }
 
 
+def build_degradation_audit_entry(
+    booking_id: str,
+    employee_id: str,
+    error_code: str,
+    original_error_message: str,
+) -> dict[str, Any]:
+    return {
+        "auditId": str(uuid4()),
+        "bookingId": booking_id,
+        "employeeId": employee_id,
+        "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "event": "graceful_degradation",
+        "input": {
+            "error_code": error_code,
+            "original_error_message": original_error_message[:200],
+        },
+        "output": {
+            "plan_confidence": 0.0,
+            "warnings": ["STRICT_DEFAULTS_APPLIED"],
+        },
+    }
+
+
 def _to_dynamo(obj: Any) -> Any:
     """Recursively convert a Python value to DynamoDB attribute format."""
     if isinstance(obj, dict):
