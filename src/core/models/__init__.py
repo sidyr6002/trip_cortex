@@ -7,6 +7,9 @@ from core.models.booking import (
     BookingPlan,
     PolicyConstraints,
     PolicySource,
+    ReasoningRequest,
+    ReasoningResult,
+    ThinkingEffort,
 )
 from core.models.ingestion import (
     BdaEntity,
@@ -27,6 +30,9 @@ __all__ = [
     "PolicyConstraints",
     "PolicySource",
     "PolicyChunkResult",
+    "ReasoningRequest",
+    "ReasoningResult",
+    "ThinkingEffort",
     "BdaProjectResult",
     "IngestionRequest",
     "IngestionStartResult",
