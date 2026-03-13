@@ -24,14 +24,19 @@ def nova_act_kwargs(portal_url: str, headless: bool = True) -> dict:
         "headless": headless,
         "tty": False,
         "state_guardrail": portal_url_guardrail,
-        "max_steps": 50,
+        "chrome_channel": "chrome",
     }
 
 
 def workflow_kwargs(workflow_definition_name: str) -> dict:
     """Return Workflow context manager kwargs for IAM auth."""
+    import os
+    boto_kwargs: dict = {"region_name": "us-east-1"}
+    profile = os.environ.get("AWS_PROFILE")
+    if profile:
+        boto_kwargs["profile_name"] = profile
     return {
         "workflow_definition_name": workflow_definition_name,
         "model_id": "nova-act-latest",
-        "boto_session_kwargs": {"region_name": "us-east-1"},
+        "boto_session_kwargs": boto_kwargs,
     }
