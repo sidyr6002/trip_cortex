@@ -22,6 +22,7 @@ from core.models.ingestion import (
     IngestionRequest,
     IngestionStartResult,
 )
+from core.models.flight import FlightOption, FlightSearchResult
 from core.models.retrieval import PolicyChunkResult
 
 __all__ = [
@@ -30,6 +31,8 @@ __all__ = [
     "PolicyConstraints",
     "PolicySource",
     "PolicyChunkResult",
+    "FlightOption",
+    "FlightSearchResult",
     "ReasoningRequest",
     "ReasoningResult",
     "ThinkingEffort",
