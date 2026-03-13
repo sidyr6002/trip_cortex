@@ -1,10 +1,98 @@
 {
-  "Comment": "Trip Cortex booking workflow — placeholder (Epic 7)",
-  "StartAt": "Placeholder",
+  "Comment": "Trip Cortex booking workflow — EmbedAndRetrieve → ReasonAndPlan → ValidatePlan",
+  "StartAt": "EmbedAndRetrieve",
   "States": {
-    "Placeholder": {
-      "Type": "Pass",
-      "Result": {"status": "ok"},
+    "EmbedAndRetrieve": {
+      "Type": "Task",
+      "Resource": "${EmbedAndRetrieveFunctionArn}",
+      "ResultPath": "$",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 1.5
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyUserOfError"
+        }
+      ],
+      "Next": "ReasonAndPlan"
+    },
+    "ReasonAndPlan": {
+      "Type": "Task",
+      "Resource": "${ReasonAndPlanFunctionArn}",
+      "Parameters": {
+        "booking_id.$": "$.booking_id",
+        "employee_id.$": "$.employee_id",
+        "user_query.$": "$.user_query",
+        "context_text.$": "$.context_text",
+        "confidence_level.$": "$.confidence.level",
+        "max_similarity.$": "$.confidence.max_similarity"
+      },
+      "ResultPath": "$",
+      "Retry": [
+        {
+          "ErrorEquals": ["ReasoningError", "SchemaValidationError"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 1.5
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["ReasoningError", "States.TaskFailed"],
+          "ResultPath": "$.error_info",
+          "Next": "GracefulDegradation"
+        }
+      ],
+      "Next": "ValidatePlan"
+    },
+    "GracefulDegradation": {
+      "Type": "Task",
+      "Resource": "${GracefulDegradationFunctionArn}",
+      "Parameters": {
+        "booking_id.$": "$.booking_id",
+        "employee_id.$": "$.employee_id",
+        "user_query.$": "$.user_query",
+        "error.$": "$.error_info.Error",
+        "cause.$": "$.error_info.Cause"
+      },
+      "ResultPath": "$",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyUserOfError"
+        }
+      ],
+      "Next": "ValidatePlan"
+    },
+    "ValidatePlan": {
+      "Type": "Task",
+      "Resource": "${ValidatePlanFunctionArn}",
+      "ResultPath": "$",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyUserOfError"
+        }
+      ],
+      "Next": "NotifyUserOfError"
+    },
+    "NotifyUserOfError": {
+      "Type": "Task",
+      "Resource": "${ResponseSenderFunctionArn}",
+      "Parameters": {
+        "type": "error",
+        "message": "Unable to process your booking request. Please try again."
+      },
+      "ResultPath": null,
       "End": true
     }
   }

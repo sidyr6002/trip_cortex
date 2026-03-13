@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from core.services.audit import build_retrieval_audit_entry, write_audit_log
+from core.services.audit import build_reasoning_audit_entry, build_retrieval_audit_entry, write_audit_log
 
 
 @pytest.fixture
@@ -100,3 +100,48 @@ def test_dynamo_item_nested_dict_uses_m_type(dynamo, entry):
     item = dynamo.put_item.call_args[1]["Item"]
     assert "M" in item["output"]
     assert item["output"]["M"]["confidence_level"] == {"S": "high"}
+
+
+# ── build_reasoning_audit_entry ─────────────────────────────────────────────
+
+
+@pytest.fixture
+def reasoning_entry():
+    return build_reasoning_audit_entry(
+        booking_id="b-2",
+        employee_id="emp-2",
+        model_id="us.amazon.nova-2-lite-v1:0",
+        thinking_effort="high",
+        latency_ms=3200.5,
+        retry_count=2,
+        escalated=True,
+        plan_confidence=0.92,
+        plan_intent="flight_booking",
+        warnings_count=0,
+    )
+
+
+def test_reasoning_audit_entry_structure(reasoning_entry):
+    assert reasoning_entry["event"] == "reasoning_plan"
+    assert reasoning_entry["bookingId"] == "b-2"
+    assert reasoning_entry["employeeId"] == "emp-2"
+    assert reasoning_entry["latency_ms"] == 3200.5
+
+    inp = reasoning_entry["input"]
+    assert inp["model_id"] == "us.amazon.nova-2-lite-v1:0"
+    assert inp["thinking_effort"] == "high"
+    assert inp["escalated"] is True
+
+    out = reasoning_entry["output"]
+    assert out["plan_confidence"] == 0.92
+    assert out["plan_intent"] == "flight_booking"
+    assert out["retry_count"] == 2
+    assert out["warnings_count"] == 0
+
+
+def test_reasoning_audit_entry_no_pii(reasoning_entry):
+    import json
+
+    serialized = json.dumps(reasoning_entry)
+    for forbidden in ("user_query", "query_text", "origin", "destination", "plan_parameters"):
+        assert forbidden not in serialized

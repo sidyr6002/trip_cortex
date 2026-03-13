@@ -1,0 +1,8 @@
+{
+  "booking_id": "b-test-001",
+  "employee_id": "e-test-001",
+  "user_query": "Book a flight from HYD to ORD next Tuesday returning Thursday, prefer United",
+  "context_text": "Domestic Air Travel Policy: Economy class only. Maximum budget $500. Preferred vendors: Delta, United. 14-day advance booking required.",
+  "confidence_level": "high",
+  "max_similarity": 0.89
+}

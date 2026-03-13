@@ -68,7 +68,6 @@ Globals:
         AUDIT_LOG_TABLE: !Ref AuditLogTableName
         POLICY_BUCKET: !Ref PolicyDocumentsBucketName
         ARTIFACTS_BUCKET: !Ref NovaActArtifactsBucketName
-        BOOKING_WORKFLOW_ARN: !Ref BookingWorkflow
 
 Resources:
 
@@ -86,6 +85,12 @@ Resources:
       Name: !Sub "${StackPrefix}-booking-workflow"
       Type: STANDARD
       DefinitionUri: ../../statemachine/booking-workflow.asl.json
+      DefinitionSubstitutions:
+        EmbedAndRetrieveFunctionArn: !GetAtt EmbedAndRetrieveFunction.Arn
+        ReasonAndPlanFunctionArn: !GetAtt ReasonAndPlanFunction.Arn
+        GracefulDegradationFunctionArn: !GetAtt GracefulDegradationFunction.Arn
+        ValidatePlanFunctionArn: !GetAtt ValidatePlanFunction.Arn
+        ResponseSenderFunctionArn: !GetAtt ResponseSenderFunction.Arn
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
@@ -94,6 +99,15 @@ Resources:
         Level: ERROR
       Policies:
         - CloudWatchLogsFullAccess
+        - Statement:
+            - Effect: Allow
+              Action: lambda:InvokeFunction
+              Resource:
+                - !GetAtt EmbedAndRetrieveFunction.Arn
+                - !GetAtt ReasonAndPlanFunction.Arn
+                - !GetAtt GracefulDegradationFunction.Arn
+                - !GetAtt ValidatePlanFunction.Arn
+                - !GetAtt ResponseSenderFunction.Arn
       Tags:
         Environment: !Ref Environment
         Project: trip-cortex
@@ -193,6 +207,9 @@ Resources:
       Handler: handlers.booking_request.handler
       Description: Validates booking request and starts Step Functions execution
       ReservedConcurrentExecutions: !If [IsNotDev, 10, !Ref AWS::NoValue]
+      Environment:
+        Variables:
+          BOOKING_WORKFLOW_ARN: !Ref BookingWorkflow
       Policies:
         - Statement:
             - Effect: Allow
@@ -275,12 +292,25 @@ Resources:
           AURORA_PORT: !Ref AuroraPort
           AURORA_DATABASE: !Ref AuroraDatabaseName
           AURORA_SECRET_ARN: !Ref AuroraSecretArn
+          NOVA_LITE_MODEL_ID: us.amazon.nova-2-lite-v1:0
       Policies:
         - AWSLambdaVPCAccessExecutionRole
         - Statement:
-            - Effect: Allow
+            - Sid: GrantNovaLiteInferenceProfileAccess
+              Effect: Allow
               Action: bedrock:InvokeModel
-              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/us.amazon.nova-2-lite-v1:0"
+              Resource:
+                - !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.amazon.nova-2-lite-v1:0"
+            - Sid: GrantNovaLiteModelAccess
+              Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource:
+                - "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-2-lite-v1:0"
+                - "arn:aws:bedrock:us-east-2::foundation-model/amazon.nova-2-lite-v1:0"
+                - "arn:aws:bedrock:us-west-2::foundation-model/amazon.nova-2-lite-v1:0"
+              Condition:
+                StringEquals:
+                  bedrock:InferenceProfileArn: !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.amazon.nova-2-lite-v1:0"
             - Effect: Allow
               Action: dynamodb:PutItem
               Resource: !Ref AuditLogTableArn
@@ -301,6 +331,20 @@ Resources:
                 - dynamodb:GetItem
                 - dynamodb:Query
               Resource: !Ref BookingsTableArn
+
+  GracefulDegradationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../src/
+      Handler: handlers.graceful_degradation.handler
+      Description: Applies strict defaults when reasoning fails — no Bedrock calls
+      Timeout: 30
+      MemorySize: 128
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: dynamodb:PutItem
+              Resource: !Ref AuditLogTableArn
 
   ResponseSenderFunction:
     Type: AWS::Serverless::Function
@@ -559,6 +603,8 @@ Outputs:
     Value: !GetAtt ReasonAndPlanFunction.Arn
   ValidatePlanFunctionArn:
     Value: !GetAtt ValidatePlanFunction.Arn
+  GracefulDegradationFunctionArn:
+    Value: !GetAtt GracefulDegradationFunction.Arn
   ResponseSenderFunctionArn:
     Value: !GetAtt ResponseSenderFunction.Arn
   HeartbeatFunctionArn:

@@ -1,15 +1,18 @@
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 from pydantic import ValidationError
 
 from core.models import BookingParameters, BookingPlan, PolicyConstraints, PolicySource
 
+_DEPART = date.today() + timedelta(days=30)
+_RETURN = date.today() + timedelta(days=32)
+
 VALID_PARAMS = dict(
     origin="HYD",
     destination="ORD",
-    departure_date=date(2026, 3, 10),
-    return_date=date(2026, 3, 12),
+    departure_date=_DEPART,
+    return_date=_RETURN,
     cabin_class="economy",
     time_preference="morning",
     passenger_count=1,

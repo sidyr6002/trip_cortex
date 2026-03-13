@@ -1186,6 +1186,7 @@ dependencies = [
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
     { name = "pyjwt" },
+    { name = "python-dateutil" },
     { name = "sqlalchemy" },
     { name = "structlog" },
 ]
@@ -1210,6 +1211,7 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.3" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pyjwt", specifier = ">=2.11.0" },
+    { name = "python-dateutil", specifier = ">=2.9.0.post0" },
     { name = "sqlalchemy", specifier = ">=2.0.47" },
     { name = "structlog", specifier = ">=25.5.0" },
 ]
