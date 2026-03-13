@@ -78,6 +78,31 @@ def build_reasoning_audit_entry(
     }
 
 
+def build_flight_search_audit_entry(
+    booking_id: str,
+    employee_id: str,
+    total_results: int,
+    flights_returned: int,
+    fallback_url_set: bool,
+    warnings: list[str],
+    latency_ms: float,
+) -> dict[str, Any]:
+    return {
+        "auditId": f"flight-search-{uuid4()}",
+        "bookingId": booking_id,
+        "employeeId": employee_id,
+        "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "event": "flight_search",
+        "output": {
+            "total_results": total_results,
+            "flights_returned": flights_returned,
+            "fallback_url_set": fallback_url_set,
+            "warnings": warnings,
+        },
+        "latency_ms": latency_ms,
+    }
+
+
 def build_degradation_audit_entry(
     booking_id: str,
     employee_id: str,

@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
+import boto3  # noqa: E402
 import structlog  # noqa: E402
 
 from nova_act import (  # noqa: E402
@@ -30,6 +31,7 @@ from nova_act import (  # noqa: E402
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from core.config import get_config  # noqa: E402
 from core.models.flight import FlightSearchInput, FlightSearchOutput, FlightSearchResult  # noqa: E402
+from core.services.audit import build_flight_search_audit_entry, write_audit_log  # noqa: E402
 from core.services.flight_search import (  # noqa: E402
     build_fallback_url,
     build_filter_prompt,
@@ -115,6 +117,7 @@ def main(payload: dict) -> dict:
     if not config.nova_act_search_workflow:
         raise ValueError("NOVA_ACT_SEARCH_WORKFLOW is not configured")
     start = time.monotonic()
+    output: FlightSearchOutput | None = None
     try:
         with Workflow(**workflow_kwargs(config.nova_act_search_workflow)) as wf:
             kwargs = nova_act_kwargs(search_url, headless=config.nova_act_headless)
@@ -133,8 +136,18 @@ def main(payload: dict) -> dict:
     finally:
         latency_ms = (time.monotonic() - start) * 1000
         log.info("flight_search_complete", booking_id=inp.booking_id, latency_ms=round(latency_ms))
-
-    return output.model_dump()
+        if output is not None and config.audit_log_table:
+            entry = build_flight_search_audit_entry(
+                booking_id=inp.booking_id,
+                employee_id=inp.employee_id,
+                total_results=output.search_result.total_results,
+                flights_returned=len(output.search_result.flights),
+                fallback_url_set=output.fallback_url is not None,
+                warnings=output.warnings,
+                latency_ms=latency_ms,
+            )
+            write_audit_log(boto3.client("dynamodb"), config.audit_log_table, entry)
+    return output.model_dump()  # type: ignore[union-attr]
 
 
 @workflow(model_id="nova-act-latest", workflow_definition_name="trip-cortex-flight-search")
