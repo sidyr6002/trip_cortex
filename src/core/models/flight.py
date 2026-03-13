@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from core.models.booking import BookingPlan
+
 
 class FlightOption(BaseModel):
     airline: str = Field(..., description="Airline name")
@@ -18,3 +20,17 @@ class FlightSearchResult(BaseModel):
     search_destination: str = Field(..., description="Destination airport code")
     search_date: str = Field(..., description="Search date")
     total_results: int = Field(..., ge=0, description="Total number of results found")
+
+
+class FlightSearchInput(BaseModel):
+    booking_id: str
+    employee_id: str
+    booking_plan: BookingPlan
+
+
+class FlightSearchOutput(BaseModel):
+    booking_id: str
+    employee_id: str
+    search_result: FlightSearchResult
+    fallback_url: str | None = None
+    warnings: list[str] = []
