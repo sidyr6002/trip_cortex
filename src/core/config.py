@@ -46,6 +46,10 @@ class Config(BaseModel):
     similarity_threshold: float = 0.65
     high_confidence_threshold: float = 0.75
     retrieval_top_k: int = 5
+    dummy_portal_url: str = ""
+    nova_act_headless: bool = True
+    nova_act_search_workflow: str = ""
+    nova_act_booking_workflow: str = ""
 
 
 @lru_cache(maxsize=1)
@@ -75,6 +79,10 @@ def get_config() -> Config:
         similarity_threshold=float(environ.get("SIMILARITY_THRESHOLD", "0.65")),
         high_confidence_threshold=float(environ.get("HIGH_CONFIDENCE_THRESHOLD", "0.75")),
         retrieval_top_k=int(environ.get("RETRIEVAL_TOP_K", "5")),
+        dummy_portal_url=environ.get("DUMMY_PORTAL_URL", ""),
+        nova_act_headless=environ.get("NOVA_ACT_HEADLESS", "true").lower() == "true",
+        nova_act_search_workflow=environ.get("NOVA_ACT_SEARCH_WORKFLOW", ""),
+        nova_act_booking_workflow=environ.get("NOVA_ACT_BOOKING_WORKFLOW", ""),
     )
 
 

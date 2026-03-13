@@ -1,0 +1,37 @@
+"""Nova Act workflow configuration and factory helpers."""
+
+import fnmatch
+from urllib.parse import urlparse
+
+from nova_act import GuardrailDecision, GuardrailInputState
+
+ALLOWED_DOMAINS = ["localhost", "*.dportal.workers.dev"]
+
+
+def portal_url_guardrail(state: GuardrailInputState) -> GuardrailDecision:
+    hostname = urlparse(state.browser_url).hostname
+    if not hostname:
+        return GuardrailDecision.BLOCK
+    if any(fnmatch.fnmatch(hostname, p) for p in ALLOWED_DOMAINS):
+        return GuardrailDecision.PASS
+    return GuardrailDecision.BLOCK
+
+
+def nova_act_kwargs(portal_url: str, headless: bool = True) -> dict:
+    """Return NovaAct constructor kwargs for the dummy portal."""
+    return {
+        "starting_page": portal_url,
+        "headless": headless,
+        "tty": False,
+        "state_guardrail": portal_url_guardrail,
+        "max_steps": 50,
+    }
+
+
+def workflow_kwargs(workflow_definition_name: str) -> dict:
+    """Return Workflow context manager kwargs for IAM auth."""
+    return {
+        "workflow_definition_name": workflow_definition_name,
+        "model_id": "nova-act-latest",
+        "boto_session_kwargs": {"region_name": "us-east-1"},
+    }
