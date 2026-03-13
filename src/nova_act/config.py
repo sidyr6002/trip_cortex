@@ -31,6 +31,7 @@ def nova_act_kwargs(portal_url: str, headless: bool = True) -> dict:
 def workflow_kwargs(workflow_definition_name: str) -> dict:
     """Return Workflow context manager kwargs for IAM auth."""
     import os
+
     boto_kwargs: dict = {"region_name": "us-east-1"}
     profile = os.environ.get("AWS_PROFILE")
     if profile:

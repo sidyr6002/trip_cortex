@@ -11,6 +11,7 @@ from core.models.booking import (
     ReasoningResult,
     ThinkingEffort,
 )
+from core.models.flight import FlightOption, FlightSearchResult
 from core.models.ingestion import (
     BdaEntity,
     BdaProjectResult,
@@ -22,7 +23,6 @@ from core.models.ingestion import (
     IngestionRequest,
     IngestionStartResult,
 )
-from core.models.flight import FlightOption, FlightSearchResult
 from core.models.retrieval import PolicyChunkResult
 
 __all__ = [

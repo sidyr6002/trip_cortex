@@ -26,7 +26,7 @@ from core.models.flight import FlightSearchResult  # noqa: E402
 
 # config.py lives alongside this script — import directly to avoid package conflict
 sys.path.insert(0, str(Path(__file__).parent))
-from config import nova_act_kwargs, portal_url_guardrail, workflow_kwargs  # noqa: E402
+from config import nova_act_kwargs, workflow_kwargs  # noqa: E402
 
 
 def main() -> None:
@@ -55,7 +55,10 @@ def main() -> None:
 
     print(f"\nFound {flights.total_results} flights ({len(flights.flights)} extracted):")
     for f in flights.flights:
-        print(f"  {f.airline} {f.flight_number} | {f.departure_time} → {f.arrival_time} | ${f.price} | {f.stops} stops | {f.duration}")
+        print(
+            f"  {f.airline} {f.flight_number} | {f.departure_time} → {f.arrival_time} "
+            f"| ${f.price} | {f.stops} stops | {f.duration}"
+        )
 
     assert len(flights.flights) > 0, "No flights extracted"
     assert all(f.price > 0 for f in flights.flights), "Invalid price found"
