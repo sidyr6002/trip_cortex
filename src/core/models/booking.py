@@ -1,8 +1,11 @@
 from datetime import date
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from dateutil import parser as dateutil_parser
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+if TYPE_CHECKING:
+    from core.models.flight import FlightOption
 
 
 def _coerce_date(v: object) -> object:
@@ -150,3 +153,35 @@ class ReasoningResult(BaseModel):
     latency_ms: float = Field(ge=0.0)
     retry_count: int = Field(default=0, ge=0)
     escalated: bool = False
+
+
+class PassengerInfo(BaseModel):
+    first_name: str
+    last_name: str
+    date_of_birth: str  # DD-MM-YYYY format (portal expects this)
+    email: str | None = None
+    phone: str | None = None
+
+
+class BookingInput(BaseModel):
+    booking_id: str
+    employee_id: str
+    flight: "FlightOption"
+    booking_plan: BookingPlan
+    passengers: list[PassengerInfo]
+    search_url: str  # search results URL — workflow navigates here first, then clicks "Select Flight"
+
+
+class BookingConfirmation(BaseModel):
+    booking_reference: str = Field(..., description="Booking reference e.g. FS-SG8194-ABC123")
+    payment_reference: str | None = Field(None, description="Stripe payment intent ID")
+    total_amount: float = Field(..., gt=0, description="Total amount paid in USD")
+    flight_number: str = Field(..., description="Flight number from confirmation")
+
+
+class BookingOutput(BaseModel):
+    booking_id: str
+    employee_id: str
+    confirmation: BookingConfirmation | None = None
+    fallback_url: str | None = None
+    warnings: list[str] = []

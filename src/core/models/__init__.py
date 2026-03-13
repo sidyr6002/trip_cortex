@@ -3,8 +3,12 @@ Pydantic models for Trip Cortex.
 """
 
 from core.models.booking import (
+    BookingConfirmation,
+    BookingInput,
+    BookingOutput,
     BookingParameters,
     BookingPlan,
+    PassengerInfo,
     PolicyConstraints,
     PolicySource,
     ReasoningRequest,
@@ -25,9 +29,16 @@ from core.models.ingestion import (
 )
 from core.models.retrieval import PolicyChunkResult
 
+# Resolve forward references after all models are imported
+BookingInput.model_rebuild()
+
 __all__ = [
+    "BookingConfirmation",
+    "BookingInput",
+    "BookingOutput",
     "BookingPlan",
     "BookingParameters",
+    "PassengerInfo",
     "PolicyConstraints",
     "PolicySource",
     "PolicyChunkResult",
