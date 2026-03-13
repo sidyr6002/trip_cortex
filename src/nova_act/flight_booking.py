@@ -1,0 +1,178 @@
+"""
+Flight booking Nova Act workflow script for FlySmart dummy portal.
+
+Local dev:
+    .venv/bin/python src/nova_act/flight_booking.py
+
+ACR deployment entry point: flight_booking() (decorated with @workflow)
+"""
+
+import sys
+import time
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).parent.parent.parent / ".env")
+
+import boto3  # noqa: E402
+import structlog  # noqa: E402
+
+from nova_act import (  # noqa: E402
+    ActExceededMaxStepsError,
+    ActGuardrailsError,
+    ActStateGuardrailError,
+    ActTimeoutError,
+    NovaAct,
+    Workflow,
+    workflow,
+)
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from core.config import get_config  # noqa: E402
+from core.models.booking import BookingConfirmation, BookingInput, BookingOutput  # noqa: E402
+from core.services.audit import write_audit_log  # noqa: E402
+from core.services.flight_booking import (  # noqa: E402
+    build_booking_audit_entry,
+    build_passenger_prompt,
+    build_select_flight_prompt,
+)
+
+sys.path.insert(0, str(Path(__file__).parent))
+from config import nova_act_kwargs, workflow_kwargs  # noqa: E402
+
+log = structlog.get_logger()
+
+
+def _run(nova: NovaAct, inp: BookingInput) -> BookingOutput:
+    # Step 0: select flight from search results
+    nova.act(build_select_flight_prompt(inp.flight))
+
+    # Step 1: review page
+    nova.act("Click the 'Continue to Passenger Details' button")
+
+    # Step 2: fill passenger form
+    for i, passenger in enumerate(inp.passengers):
+        nova.act(build_passenger_prompt(passenger, i, is_primary=(i == 0)))
+    nova.act("Click 'Continue to Payment'")
+
+    # Step 3: Stripe payment
+    nova.act("Enter card number 4242 4242 4242 4242 in the payment form")
+    nova.act("Enter expiry date 12/30 and CVC 123")
+    nova.act("Check the terms and conditions checkbox")
+    nova.act("Click the 'Confirm & Pay' button")
+
+    # Step 4: extract confirmation
+    result = nova.act_get(
+        "Extract the booking reference, payment reference, total amount, and flight number from this confirmation page",
+        schema=BookingConfirmation.model_json_schema(),
+        max_steps=50,
+    )
+    confirmation = BookingConfirmation.model_validate(result.parsed_response)
+
+    return BookingOutput(
+        booking_id=inp.booking_id,
+        employee_id=inp.employee_id,
+        confirmation=confirmation,
+    )
+
+
+def _error_output(inp: BookingInput, warning: str) -> BookingOutput:
+    return BookingOutput(
+        booking_id=inp.booking_id,
+        employee_id=inp.employee_id,
+        fallback_url=inp.search_url,
+        warnings=[warning],
+    )
+
+
+def main(payload: dict) -> dict:
+    """Local dev entry point — manages Workflow/NovaAct lifecycle explicitly."""
+    config = get_config()
+    if not config.dummy_portal_url:
+        raise ValueError("DUMMY_PORTAL_URL is not configured")
+    inp = BookingInput.model_validate(payload)
+
+    if not config.nova_act_booking_workflow:
+        raise ValueError("NOVA_ACT_BOOKING_WORKFLOW is not configured")
+    start = time.monotonic()
+    output: BookingOutput | None = None
+    try:
+        with Workflow(**workflow_kwargs(config.nova_act_booking_workflow)) as wf:
+            kwargs = nova_act_kwargs(inp.search_url, headless=config.nova_act_headless)
+            kwargs["workflow"] = wf
+            with NovaAct(**kwargs) as nova:
+                output = _run(nova, inp)
+    except (ActStateGuardrailError, ActGuardrailsError):
+        log.error("nova_act_guardrail_violation", booking_id=inp.booking_id)
+        raise
+    except ActExceededMaxStepsError:
+        log.warning("nova_act_max_steps_exceeded", booking_id=inp.booking_id)
+        output = _error_output(inp, "ACT_EXCEEDED_MAX_STEPS")
+    except ActTimeoutError:
+        log.warning("nova_act_timeout", booking_id=inp.booking_id)
+        output = _error_output(inp, "ACT_TIMEOUT")
+    finally:
+        latency_ms = (time.monotonic() - start) * 1000
+        log.info("flight_booking_complete", booking_id=inp.booking_id, latency_ms=round(latency_ms))
+        if output is not None and config.audit_log_table:
+            entry = build_booking_audit_entry(
+                booking_id=inp.booking_id,
+                employee_id=inp.employee_id,
+                confirmation=output.confirmation,
+                fallback_url_set=output.fallback_url is not None,
+                warnings=output.warnings,
+                latency_ms=latency_ms,
+            )
+            write_audit_log(boto3.client("dynamodb"), config.audit_log_table, entry)
+    return output.model_dump()  # type: ignore[union-attr]
+
+
+@workflow(model_id="nova-act-latest", workflow_definition_name="trip-cortex-flight-booking")
+def flight_booking(nova: NovaAct, payload: dict) -> dict:
+    """ACR deployment entry point — @workflow manages Workflow lifecycle."""
+    config = get_config()
+    if not config.dummy_portal_url:
+        raise ValueError("DUMMY_PORTAL_URL is not configured")
+    inp = BookingInput.model_validate(payload)
+    return _run(nova, inp).model_dump()
+
+
+if __name__ == "__main__":
+    import json
+    from datetime import date
+
+    from core.models.booking import BookingPlan, PassengerInfo
+    from core.models.flight import FlightOption
+    from core.services.flight_search import build_search_url
+
+    plan = BookingPlan.strict_defaults("DEL", "BOM", date(2026, 3, 16))
+    config = get_config()
+    search_url = build_search_url(plan, config.dummy_portal_url or "")
+    flight = FlightOption(
+        airline="SpiceJet",
+        flight_number="SG-8194",
+        price=150.0,
+        departure_time="06:00",
+        arrival_time="08:10",
+        stops=0,
+        cabin_class="economy",
+        duration="2h 10m",
+    )
+    passenger = PassengerInfo(
+        first_name="Test",
+        last_name="Traveler",
+        date_of_birth="15-06-1990",
+        email="test@example.com",
+        phone="+1 555 000 0000",
+    )
+    inp = BookingInput(
+        booking_id="test-1",
+        employee_id="emp-1",
+        flight=flight,
+        booking_plan=plan,
+        passengers=[passenger],
+        search_url=search_url,
+    )
+    result = main(inp.model_dump())
+    print(json.dumps(result, indent=2, default=str))
