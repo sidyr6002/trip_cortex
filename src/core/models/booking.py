@@ -1,7 +1,18 @@
 from datetime import date
 from typing import Literal
 
+from dateutil import parser as dateutil_parser
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+def _coerce_date(v: object) -> object:
+    """Coerce common date string formats to date objects."""
+    if isinstance(v, date) or not isinstance(v, str):
+        return v
+    try:
+        return dateutil_parser.parse(v).date()
+    except (ValueError, TypeError):
+        return v
 
 
 class PolicySource(BaseModel):
@@ -26,6 +37,11 @@ class BookingParameters(BaseModel):
         if v is None:
             raise ValueError("airport code must not be null")
         return v.strip().upper()
+
+    @field_validator("departure_date", "return_date", mode="before")
+    @classmethod
+    def coerce_date_format(cls, v: object) -> object:
+        return _coerce_date(v)
 
     @field_validator("departure_date")
     @classmethod
