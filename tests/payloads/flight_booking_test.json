@@ -1,0 +1,51 @@
+{
+  "AC_HANDLER_ENV": {
+    "DUMMY_PORTAL_URL": "https://flysmart.dportal.workers.dev",
+    "NOVA_ACT_SEARCH_WORKFLOW": "trip-cortex-flight-search",
+    "NOVA_ACT_BOOKING_WORKFLOW": "trip-cortex-flight-booking",
+    "NOVA_ACT_HEADLESS": "true",
+    "PORTAL_TEST_EMAIL": "sathireddyyanala309@gmail.com",
+    "PORTAL_TEST_PASSWORD": "Micheal@87807"
+  },
+  "booking_id": "acr-test-booking-001",
+  "employee_id": "EMP-TEST",
+  "flight": {
+    "airline": "SpiceJet",
+    "flight_number": "SG-8194",
+    "price": 89.0,
+    "departure_time": "06:00",
+    "arrival_time": "08:15",
+    "stops": 0,
+    "cabin_class": "economy",
+    "duration": "2h 15m"
+  },
+  "booking_plan": {
+    "intent": "flight_booking",
+    "confidence": 0.9,
+    "parameters": {
+      "origin": "DEL",
+      "destination": "BOM",
+      "departure_date": "2026-03-20",
+      "cabin_class": "economy",
+      "passenger_count": 1
+    },
+    "policy_constraints": {
+      "max_budget_usd": 200.0,
+      "preferred_vendors": ["any"],
+      "advance_booking_days_required": null,
+      "advance_booking_met": true,
+      "requires_approval": false
+    },
+    "policy_sources": [],
+    "reasoning_summary": "ACR test invocation — book SpiceJet SG-8194 DEL to BOM."
+  },
+  "passengers": [
+    {
+      "first_name": "Test",
+      "last_name": "User",
+      "date_of_birth": "01-01-1990",
+      "email": "sathireddyyanala309@gmail.com"
+    }
+  ],
+  "search_url": "https://flysmart.dportal.workers.dev/search?origin=DEL&destination=BOM&date=2026-03-20&cabin=economy"
+}

@@ -19,13 +19,18 @@ def portal_url_guardrail(state: GuardrailInputState) -> GuardrailDecision:
 
 def nova_act_kwargs(portal_url: str, headless: bool = True) -> dict:
     """Return NovaAct constructor kwargs for the dummy portal."""
-    return {
+    import shutil
+
+    kwargs: dict = {
         "starting_page": portal_url,
         "headless": headless,
         "tty": False,
         "state_guardrail": portal_url_guardrail,
-        "chrome_channel": "chrome",
     }
+    # Use system Chrome locally; ACR container only has Playwright Chromium
+    if shutil.which("google-chrome") or shutil.which("google-chrome-stable"):
+        kwargs["chrome_channel"] = "chrome"
+    return kwargs
 
 
 def workflow_kwargs(workflow_definition_name: str) -> dict:
