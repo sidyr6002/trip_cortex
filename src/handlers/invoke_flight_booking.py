@@ -15,7 +15,7 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         "booking_id": event["booking_id"],
         "employee_id": event["employee_id"],
         "flight": event["selected_flight"]["flight"],
-        "booking_plan": event["plan"],
+        "booking_plan": event["validated_result"]["plan"],
         "passengers": event["selected_flight"]["passengers"],
         "search_url": event["selected_flight"]["search_url"],
     }

@@ -409,7 +409,9 @@ Resources:
         - Statement:
             - Effect: Allow
               Action: bedrock-agentcore:InvokeAgentRuntime
-              Resource: !Ref NovaActSearchAgentArn
+              Resource:
+                - !Ref NovaActSearchAgentArn
+                - !Sub "${NovaActSearchAgentArn}/*"
 
   InvokeFlightBookingFunction:
     Type: AWS::Serverless::Function
@@ -417,7 +419,7 @@ Resources:
       CodeUri: ../../src/
       Handler: handlers.invoke_flight_booking.handler
       Description: Invokes ACR flight booking workflow
-      Timeout: 300
+      Timeout: 600
       Environment:
         Variables:
           NOVA_ACT_BOOKING_AGENT_ARN: !Ref NovaActBookingAgentArn
@@ -430,7 +432,9 @@ Resources:
         - Statement:
             - Effect: Allow
               Action: bedrock-agentcore:InvokeAgentRuntime
-              Resource: !Ref NovaActBookingAgentArn
+              Resource:
+                - !Ref NovaActBookingAgentArn
+                - !Sub "${NovaActBookingAgentArn}/*"
             - Effect: Allow
               Action: secretsmanager:GetSecretValue
               Resource: !Ref PortalCredentialsSecretArn

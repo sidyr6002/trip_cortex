@@ -4,6 +4,7 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Any
 
 import boto3
+from botocore.config import Config as BotocoreConfig
 
 from core.config import get_config
 
@@ -61,7 +62,11 @@ def get_s3_client() -> Any:
 @lru_cache(maxsize=1)
 def get_acr_client() -> Any:
     config = get_config()
-    return boto3.client("bedrock-agentcore", region_name=config.aws_region)
+    return boto3.client(
+        "bedrock-agentcore",
+        region_name=config.aws_region,
+        config=BotocoreConfig(read_timeout=580, connect_timeout=10),
+    )
 
 
 def get_query_embedding_service() -> "QueryEmbeddingService":

@@ -5,7 +5,13 @@
     "EmbedAndRetrieve": {
       "Type": "Task",
       "Resource": "${EmbedAndRetrieveFunctionArn}",
-      "ResultPath": "$",
+      "Parameters": {
+        "employee_id.$": "$.employee_id",
+        "booking_id.$": "$.booking_id",
+        "connection_id.$": "$.connection_id",
+        "user_query.$": "$.query"
+      },
+      "ResultPath": "$.retrieval_result",
       "Retry": [
         {
           "ErrorEquals": ["States.TaskFailed"],
@@ -29,12 +35,12 @@
       "Parameters": {
         "booking_id.$": "$.booking_id",
         "employee_id.$": "$.employee_id",
-        "user_query.$": "$.user_query",
-        "context_text.$": "$.context_text",
-        "confidence_level.$": "$.confidence.level",
-        "max_similarity.$": "$.confidence.max_similarity"
+        "user_query.$": "$.retrieval_result.user_query",
+        "context_text.$": "$.retrieval_result.context_text",
+        "confidence_level.$": "$.retrieval_result.confidence.level",
+        "max_similarity.$": "$.retrieval_result.confidence.max_similarity"
       },
-      "ResultPath": "$",
+      "ResultPath": "$.reasoning_result",
       "Retry": [
         {
           "ErrorEquals": ["ReasoningError", "SchemaValidationError"],
@@ -58,11 +64,11 @@
       "Parameters": {
         "booking_id.$": "$.booking_id",
         "employee_id.$": "$.employee_id",
-        "user_query.$": "$.user_query",
+        "user_query.$": "$.retrieval_result.user_query",
         "error.$": "$.error_info.Error",
         "cause.$": "$.error_info.Cause"
       },
-      "ResultPath": "$",
+      "ResultPath": "$.reasoning_result",
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
@@ -75,7 +81,17 @@
     "ValidatePlan": {
       "Type": "Task",
       "Resource": "${ValidatePlanFunctionArn}",
-      "ResultPath": "$",
+      "Parameters": {
+        "booking_id.$": "$.booking_id",
+        "employee_id.$": "$.employee_id",
+        "plan.$": "$.reasoning_result.plan",
+        "model_id.$": "$.reasoning_result.model_id",
+        "thinking_effort.$": "$.reasoning_result.thinking_effort",
+        "latency_ms.$": "$.reasoning_result.latency_ms",
+        "retry_count.$": "$.reasoning_result.retry_count",
+        "escalated.$": "$.reasoning_result.escalated"
+      },
+      "ResultPath": "$.validated_result",
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
@@ -88,6 +104,11 @@
     "InvokeFlightSearch": {
       "Type": "Task",
       "Resource": "${InvokeFlightSearchFunctionArn}",
+      "Parameters": {
+        "booking_id.$": "$.booking_id",
+        "employee_id.$": "$.employee_id",
+        "plan.$": "$.validated_result.plan"
+      },
       "ResultPath": "$.flight_search_result",
       "Retry": [
         {
@@ -112,12 +133,13 @@
       "Parameters": {
         "FunctionName": "${SendFlightOptionsFunctionArn}",
         "Payload": {
+          "type": "flight_options",
           "task_token.$": "$$.Task.Token",
           "connection_id.$": "$.connection_id",
           "booking_id.$": "$.booking_id",
           "employee_id.$": "$.employee_id",
           "flights.$": "$.flight_search_result.search_result.flights",
-          "plan.$": "$.plan"
+          "plan.$": "$.validated_result.plan"
         }
       },
       "HeartbeatSeconds": 3600,
@@ -171,14 +193,7 @@
       "End": true
     },
     "NotifyUserOfError": {
-      "Type": "Task",
-      "Resource": "${ResponseSenderFunctionArn}",
-      "Parameters": {
-        "type": "error",
-        "connection_id.$": "$.connection_id",
-        "message": "Unable to process your booking request. Please try again."
-      },
-      "ResultPath": null,
+      "Type": "Pass",
       "End": true
     }
   }
