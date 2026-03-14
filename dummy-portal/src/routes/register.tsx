@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useSignUp } from '@clerk/tanstack-react-start'
 import { FaArrowLeftLong } from 'react-icons/fa6'
 
 export const Route = createFileRoute('/register')({
   validateSearch: (search: Record<string, unknown>) => ({
-    redirect_url: (search.redirect_url as string) || '/',
+    redirect_url: (search.redirect_url as string) || '/search',
   }),
   component: RegisterPage,
 })
@@ -13,7 +13,6 @@ export const Route = createFileRoute('/register')({
 function RegisterPage() {
   const { signUp, setActive, isLoaded } = useSignUp()
   const { redirect_url } = Route.useSearch()
-  const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -22,15 +21,29 @@ function RegisterPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const activateAndRedirect = async (sessionId: string) => {
+    if (!setActive) return
+    await setActive({ session: sessionId })
+    window.location.replace(redirect_url)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isLoaded || !signUp) return
+    if (!isLoaded) return
 
     setError('')
     setLoading(true)
 
     try {
-      await signUp.create({ emailAddress: email, password })
+      const result = await signUp.create({ emailAddress: email, password })
+
+      if (result.status === 'complete' && result.createdSessionId) {
+        // Sign-up completed immediately (no email verification required)
+        await activateAndRedirect(result.createdSessionId)
+        return
+      }
+
+      // Email verification required
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
       setPendingVerification(true)
     } catch (err: any) {
@@ -46,7 +59,7 @@ function RegisterPage() {
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isLoaded || !signUp) return
+    if (!isLoaded) return
 
     setError('')
     setLoading(true)
@@ -55,8 +68,7 @@ function RegisterPage() {
       const result = await signUp.attemptEmailAddressVerification({ code })
 
       if (result.status === 'complete' && result.createdSessionId) {
-        await setActive!({ session: result.createdSessionId })
-        navigate({ to: redirect_url })
+        await activateAndRedirect(result.createdSessionId)
       } else {
         setError('Verification could not be completed. Please try again.')
       }
@@ -73,7 +85,6 @@ function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-royal-blue-200 to-zumthor-50 px-4 relative">
-      {/* Back Button */}
       <Link
         to="/"
         className="absolute top-6 left-6 md:top-8 md:left-8 z-20 flex items-center gap-2 text-royal-blue-700 hover:text-royal-blue-800 font-medium transition-colors"
@@ -85,7 +96,6 @@ function RegisterPage() {
         </div>
       </Link>
 
-      {/* Decorative background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-primary/10 blur-3xl" />
@@ -93,7 +103,6 @@ function RegisterPage() {
       </div>
 
       <div className="relative z-10 flex flex-col items-center gap-6 w-full max-w-sm">
-        {/* Header */}
         <div className="text-center">
           <div className="text-4xl font-bold tracking-tight mb-2">
             <span className="text-primary">Fly</span>
@@ -122,7 +131,6 @@ function RegisterPage() {
                   className="h-11 px-4 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
                 />
               </div>
-
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="password" className="text-sm font-medium text-content">
                   Password
@@ -143,9 +151,7 @@ function RegisterPage() {
               <label htmlFor="code" className="text-sm font-medium text-content">
                 Verification Code
               </label>
-              <p className="text-xs text-content-light">
-                We sent a code to {email}
-              </p>
+              <p className="text-xs text-content-light">We sent a code to {email}</p>
               <input
                 id="code"
                 type="text"
@@ -171,16 +177,11 @@ function RegisterPage() {
             className="h-11 rounded-lg bg-primary-500 hover:bg-primary-600 text-white font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {loading
-              ? pendingVerification
-                ? 'Verifying…'
-                : 'Creating account…'
-              : pendingVerification
-                ? 'Verify Email'
-                : 'Create Account'}
+              ? pendingVerification ? 'Verifying…' : 'Creating account…'
+              : pendingVerification ? 'Verify Email' : 'Create Account'}
           </button>
         </form>
 
-        {/* Link to login */}
         <p className="text-sm text-content-light">
           Already have an account?{' '}
           <Link

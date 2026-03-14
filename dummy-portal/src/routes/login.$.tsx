@@ -9,7 +9,7 @@ import { FaArrowLeftLong } from 'react-icons/fa6'
 
 export const Route = createFileRoute('/login/$')({
   validateSearch: (search: Record<string, unknown>) => ({
-    redirect_url: (search.redirect_url as string) || '/',
+    redirect_url: (search.redirect_url as string) || '/search',
   }),
   component: LoginPage,
 })
@@ -38,7 +38,7 @@ function LoginPage() {
 
   const handleEmailPasswordSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isLoaded || !signIn) return
+    if (!isLoaded) return
 
     setError('')
     setLoading(true)
@@ -50,8 +50,17 @@ function LoginPage() {
       })
 
       if (result.status === 'complete' && result.createdSessionId) {
-        await setActive!({ session: result.createdSessionId })
+        await setActive({ session: result.createdSessionId })
         window.location.href = redirect_url
+      } else if (result.status === 'needs_first_factor') {
+        const firstFactor = await signIn.attemptFirstFactor({ strategy: 'password', password })
+
+        if (firstFactor.status === 'complete' && firstFactor.createdSessionId) {
+          await setActive({ session: firstFactor.createdSessionId })
+          window.location.href = redirect_url
+        } else {
+          setError('Sign in could not be completed. Please try again.')
+        }
       } else {
         setError('Sign in could not be completed. Please try again.')
       }

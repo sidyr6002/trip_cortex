@@ -34,7 +34,7 @@ export default function FlightCard({ flight, adults = 1, children = 0, onSelect 
     const [activeTab, setActiveTab] = useState<TabType>(null);
     const [showLoginDialog, setShowLoginDialog] = useState(false);
     const { isSignedIn } = useAuth();
-    const { signIn } = useSignIn();
+    const { signIn, setActive } = useSignIn();
     const navigate = useNavigate();
     const currentUrl = useRouterState().location.href;
 
@@ -198,6 +198,7 @@ export default function FlightCard({ flight, adults = 1, children = 0, onSelect 
                     open={showLoginDialog}
                     onOpenChange={setShowLoginDialog}
                     signIn={signIn}
+                    setActive={setActive}
                     currentUrl={currentUrl}
                 />
 
@@ -214,11 +215,13 @@ function LoginDialog({
     open,
     onOpenChange,
     signIn,
+    setActive,
     currentUrl,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     signIn: ReturnType<typeof useSignIn>['signIn'];
+    setActive: ReturnType<typeof useSignIn>['setActive'];
     currentUrl: string;
 }) {
     const [email, setEmail] = useState('');
@@ -235,10 +238,21 @@ function LoginDialog({
 
         try {
             const result = await signIn.create({ identifier: email, password });
-            if (result.status === 'complete') {
+
+            if (result.status === 'complete' && result.createdSessionId) {
+                await setActive!({ session: result.createdSessionId });
                 window.location.href = currentUrl;
+            } else if (result.status === 'needs_first_factor') {
+                const firstFactor = await signIn.attemptFirstFactor({ strategy: 'password', password });
+
+                if (firstFactor.status === 'complete' && firstFactor.createdSessionId) {
+                    await setActive!({ session: firstFactor.createdSessionId });
+                    window.location.href = currentUrl;
+                } else {
+                    setError('Sign in could not be completed. Please try again.');
+                }
             } else {
-                setError('Sign in could not be completed.');
+                setError('Sign in could not be completed. Please try again.');
             }
         } catch (err: any) {
             setError(err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || 'Invalid email or password.');
