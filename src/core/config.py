@@ -52,6 +52,8 @@ class Config(BaseModel):
     nova_act_booking_workflow: str = ""
     portal_test_email: str = ""
     portal_test_password: str = ""
+    nova_act_search_agent_arn: str = ""
+    nova_act_booking_agent_arn: str = ""
 
 
 @lru_cache(maxsize=1)
@@ -87,6 +89,8 @@ def get_config() -> Config:
         nova_act_booking_workflow=environ.get("NOVA_ACT_BOOKING_WORKFLOW", ""),
         portal_test_email=environ.get("PORTAL_TEST_EMAIL", ""),
         portal_test_password=environ.get("PORTAL_TEST_PASSWORD", ""),
+        nova_act_search_agent_arn=environ.get("NOVA_ACT_SEARCH_AGENT_ARN", ""),
+        nova_act_booking_agent_arn=environ.get("NOVA_ACT_BOOKING_AGENT_ARN", ""),
     )
 
 
