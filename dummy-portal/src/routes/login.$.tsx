@@ -8,9 +8,10 @@ import { FcGoogle } from 'react-icons/fc'
 import { FaArrowLeftLong } from 'react-icons/fa6'
 
 export const Route = createFileRoute('/login/$')({
-  validateSearch: (search: Record<string, unknown>) => ({
-    redirect_url: (search.redirect_url as string) || '/search',
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const url = (search.redirect_url as string) || '/search'
+    return { redirect_url: url === '/' ? '/search' : url }
+  },
   component: LoginPage,
 })
 
