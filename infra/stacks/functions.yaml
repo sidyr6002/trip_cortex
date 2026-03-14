@@ -47,6 +47,16 @@ Parameters:
     Type: String
   EmbeddingQueueUrl:
     Type: String
+  NovaActSearchAgentArn:
+    Type: String
+    Description: ACR runtime ARN for trip-cortex-flight-search
+  NovaActBookingAgentArn:
+    Type: String
+    Description: ACR runtime ARN for trip-cortex-flight-booking
+  PortalCredentialsSecretArn:
+    Type: String
+    Description: Secrets Manager secret ARN containing portal email/password
+    Default: ""
 
 Conditions:
   IsNotDev: !Not [!Equals [!Ref Environment, dev]]
@@ -91,6 +101,9 @@ Resources:
         GracefulDegradationFunctionArn: !GetAtt GracefulDegradationFunction.Arn
         ValidatePlanFunctionArn: !GetAtt ValidatePlanFunction.Arn
         ResponseSenderFunctionArn: !GetAtt ResponseSenderFunction.Arn
+        InvokeFlightSearchFunctionArn: !GetAtt InvokeFlightSearchFunction.Arn
+        SendFlightOptionsFunctionArn: !GetAtt ResponseSenderFunction.Arn
+        InvokeFlightBookingFunctionArn: !GetAtt InvokeFlightBookingFunction.Arn
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
@@ -108,6 +121,8 @@ Resources:
                 - !GetAtt GracefulDegradationFunction.Arn
                 - !GetAtt ValidatePlanFunction.Arn
                 - !GetAtt ResponseSenderFunction.Arn
+                - !GetAtt InvokeFlightSearchFunction.Arn
+                - !GetAtt InvokeFlightBookingFunction.Arn
       Tags:
         Environment: !Ref Environment
         Project: trip-cortex
@@ -214,6 +229,9 @@ Resources:
         - Statement:
             - Effect: Allow
               Action: states:StartExecution
+              Resource: !Ref BookingWorkflow
+            - Effect: Allow
+              Action: states:SendTaskSuccess
               Resource: !Ref BookingWorkflow
             - Effect: Allow
               Action:
@@ -352,6 +370,9 @@ Resources:
       CodeUri: ../../src/
       Handler: handlers.response_sender.handler
       Description: Sends WebSocket progress updates to connected clients
+      Environment:
+        Variables:
+          WEBSOCKET_ENDPOINT: !Ref WebSocketManagementEndpoint
       Policies:
         - Statement:
             - Effect: Allow
@@ -366,6 +387,49 @@ Resources:
               Resource:
                 - !Ref BookingsTableArn
                 - !Ref ConnectionsTableArn
+
+  InvokeFlightSearchFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../src/
+      Handler: handlers.invoke_flight_search.handler
+      Description: Invokes ACR flight search workflow
+      Timeout: 300
+      Environment:
+        Variables:
+          NOVA_ACT_SEARCH_AGENT_ARN: !Ref NovaActSearchAgentArn
+          DUMMY_PORTAL_URL: !Sub "{{resolve:ssm:/trip-cortex/${Environment}/dummy-portal-url:1}}"
+          NOVA_ACT_SEARCH_WORKFLOW: trip-cortex-flight-search
+          NOVA_ACT_HEADLESS: "true"
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: bedrock-agentcore:InvokeAgentRuntime
+              Resource: !Ref NovaActSearchAgentArn
+
+  InvokeFlightBookingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../src/
+      Handler: handlers.invoke_flight_booking.handler
+      Description: Invokes ACR flight booking workflow
+      Timeout: 300
+      Environment:
+        Variables:
+          NOVA_ACT_BOOKING_AGENT_ARN: !Ref NovaActBookingAgentArn
+          DUMMY_PORTAL_URL: !Sub "{{resolve:ssm:/trip-cortex/${Environment}/dummy-portal-url:1}}"
+          NOVA_ACT_BOOKING_WORKFLOW: trip-cortex-flight-booking
+          NOVA_ACT_HEADLESS: "true"
+          PORTAL_TEST_EMAIL: !Sub "{{resolve:secretsmanager:${PortalCredentialsSecretArn}:SecretString:email}}"
+          PORTAL_TEST_PASSWORD: !Sub "{{resolve:secretsmanager:${PortalCredentialsSecretArn}:SecretString:password}}"
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: bedrock-agentcore:InvokeAgentRuntime
+              Resource: !Ref NovaActBookingAgentArn
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref PortalCredentialsSecretArn
 
   HeartbeatFunction:
     Type: AWS::Serverless::Function
@@ -619,3 +683,7 @@ Outputs:
     Value: !GetAtt IngestionCompleteFunction.Arn
   IngestionFailedFunctionArn:
     Value: !GetAtt IngestionFailedFunction.Arn
+  InvokeFlightSearchFunctionArn:
+    Value: !GetAtt InvokeFlightSearchFunction.Arn
+  InvokeFlightBookingFunctionArn:
+    Value: !GetAtt InvokeFlightBookingFunction.Arn

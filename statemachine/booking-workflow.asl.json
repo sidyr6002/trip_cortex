@@ -1,5 +1,5 @@
 {
-  "Comment": "Trip Cortex booking workflow — EmbedAndRetrieve → ReasonAndPlan → ValidatePlan",
+  "Comment": "Trip Cortex booking workflow — EmbedAndRetrieve → ReasonAndPlan → ValidatePlan → FlightSearch → HITL → FlightBooking",
   "StartAt": "EmbedAndRetrieve",
   "States": {
     "EmbedAndRetrieve": {
@@ -83,13 +83,94 @@
           "Next": "NotifyUserOfError"
         }
       ],
-      "Next": "NotifyUserOfError"
+      "Next": "InvokeFlightSearch"
+    },
+    "InvokeFlightSearch": {
+      "Type": "Task",
+      "Resource": "${InvokeFlightSearchFunctionArn}",
+      "ResultPath": "$.flight_search_result",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyUserOfError"
+        }
+      ],
+      "Next": "SendFlightOptions"
+    },
+    "SendFlightOptions": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+      "Parameters": {
+        "FunctionName": "${SendFlightOptionsFunctionArn}",
+        "Payload": {
+          "task_token.$": "$$.Task.Token",
+          "connection_id.$": "$.connection_id",
+          "booking_id.$": "$.booking_id",
+          "employee_id.$": "$.employee_id",
+          "flights.$": "$.flight_search_result.search_result.flights",
+          "plan.$": "$.plan"
+        }
+      },
+      "HeartbeatSeconds": 3600,
+      "TimeoutSeconds": 7200,
+      "ResultPath": "$.selected_flight",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.HeartbeatTimeout", "States.Timeout", "States.ALL"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyUserOfError"
+        }
+      ],
+      "Next": "InvokeFlightBooking"
+    },
+    "InvokeFlightBooking": {
+      "Type": "Task",
+      "Resource": "${InvokeFlightBookingFunctionArn}",
+      "ResultPath": "$.booking_result",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 10,
+          "MaxAttempts": 1,
+          "BackoffRate": 1
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyUserOfError"
+        }
+      ],
+      "Next": "NotifyBookingComplete"
+    },
+    "NotifyBookingComplete": {
+      "Type": "Task",
+      "Resource": "${ResponseSenderFunctionArn}",
+      "Parameters": {
+        "type": "booking_complete",
+        "connection_id.$": "$.connection_id",
+        "booking_id.$": "$.booking_id",
+        "confirmation.$": "$.booking_result.confirmation"
+      },
+      "ResultPath": null,
+      "End": true
     },
     "NotifyUserOfError": {
       "Type": "Task",
       "Resource": "${ResponseSenderFunctionArn}",
       "Parameters": {
         "type": "error",
+        "connection_id.$": "$.connection_id",
         "message": "Unable to process your booking request. Please try again."
       },
       "ResultPath": null,

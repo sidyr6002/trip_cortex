@@ -18,6 +18,21 @@ Parameters:
     Description: ARN of Clerk secret key in Secrets Manager
     Default: ''
 
+  NovaActSearchAgentArn:
+    Type: String
+    Description: ACR runtime ARN for trip-cortex-flight-search
+    Default: ''
+
+  NovaActBookingAgentArn:
+    Type: String
+    Description: ACR runtime ARN for trip-cortex-flight-booking
+    Default: ''
+
+  PortalCredentialsSecretArn:
+    Type: String
+    Description: Secrets Manager secret ARN containing portal email/password
+    Default: ''
+
 Resources:
 
   # ── Network (VPC) ────────────────────────────────────────────────────────────
@@ -89,6 +104,9 @@ Resources:
         ClerkSecretKeyArn: !Ref ClerkSecretKeyArn
         EmbeddingQueueArn: !GetAtt StorageStack.Outputs.EmbeddingQueueArn
         EmbeddingQueueUrl: !GetAtt StorageStack.Outputs.EmbeddingQueueUrl
+        NovaActSearchAgentArn: !Ref NovaActSearchAgentArn
+        NovaActBookingAgentArn: !Ref NovaActBookingAgentArn
+        PortalCredentialsSecretArn: !Ref PortalCredentialsSecretArn
 
   # ── API Gateway WebSocket ────────────────────────────────────────────────────
 
