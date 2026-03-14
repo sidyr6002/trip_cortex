@@ -125,7 +125,12 @@
       "ResultPath": "$.selected_flight",
       "Catch": [
         {
-          "ErrorEquals": ["States.HeartbeatTimeout", "States.Timeout", "States.ALL"],
+          "ErrorEquals": ["States.HeartbeatTimeout", "States.Timeout"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyUserOfError"
+        },
+        {
+          "ErrorEquals": ["States.ALL"],
           "ResultPath": "$.error_info",
           "Next": "NotifyUserOfError"
         }

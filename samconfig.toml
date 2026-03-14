@@ -31,7 +31,7 @@ region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 # ClerkSecretKeyArn injected via --parameter-overrides in deploy.yml from GitHub Secrets
-parameter_overrides = "Environment=dev ClerkSecretKeyArn=REPLACE_WITH_ACTUAL_SECRET_ARN"
+parameter_overrides = "Environment=dev"
 
 [dev.build.parameters]
 cached = true

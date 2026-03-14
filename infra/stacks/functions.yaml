@@ -57,6 +57,10 @@ Parameters:
     Type: String
     Description: Secrets Manager secret ARN containing portal email/password
     Default: ""
+  DummyPortalUrl:
+    Type: String
+    Description: URL of the dummy travel portal
+    Default: "https://flysmart.dportal.workers.dev"
 
 Conditions:
   IsNotDev: !Not [!Equals [!Ref Environment, dev]]
@@ -398,7 +402,7 @@ Resources:
       Environment:
         Variables:
           NOVA_ACT_SEARCH_AGENT_ARN: !Ref NovaActSearchAgentArn
-          DUMMY_PORTAL_URL: !Sub "{{resolve:ssm:/trip-cortex/${Environment}/dummy-portal-url:1}}"
+          DUMMY_PORTAL_URL: !Ref DummyPortalUrl
           NOVA_ACT_SEARCH_WORKFLOW: trip-cortex-flight-search
           NOVA_ACT_HEADLESS: "true"
       Policies:
@@ -417,7 +421,7 @@ Resources:
       Environment:
         Variables:
           NOVA_ACT_BOOKING_AGENT_ARN: !Ref NovaActBookingAgentArn
-          DUMMY_PORTAL_URL: !Sub "{{resolve:ssm:/trip-cortex/${Environment}/dummy-portal-url:1}}"
+          DUMMY_PORTAL_URL: !Ref DummyPortalUrl
           NOVA_ACT_BOOKING_WORKFLOW: trip-cortex-flight-booking
           NOVA_ACT_HEADLESS: "true"
           PORTAL_TEST_EMAIL: !Sub "{{resolve:secretsmanager:${PortalCredentialsSecretArn}:SecretString:email}}"

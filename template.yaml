@@ -33,6 +33,11 @@ Parameters:
     Description: Secrets Manager secret ARN containing portal email/password
     Default: ''
 
+  DummyPortalUrl:
+    Type: String
+    Description: URL of the dummy travel portal
+    Default: 'https://flysmart.dportal.workers.dev'
+
 Resources:
 
   # ── Network (VPC) ────────────────────────────────────────────────────────────
@@ -107,6 +112,7 @@ Resources:
         NovaActSearchAgentArn: !Ref NovaActSearchAgentArn
         NovaActBookingAgentArn: !Ref NovaActBookingAgentArn
         PortalCredentialsSecretArn: !Ref PortalCredentialsSecretArn
+        DummyPortalUrl: !Ref DummyPortalUrl
 
   # ── API Gateway WebSocket ────────────────────────────────────────────────────
 
