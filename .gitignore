@@ -38,6 +38,9 @@ node_modules/
 requirements.txt
 !src/requirements.txt
 
+# ACR deployment artifact (copied by deploy.sh, not source)
+src/nova_act/core/
+
 # Adding docs, plans and .kiro
 plans/
 .kiro/

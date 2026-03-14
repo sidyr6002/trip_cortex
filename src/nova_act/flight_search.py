@@ -28,7 +28,8 @@ from nova_act import (  # noqa: E402
     workflow,
 )
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+_script_dir = Path(__file__).parent
+sys.path.insert(0, str(next(p for p in [_script_dir, _script_dir.parent] if (p / "core").is_dir())))
 from core.config import get_config  # noqa: E402
 from core.models.flight import FlightSearchInput, FlightSearchOutput, FlightSearchResult  # noqa: E402
 from core.services.audit import build_flight_search_audit_entry, write_audit_log  # noqa: E402
