@@ -4,7 +4,7 @@ Flight booking Nova Act workflow script for FlySmart dummy portal.
 Local dev:
     .venv/bin/python src/nova_act/flight_booking.py
 
-ACR deployment entry point: flight_booking() (decorated with @workflow)
+ACR entry point: main(payload) — called by agentcore_handler.py
 """
 
 import sys
@@ -25,7 +25,6 @@ from nova_act import (  # noqa: E402
     ActTimeoutError,
     NovaAct,
     Workflow,
-    workflow,
 )
 
 _script_dir = Path(__file__).parent
@@ -97,7 +96,7 @@ def _error_output(inp: BookingInput, warning: str) -> BookingOutput:
 
 
 def main(payload: dict) -> dict:
-    """Local dev entry point — manages Workflow/NovaAct lifecycle explicitly."""
+    """Entry point for both local dev and ACR (agentcore_handler calls main(payload))."""
     config = get_config()
     if not config.dummy_portal_url:
         raise ValueError("DUMMY_PORTAL_URL is not configured")
@@ -139,16 +138,6 @@ def main(payload: dict) -> dict:
             )
             write_audit_log(boto3.client("dynamodb"), config.audit_log_table, entry)
     return output.model_dump()  # type: ignore[union-attr]
-
-
-@workflow(model_id="nova-act-latest", workflow_definition_name="trip-cortex-flight-booking")
-def flight_booking(nova: NovaAct, payload: dict) -> dict:
-    """ACR deployment entry point — @workflow manages Workflow lifecycle."""
-    config = get_config()
-    if not config.dummy_portal_url:
-        raise ValueError("DUMMY_PORTAL_URL is not configured")
-    inp = BookingInput.model_validate(payload)
-    return _run(nova, inp, config.portal_test_email, config.portal_test_password).model_dump()
 
 
 if __name__ == "__main__":
