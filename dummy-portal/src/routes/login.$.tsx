@@ -162,7 +162,7 @@ function LoginPage() {
         {/* Google OAuth */}
         <button
           onClick={handleGoogleSignIn}
-          className="h-14 w-full px-8 rounded-full bg-primary-500 hover:bg-primary-600 border-0 transition-all duration-300 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 hover:scale-[1.02] font-semibold text-white text-base flex items-center justify-center gap-3 cursor-pointer"
+          className="h-14 w-full px-8 rounded-lg bg-primary-500 hover:bg-primary-600 border-0 transition-all duration-300 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 hover:scale-[1.02] font-semibold text-white text-base flex items-center justify-center gap-3 cursor-pointer"
         >
           <div className="p-0.5 bg-white flex items-center justify-center rounded-full">
             <FcGoogle className="w-6 h-6" />

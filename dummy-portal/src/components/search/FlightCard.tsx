@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useRouterState } from '@tanstack/react-router';
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
 import { useAuth, useSignIn } from '@clerk/tanstack-react-start';
 import { Briefcase, Utensils, MonitorPlay, Wifi, BatteryCharging } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
@@ -194,37 +194,12 @@ export default function FlightCard({ flight, adults = 1, children = 0, onSelect 
                 )}
 
                 {/* Login Dialog */}
-                <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-                    <DialogContent className="sm:max-w-md">
-                        <DialogHeader className="text-center items-center">
-                            <div className="text-3xl font-bold tracking-tight mb-1">
-                                <span className="text-primary">Fly</span>
-                                <span className="text-content">Smart</span>
-                            </div>
-                            <DialogTitle>Sign in to continue</DialogTitle>
-                            <DialogDescription>
-                                You need to be logged in to book a flight
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="flex flex-col items-center gap-4 py-4">
-                            <button
-                                onClick={() => {
-                                    signIn?.authenticateWithRedirect({
-                                        strategy: 'oauth_google',
-                                        redirectUrl: '/login/sso-callback',
-                                        redirectUrlComplete: currentUrl,
-                                    });
-                                }}
-                                className="h-12 px-8 rounded-full bg-primary-500 hover:bg-primary-600 transition-all duration-300 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 hover:scale-[1.02] font-semibold text-white text-sm flex items-center justify-center gap-3 cursor-pointer"
-                            >
-                                <div className="p-0.5 bg-white flex items-center justify-center rounded-full">
-                                    <FcGoogle className="w-5 h-5" />
-                                </div>
-                                Continue with Google
-                            </button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                <LoginDialog
+                    open={showLoginDialog}
+                    onOpenChange={setShowLoginDialog}
+                    signIn={signIn}
+                    currentUrl={currentUrl}
+                />
 
                 {/* Expanded Content Area */}
                 {activeTab === 'details' && <FlightDetailsTab flight={flight} />}
@@ -233,4 +208,120 @@ export default function FlightCard({ flight, adults = 1, children = 0, onSelect 
             </div>
         </div >
     )
+}
+
+function LoginDialog({
+    open,
+    onOpenChange,
+    signIn,
+    currentUrl,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    signIn: ReturnType<typeof useSignIn>['signIn'];
+    currentUrl: string;
+}) {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleEmailPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!signIn) return;
+
+        setError('');
+        setLoading(true);
+
+        try {
+            const result = await signIn.create({ identifier: email, password });
+            if (result.status === 'complete') {
+                window.location.href = currentUrl;
+            } else {
+                setError('Sign in could not be completed.');
+            }
+        } catch (err: any) {
+            setError(err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || 'Invalid email or password.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader className="text-center items-center">
+                    <div className="text-3xl font-bold tracking-tight mb-1">
+                        <span className="text-primary">Fly</span>
+                        <span className="text-content">Smart</span>
+                    </div>
+                    <DialogTitle>Sign in to continue</DialogTitle>
+                    <DialogDescription>
+                        You need to be logged in to book a flight
+                    </DialogDescription>
+                </DialogHeader>
+
+                <form onSubmit={handleEmailPassword} className="flex flex-col gap-3 py-2">
+                    <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Email"
+                        className="h-10 px-3 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                    />
+                    <input
+                        type="password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Password"
+                        className="h-10 px-3 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                    />
+                    {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="h-10 rounded-lg bg-primary-500 hover:bg-primary-600 text-white font-semibold text-sm transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                        {loading ? 'Signing in…' : 'Sign In'}
+                    </button>
+                </form>
+
+                <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-slate-200" />
+                    <span className="text-xs text-content-light uppercase">or</span>
+                    <div className="flex-1 h-px bg-slate-200" />
+                </div>
+
+                <div className="flex flex-col items-center gap-3 pb-2">
+                    <button
+                        onClick={() => {
+                            signIn?.authenticateWithRedirect({
+                                strategy: 'oauth_google',
+                                redirectUrl: '/login/sso-callback',
+                                redirectUrlComplete: currentUrl,
+                            });
+                        }}
+                        className="h-12 w-full px-8 rounded-lg bg-primary-500 hover:bg-primary-600 transition-all duration-300 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 hover:scale-[1.02] font-semibold text-white text-sm flex items-center justify-center gap-3 cursor-pointer"
+                    >
+                        <div className="p-0.5 bg-white flex items-center justify-center rounded-full">
+                            <FcGoogle className="w-5 h-5" />
+                        </div>
+                        Continue with Google
+                    </button>
+                    <p className="text-sm text-content-light">
+                        Don&apos;t have an account?{' '}
+                        <Link
+                            to="/register"
+                            search={{ redirect_url: currentUrl }}
+                            className="text-primary font-medium hover:underline"
+                        >
+                            Create account
+                        </Link>
+                    </p>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
 }
