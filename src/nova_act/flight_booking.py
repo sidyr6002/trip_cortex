@@ -44,8 +44,17 @@ from config import nova_act_kwargs, workflow_kwargs  # noqa: E402
 log = structlog.get_logger()
 
 
-def _run(nova: NovaAct, inp: BookingInput) -> BookingOutput:
-    # Step 0: select flight from search results
+def _sign_in(nova: NovaAct, email: str, password: str, search_url: str) -> None:
+    """Sign in via email+password on the FlySmart login page, then navigate to search."""
+    nova.act(f"Type '{email}' into the email field and '{password}' into the password field, then click 'Sign In'")
+    nova.act(f"Navigate to {search_url}")
+
+
+def _run(nova: NovaAct, inp: BookingInput, email: str, password: str) -> BookingOutput:
+    # Step 0: sign in and navigate to search results
+    _sign_in(nova, email, password, inp.search_url)
+
+    # Step 1: select flight from search results
     nova.act(build_select_flight_prompt(inp.flight))
 
     # Step 1: review page
@@ -95,14 +104,17 @@ def main(payload: dict) -> dict:
 
     if not config.nova_act_booking_workflow:
         raise ValueError("NOVA_ACT_BOOKING_WORKFLOW is not configured")
+    if not config.portal_test_email or not config.portal_test_password:
+        raise ValueError("PORTAL_TEST_EMAIL and PORTAL_TEST_PASSWORD must be configured")
+    login_url = f"{config.dummy_portal_url}/login"
     start = time.monotonic()
     output: BookingOutput | None = None
     try:
         with Workflow(**workflow_kwargs(config.nova_act_booking_workflow)) as wf:
-            kwargs = nova_act_kwargs(inp.search_url, headless=config.nova_act_headless)
+            kwargs = nova_act_kwargs(login_url, headless=config.nova_act_headless)
             kwargs["workflow"] = wf
             with NovaAct(**kwargs) as nova:
-                output = _run(nova, inp)
+                output = _run(nova, inp, config.portal_test_email, config.portal_test_password)
     except (ActStateGuardrailError, ActGuardrailsError):
         log.error("nova_act_guardrail_violation", booking_id=inp.booking_id)
         raise
@@ -135,7 +147,7 @@ def flight_booking(nova: NovaAct, payload: dict) -> dict:
     if not config.dummy_portal_url:
         raise ValueError("DUMMY_PORTAL_URL is not configured")
     inp = BookingInput.model_validate(payload)
-    return _run(nova, inp).model_dump()
+    return _run(nova, inp, config.portal_test_email, config.portal_test_password).model_dump()
 
 
 if __name__ == "__main__":

@@ -50,6 +50,8 @@ class Config(BaseModel):
     nova_act_headless: bool = True
     nova_act_search_workflow: str = ""
     nova_act_booking_workflow: str = ""
+    portal_test_email: str = ""
+    portal_test_password: str = ""
 
 
 @lru_cache(maxsize=1)
@@ -83,6 +85,8 @@ def get_config() -> Config:
         nova_act_headless=environ.get("NOVA_ACT_HEADLESS", "true").lower() == "true",
         nova_act_search_workflow=environ.get("NOVA_ACT_SEARCH_WORKFLOW", ""),
         nova_act_booking_workflow=environ.get("NOVA_ACT_BOOKING_WORKFLOW", ""),
+        portal_test_email=environ.get("PORTAL_TEST_EMAIL", ""),
+        portal_test_password=environ.get("PORTAL_TEST_PASSWORD", ""),
     )
 
 
