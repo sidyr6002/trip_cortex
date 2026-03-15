@@ -405,6 +405,7 @@ Resources:
           DUMMY_PORTAL_URL: !Ref DummyPortalUrl
           NOVA_ACT_SEARCH_WORKFLOW: trip-cortex-flight-search
           NOVA_ACT_HEADLESS: "true"
+          CIRCUIT_BREAKER_TABLE: !Ref CircuitBreakerTable
       Policies:
         - Statement:
             - Effect: Allow
@@ -412,6 +413,12 @@ Resources:
               Resource:
                 - !Ref NovaActSearchAgentArn
                 - !Sub "${NovaActSearchAgentArn}/*"
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:PutItem
+              Resource: !GetAtt CircuitBreakerTable.Arn
 
   InvokeFlightBookingFunction:
     Type: AWS::Serverless::Function
@@ -428,6 +435,7 @@ Resources:
           NOVA_ACT_HEADLESS: "true"
           PORTAL_TEST_EMAIL: !Sub "{{resolve:secretsmanager:${PortalCredentialsSecretArn}:SecretString:email}}"
           PORTAL_TEST_PASSWORD: !Sub "{{resolve:secretsmanager:${PortalCredentialsSecretArn}:SecretString:password}}"
+          CIRCUIT_BREAKER_TABLE: !Ref CircuitBreakerTable
       Policies:
         - Statement:
             - Effect: Allow
@@ -438,6 +446,12 @@ Resources:
             - Effect: Allow
               Action: secretsmanager:GetSecretValue
               Resource: !Ref PortalCredentialsSecretArn
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:PutItem
+              Resource: !GetAtt CircuitBreakerTable.Arn
 
   HeartbeatFunction:
     Type: AWS::Serverless::Function
@@ -653,6 +667,21 @@ Resources:
             - Effect: Allow
               Action: secretsmanager:GetSecretValue
               Resource: !Ref AuroraSecretArn
+
+  CircuitBreakerTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "TripCortex${Environment}CircuitBreaker"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: circuitId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: circuitId
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
 
 Outputs:
   BookingWorkflowArn:

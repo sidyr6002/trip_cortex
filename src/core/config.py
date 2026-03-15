@@ -55,6 +55,7 @@ class Config(BaseModel):
     portal_test_password: str = ""
     nova_act_search_agent_arn: str = ""
     nova_act_booking_agent_arn: str = ""
+    circuit_breaker_table: str = ""
 
 
 @lru_cache(maxsize=1)
@@ -93,6 +94,7 @@ def get_config() -> Config:
         portal_test_password=environ.get("PORTAL_TEST_PASSWORD", ""),
         nova_act_search_agent_arn=environ.get("NOVA_ACT_SEARCH_AGENT_ARN", ""),
         nova_act_booking_agent_arn=environ.get("NOVA_ACT_BOOKING_AGENT_ARN", ""),
+        circuit_breaker_table=environ.get("CIRCUIT_BREAKER_TABLE", ""),
     )
 
 

@@ -102,3 +102,10 @@ class ValidationError(TripCortexError):
     """Input validation or schema validation failed."""
 
     pass
+
+
+class PortalUnavailableError(BookingError):
+    """Travel portal is unavailable — circuit breaker is open."""
+
+    def __init__(self, message: str = "Travel portal unavailable"):
+        super().__init__(message, code=ErrorCode.PORTAL_UNAVAILABLE)

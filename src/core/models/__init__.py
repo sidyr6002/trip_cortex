@@ -15,6 +15,7 @@ from core.models.booking import (
     ReasoningResult,
     ThinkingEffort,
 )
+from core.models.circuit_breaker import CircuitBreakerState, CircuitState
 from core.models.flight import FlightOption, FlightSearchInput, FlightSearchOutput, FlightSearchResult
 from core.models.ingestion import (
     BdaEntity,
@@ -58,4 +59,6 @@ __all__ = [
     "FailedEntity",
     "EmbeddingMessage",
     "EmbeddingResult",
+    "CircuitState",
+    "CircuitBreakerState",
 ]
