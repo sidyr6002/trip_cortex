@@ -1,6 +1,6 @@
 """Pure functions for building Nova Act search inputs and filtering results."""
 
-from urllib.parse import urlencode, urlparse, urlunparse
+from urllib.parse import quote, urlencode, urlparse, urlunparse
 
 from core.models.booking import BookingPlan, PolicyConstraints
 from core.models.flight import FlightSearchResult
@@ -25,8 +25,12 @@ def build_filter_prompt(constraints: PolicyConstraints) -> str | None:
     return f"Filter results to show only flights from: {vendors}"
 
 
-def build_fallback_url(plan: BookingPlan, base_url: str) -> str:
-    return build_search_url(plan, base_url)
+def build_fallback_url(plan: BookingPlan, base_url: str, error_context: str = "") -> str:
+    url = build_search_url(plan, base_url)
+    if error_context:
+        sep = "&" if "?" in url else "?"
+        url += f"{sep}utm_source=trip_cortex&error={quote(error_context)}"
+    return url
 
 
 def filter_by_constraints(

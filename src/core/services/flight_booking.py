@@ -1,9 +1,17 @@
 from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import quote
 from uuid import uuid4
 
 from core.models.booking import BookingConfirmation, PassengerInfo
 from core.models.flight import FlightOption
+
+
+def build_booking_fallback_url(flight: FlightOption, search_url: str, error_context: str = "") -> str:
+    url = f"{search_url}&flight={quote(flight.flight_number)}"
+    if error_context:
+        url += f"&utm_source=trip_cortex&error={quote(error_context)}"
+    return url
 
 
 def build_select_flight_prompt(flight: FlightOption) -> str:
