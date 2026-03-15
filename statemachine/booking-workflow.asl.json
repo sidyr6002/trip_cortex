@@ -76,7 +76,37 @@
           "Next": "NotifyUserOfError"
         }
       ],
-      "Next": "ValidatePlan"
+      "Next": "CheckDegradationResult"
+    },
+    "CheckDegradationResult": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.reasoning_result.parse_failed",
+          "BooleanEquals": true,
+          "Next": "NotifyParseFailure"
+        }
+      ],
+      "Default": "ValidatePlan"
+    },
+    "NotifyParseFailure": {
+      "Type": "Task",
+      "Resource": "${ResponseSenderFunctionArn}",
+      "Parameters": {
+        "type": "error",
+        "connection_id.$": "$.connection_id",
+        "booking_id.$": "$.booking_id",
+        "message": "We couldn't understand your booking request. Please try again with origin, destination, and date — for example: 'Book a flight from DEL to BOM on March 20 2026 economy class'"
+      },
+      "ResultPath": null,
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": null,
+          "Next": "TerminalError"
+        }
+      ],
+      "End": true
     },
     "ValidatePlan": {
       "Type": "Task",
@@ -133,7 +163,7 @@
         {
           "Variable": "$.flight_search_result.search_result.total_results",
           "NumericEquals": 0,
-          "Next": "NotifyFallback"
+          "Next": "NotifySearchFallback"
         }
       ],
       "Default": "SendFlightOptions"
@@ -205,7 +235,7 @@
               "IsPresent": true
             }
           ],
-          "Next": "NotifyFallback"
+          "Next": "NotifyBookingFallback"
         }
       ],
       "Default": "NotifyBookingComplete"
@@ -222,7 +252,7 @@
       "ResultPath": null,
       "End": true
     },
-    "NotifyFallback": {
+    "NotifySearchFallback": {
       "Type": "Task",
       "Resource": "${ResponseSenderFunctionArn}",
       "Parameters": {
@@ -236,13 +266,52 @@
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
-          "ResultPath": "$.error_info",
-          "Next": "NotifyUserOfError"
+          "ResultPath": null,
+          "Next": "TerminalError"
+        }
+      ],
+      "End": true
+    },
+    "NotifyBookingFallback": {
+      "Type": "Task",
+      "Resource": "${ResponseSenderFunctionArn}",
+      "Parameters": {
+        "type": "fallback",
+        "connection_id.$": "$.connection_id",
+        "booking_id.$": "$.booking_id",
+        "fallback_url.$": "$.booking_result.fallback_url",
+        "warnings.$": "$.booking_result.warnings"
+      },
+      "ResultPath": null,
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": null,
+          "Next": "TerminalError"
         }
       ],
       "End": true
     },
     "NotifyUserOfError": {
+      "Type": "Task",
+      "Resource": "${ResponseSenderFunctionArn}",
+      "Parameters": {
+        "type": "error",
+        "connection_id.$": "$.connection_id",
+        "booking_id.$": "$.booking_id",
+        "message": "Something went wrong with your booking. Please try again or contact support."
+      },
+      "ResultPath": null,
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": null,
+          "Next": "TerminalError"
+        }
+      ],
+      "End": true
+    },
+    "TerminalError": {
       "Type": "Pass",
       "End": true
     }

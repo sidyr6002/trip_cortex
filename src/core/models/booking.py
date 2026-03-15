@@ -153,6 +153,7 @@ class ReasoningResult(BaseModel):
     latency_ms: float = Field(ge=0.0)
     retry_count: int = Field(default=0, ge=0)
     escalated: bool = False
+    parse_failed: bool = False
 
 
 class PassengerInfo(BaseModel):

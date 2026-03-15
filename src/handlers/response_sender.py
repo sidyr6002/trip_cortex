@@ -28,12 +28,32 @@ def handler(event: dict[str, Any], context: Any) -> None:
             "booking_id": event["booking_id"],
             "flights": event["flights"],
         }
-    else:
-        # booking_complete
+    elif msg_type == "booking_complete":
         payload = {
             "type": "booking_complete",
             "booking_id": event["booking_id"],
             "confirmation": event.get("confirmation"),
+        }
+    elif msg_type == "fallback":
+        payload = {
+            "type": "fallback",
+            "booking_id": event["booking_id"],
+            "message": "We couldn't complete your booking automatically. You can finish it manually using the link below.",
+            "fallback_url": event.get("fallback_url"),
+            "warnings": event.get("warnings", []),
+        }
+    elif msg_type == "error":
+        payload = {
+            "type": "error",
+            "booking_id": event.get("booking_id"),
+            "message": event.get("message", "Something went wrong with your booking request. Please try again."),
+        }
+    else:
+        logger.warning("response_sender unknown message type: %s", msg_type)
+        payload = {
+            "type": "error",
+            "booking_id": event.get("booking_id"),
+            "message": "Something went wrong with your booking request. Please try again.",
         }
 
     try:
