@@ -2,12 +2,11 @@
 Flight booking Nova Act workflow script for FlySmart dummy portal.
 
 Local dev:
-    .venv/bin/python src/nova_act/flight_booking.py
+    PYTHONPATH=src .venv/bin/python src/booking_agent/flight_booking.py
 
 ACR entry point: main(payload) — called by agentcore_handler.py
 """
 
-import sys
 import time
 from pathlib import Path
 
@@ -15,10 +14,9 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
-import boto3  # noqa: E402
-import structlog  # noqa: E402
-
-from nova_act import (  # noqa: E402
+import boto3
+import structlog
+from nova_act import (
     ActExceededMaxStepsError,
     ActGuardrailsError,
     ActStateGuardrailError,
@@ -27,19 +25,20 @@ from nova_act import (  # noqa: E402
     Workflow,
 )
 
-_script_dir = Path(__file__).parent
-sys.path.insert(0, str(next(p for p in [_script_dir, _script_dir.parent] if (p / "core").is_dir())))
-from core.config import get_config  # noqa: E402
-from core.models.booking import BookingConfirmation, BookingInput, BookingOutput  # noqa: E402
-from core.services.audit import write_audit_log  # noqa: E402
-from core.services.flight_booking import (  # noqa: E402
+try:
+    from booking_agent.config import nova_act_kwargs, workflow_kwargs  # PYTHONPATH=src (local/test)
+except ModuleNotFoundError:
+    from config import nova_act_kwargs, workflow_kwargs  # type: ignore[no-redef]  # ACR flat layout
+from core.config import get_config
+from core.models.booking import BookingConfirmation, BookingInput, BookingOutput
+from core.services.audit import write_audit_log
+from core.services.flight_booking import (
     build_booking_audit_entry,
     build_passenger_prompt,
     build_select_flight_prompt,
 )
 
-sys.path.insert(0, str(Path(__file__).parent))
-from config import nova_act_kwargs, workflow_kwargs  # noqa: E402
+
 
 log = structlog.get_logger()
 

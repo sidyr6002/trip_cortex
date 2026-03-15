@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Deploy Nova Act workflows to AgentCore Runtime.
-# Usage: bash src/nova_act/deploy.sh  (from project root)
+# Usage: bash src/booking_agent/deploy.sh  (from project root)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

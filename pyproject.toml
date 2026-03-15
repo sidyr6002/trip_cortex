@@ -44,7 +44,7 @@ warn_unused_configs = true
 mypy_path = "src"
 explicit_package_bases = true
 disable_error_code = ["import-untyped"]
-exclude = ["src/nova_act/"]
+exclude = ["src/booking_agent/"]
 
 [[tool.mypy.overrides]]
 module = ["boto3", "boto3.*", "botocore", "botocore.*", "pgvector", "pgvector.*"]

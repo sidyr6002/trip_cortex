@@ -37,7 +37,7 @@ node_modules/
 # uv
 requirements.txt
 !src/requirements.txt
-!src/nova_act/requirements.txt
+!src/booking_agent/requirements.txt
 
 # ACR deployment staging
 .acr-stage/

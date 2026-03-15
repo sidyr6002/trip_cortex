@@ -2,12 +2,11 @@
 Flight search Nova Act workflow script for FlySmart dummy portal.
 
 Local dev:
-    .venv/bin/python src/nova_act/flight_search.py
+    PYTHONPATH=src .venv/bin/python src/booking_agent/flight_search.py
 
 ACR entry point: main(payload) — called by agentcore_handler.py
 """
 
-import sys
 import time
 from pathlib import Path
 
@@ -15,10 +14,9 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
-import boto3  # noqa: E402
-import structlog  # noqa: E402
-
-from nova_act import (  # noqa: E402
+import boto3
+import structlog
+from nova_act import (
     ActExceededMaxStepsError,
     ActGuardrailsError,
     ActStateGuardrailError,
@@ -27,20 +25,19 @@ from nova_act import (  # noqa: E402
     Workflow,
 )
 
-_script_dir = Path(__file__).parent
-sys.path.insert(0, str(next(p for p in [_script_dir, _script_dir.parent] if (p / "core").is_dir())))
-from core.config import get_config  # noqa: E402
-from core.models.flight import FlightSearchInput, FlightSearchOutput, FlightSearchResult  # noqa: E402
-from core.services.audit import build_flight_search_audit_entry, write_audit_log  # noqa: E402
-from core.services.flight_search import (  # noqa: E402
+try:
+    from booking_agent.config import nova_act_kwargs, workflow_kwargs  # PYTHONPATH=src (local/test)
+except ModuleNotFoundError:
+    from config import nova_act_kwargs, workflow_kwargs  # type: ignore[no-redef]  # ACR flat layout
+from core.config import get_config
+from core.models.flight import FlightSearchInput, FlightSearchOutput, FlightSearchResult
+from core.services.audit import build_flight_search_audit_entry, write_audit_log
+from core.services.flight_search import (
     build_fallback_url,
     build_filter_prompt,
     build_search_url,
     filter_by_constraints,
 )
-
-sys.path.insert(0, str(Path(__file__).parent))
-from config import nova_act_kwargs, workflow_kwargs  # noqa: E402
 
 log = structlog.get_logger()
 

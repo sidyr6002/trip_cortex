@@ -13,12 +13,7 @@ from pathlib import Path
 
 import pytest
 
-_sdk_dirs = list((Path(__file__).parent.parent.parent / ".venv" / "lib").glob("python*/site-packages"))
-if _sdk_dirs:
-    sys.path.insert(0, str(_sdk_dirs[0]))
-
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src" / "nova_act"))
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("NOVA_ACT_BOOKING_WORKFLOW"),
@@ -28,7 +23,7 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.mark.integration
 def test_flight_booking_workflow() -> None:
-    from flight_booking import main  # src/nova_act/flight_booking.py
+    from booking_agent.flight_booking import main
 
     from core.config import get_config
     from core.models.booking import BookingInput, BookingOutput, BookingPlan, PassengerInfo

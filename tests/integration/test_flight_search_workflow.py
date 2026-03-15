@@ -13,13 +13,7 @@ from pathlib import Path
 
 import pytest
 
-# SDK must be on sys.path before src/ to avoid nova_act package shadowing
-_sdk_dirs = list((Path(__file__).parent.parent.parent / ".venv" / "lib").glob("python*/site-packages"))
-if _sdk_dirs:
-    sys.path.insert(0, str(_sdk_dirs[0]))
-
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src" / "nova_act"))
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("NOVA_ACT_SEARCH_WORKFLOW"),
@@ -29,7 +23,7 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.mark.integration
 def test_flight_search_workflow() -> None:
-    from flight_search import main  # src/nova_act/flight_search.py
+    from booking_agent.flight_search import main
 
     from core.models.booking import BookingPlan
     from core.models.flight import FlightSearchInput, FlightSearchOutput

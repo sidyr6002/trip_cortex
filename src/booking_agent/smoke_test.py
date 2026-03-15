@@ -2,7 +2,7 @@
 Smoke test for Nova Act flight search against the FlySmart dummy portal.
 
 Usage:
-    uv run python src/nova_act/smoke_test.py
+    PYTHONPATH=src uv run python src/booking_agent/smoke_test.py
 
 Requirements:
     - AWS credentials configured (aws sts get-caller-identity)
@@ -10,7 +10,6 @@ Requirements:
     - DUMMY_PORTAL_URL set in .env (defaults to https://flysmart.dportal.workers.dev)
 """
 
-import sys
 from pathlib import Path
 
 # Load .env before any other imports
@@ -18,15 +17,14 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
-from nova_act import NovaAct, Workflow  # noqa: E402
+from nova_act import NovaAct, Workflow
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from core.config import get_config  # noqa: E402
-from core.models.flight import FlightSearchResult  # noqa: E402
-
-# config.py lives alongside this script — import directly to avoid package conflict
-sys.path.insert(0, str(Path(__file__).parent))
-from config import nova_act_kwargs, workflow_kwargs  # noqa: E402
+try:
+    from booking_agent.config import nova_act_kwargs, workflow_kwargs  # PYTHONPATH=src (local/test)
+except ModuleNotFoundError:
+    from config import nova_act_kwargs, workflow_kwargs  # type: ignore[no-redef]  # ACR flat layout
+from core.config import get_config
+from core.models.flight import FlightSearchResult
 
 
 def main() -> None:
