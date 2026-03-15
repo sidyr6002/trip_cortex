@@ -25,9 +25,9 @@ from core.services.task_token import pop_task_token  # noqa: E402
 REGION = "us-east-1"
 STATE_MACHINE_ARN = "arn:aws:states:us-east-1:591618107284:stateMachine:trip-cortex-dev-booking-workflow"
 BOOKINGS_TABLE = "trip-cortex-dev-bookings"
-POLL_INTERVAL_S = 60
-TIMEOUT_S = 900  # 15 min — ReasonAndPlan (~5 min) + 2x ACR (~4 min each)
-HITL_TIMEOUT_S = TIMEOUT_S - 60  # HITL thread lives almost as long as the test
+POLL_INTERVAL_S = 30
+TIMEOUT_S = 1200  # 20 min — ReasonAndPlan (~8 min) + 2x ACR (~5 min each) + buffer
+HITL_TIMEOUT_S = TIMEOUT_S - 60
 
 pytestmark = pytest.mark.e2e
 

@@ -190,7 +190,7 @@ class ReasoningService:
 
     # ── Escalation logic ────────────────────────────────────────────────────
 
-    _LOW_SIMILARITY_THRESHOLD = 0.70
+    _LOW_SIMILARITY_THRESHOLD = 0.10
 
     @staticmethod
     def _determine_initial_effort(confidence_level: str, max_similarity: float) -> ThinkingEffort:
@@ -207,12 +207,12 @@ class ReasoningService:
     def _escalation_sequence(initial: ThinkingEffort) -> list[ThinkingEffort]:
         """Return the 3-attempt escalation ladder.
 
-        medium start → [medium, medium, high]
+        medium start → [medium, high, high]
         high start   → [high, high, high]
         """
         if initial == "high":
             return ["high", "high", "high"]
-        return ["medium", "medium", "high"]
+        return ["medium", "high", "high"]
 
     def generate_booking_plan(self, request: ReasoningRequest, remaining_ms: int = 300_000) -> ReasoningResult:
         """Invoke Nova 2 Lite with in-service retry and dynamic escalation.

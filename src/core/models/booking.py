@@ -81,6 +81,13 @@ class PolicyConstraints(BaseModel):
     @classmethod
     def coerce_vendors(cls, v: object) -> object:
         return v if v is not None else ["any"]
+
+    @field_validator("advance_booking_met", "requires_approval", mode="before")
+    @classmethod
+    def coerce_bool(cls, v: object) -> object:
+        if isinstance(v, str):
+            return v.lower() in ("true", "yes", "1")
+        return v if v is not None else False
     advance_booking_days_required: int | None = None
     advance_booking_met: bool
     requires_approval: bool = False
