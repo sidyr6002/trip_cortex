@@ -9,6 +9,7 @@ from botocore.config import Config as BotocoreConfig
 from core.config import get_config
 
 if TYPE_CHECKING:
+    from core.services.circuit_breaker import CircuitBreakerService
     from core.services.policy_retrieval import PolicyRetrievalService
     from core.services.query_embedding import QueryEmbeddingService
     from core.services.reasoning import ReasoningService
@@ -93,3 +94,14 @@ def get_reasoning_service() -> "ReasoningService":
 
     config = get_config()
     return ReasoningService(get_bedrock_runtime_client(), config.nova_lite_model_id)
+
+
+def get_circuit_breaker_service(
+    failure_threshold: int = 5, recovery_timeout: int = 60
+) -> "CircuitBreakerService":
+    from core.services.circuit_breaker import CircuitBreakerService
+
+    config = get_config()
+    return CircuitBreakerService(
+        get_dynamo_client(), config.circuit_breaker_table, failure_threshold, recovery_timeout
+    )
