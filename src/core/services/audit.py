@@ -130,6 +130,26 @@ def build_recovery_audit_entry(
     }
 
 
+def build_circuit_breaker_audit_entry(
+    booking_id: str,
+    employee_id: str,
+    circuit_id: str,
+    action: str,
+    failure_count: int,
+) -> dict[str, Any]:
+    now = datetime.now(timezone.utc)
+    return {
+        "auditId": f"circuit-{uuid4()}",
+        "bookingId": booking_id,
+        "employeeId": employee_id,
+        "timestamp": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "event": "circuit_breaker",
+        "input": {"circuit_id": circuit_id, "failure_count": failure_count},
+        "output": {"action": action},
+        "ttl": int(now.timestamp()) + 90 * 86400,
+    }
+
+
 def build_degradation_audit_entry(
     booking_id: str,
     employee_id: str,

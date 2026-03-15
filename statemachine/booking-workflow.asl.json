@@ -150,6 +150,11 @@
       ],
       "Catch": [
         {
+          "ErrorEquals": ["PortalUnavailableError"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyPortalUnavailable"
+        },
+        {
           "ErrorEquals": ["States.ALL"],
           "ResultPath": "$.error_info",
           "Next": "NotifyUserOfError"
@@ -213,6 +218,11 @@
         }
       ],
       "Catch": [
+        {
+          "ErrorEquals": ["PortalUnavailableError"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyPortalUnavailable"
+        },
         {
           "ErrorEquals": ["States.ALL"],
           "ResultPath": "$.error_info",
@@ -300,6 +310,26 @@
         "connection_id.$": "$.connection_id",
         "booking_id.$": "$.booking_id",
         "message": "Something went wrong with your booking. Please try again or contact support."
+      },
+      "ResultPath": null,
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": null,
+          "Next": "TerminalError"
+        }
+      ],
+      "End": true
+    },
+    "NotifyPortalUnavailable": {
+      "Type": "Task",
+      "Resource": "${ResponseSenderFunctionArn}",
+      "Parameters": {
+        "type": "portal_unavailable",
+        "connection_id.$": "$.connection_id",
+        "booking_id.$": "$.booking_id",
+        "message": "The travel portal is temporarily unavailable. Please try again later or use the direct link below.",
+        "fallback_url.$": "$.validated_result.plan.fallback_url"
       },
       "ResultPath": null,
       "Catch": [
