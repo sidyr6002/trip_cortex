@@ -25,8 +25,9 @@ from core.services.task_token import pop_task_token  # noqa: E402
 REGION = "us-east-1"
 STATE_MACHINE_ARN = "arn:aws:states:us-east-1:591618107284:stateMachine:trip-cortex-dev-booking-workflow"
 BOOKINGS_TABLE = "trip-cortex-dev-bookings"
-POLL_INTERVAL_S = 15
+POLL_INTERVAL_S = 60
 TIMEOUT_S = 900  # 15 min — ReasonAndPlan (~5 min) + 2x ACR (~4 min each)
+HITL_TIMEOUT_S = TIMEOUT_S - 60  # HITL thread lives almost as long as the test
 
 pytestmark = pytest.mark.e2e
 
@@ -69,7 +70,7 @@ def _poll_until_done(sfn_client, execution_arn: str) -> dict:
 
 def _get_flight_options_from_history(sfn_client, execution_arn: str) -> list:
     """Extract flight options from InvokeFlightSearch output in execution history."""
-    history = sfn_client.get_execution_history(executionArn=execution_arn, maxResults=100)
+    history = sfn_client.get_execution_history(executionArn=execution_arn, maxResults=1000)
     for event in reversed(history["events"]):
         if event["type"] == "TaskStateExited":
             details = event.get("stateExitedEventDetails", {})
@@ -82,7 +83,7 @@ def _get_flight_options_from_history(sfn_client, execution_arn: str) -> list:
 def _resolve_hitl(sfn_client, dynamo_client, booking_id: str, employee_id: str,
                   execution_arn: str, stop_event: threading.Event) -> None:
     """Poll DynamoDB for task token, then SendTaskSuccess with cheapest flight."""
-    deadline = time.monotonic() + 360  # 6 min to find HITL
+    deadline = time.monotonic() + HITL_TIMEOUT_S
     while time.monotonic() < deadline and not stop_event.is_set():
         try:
             task_token = pop_task_token(dynamo_client, BOOKINGS_TABLE, booking_id, employee_id)
@@ -95,9 +96,9 @@ def _resolve_hitl(sfn_client, dynamo_client, booking_id: str, employee_id: str,
         if not flights:
             # Fallback: use a known DEL→BOM flight if search returned nothing
             print("  HITL: no flights in history, using fallback flight")
-            flight = {"airline": "SpiceJet", "flight_number": "SG-8194", "price": 72.0,
-                      "departure_time": "17:00", "arrival_time": "19:15",
-                      "stops": 0, "cabin_class": "Economy", "duration": "2h 15m"}
+            flight = {"airline": "Vistara", "flight_number": "UK-933", "price": 98.0,
+                      "departure_time": "09:00", "arrival_time": "11:10",
+                      "stops": 0, "cabin_class": "Economy", "duration": "2h 10m"}
         else:
             flight = min(flights, key=lambda f: f["price"])
 
@@ -151,10 +152,38 @@ def test_full_booking_workflow_del_to_bom(sfn, dynamo):
     booking_result = output.get("booking_result", {})
     print(f"Booking result: {json.dumps(booking_result, indent=2, default=str)}")
 
+    # ── Core identity ────────────────────────────────────────────────────────
     assert booking_result, "No booking_result in output"
     assert booking_result.get("booking_id") == booking_id
-    # Either confirmed booking or graceful fallback — both are valid
-    has_confirmation = booking_result.get("confirmation") is not None
-    has_fallback = booking_result.get("fallback_url") is not None
-    assert has_confirmation or has_fallback, "Expected either confirmation or fallback_url"
-    print(f"\n{'✅ Confirmed booking' if has_confirmation else '⚠️  Fallback URL returned'}")
+    assert booking_result.get("employee_id") == employee_id
+
+    # ── Outcome: confirmed booking (happy path) ──────────────────────────────
+    confirmation = booking_result.get("confirmation")
+    fallback_url = booking_result.get("fallback_url")
+
+    if confirmation:
+        assert confirmation.get("booking_reference"), "booking_reference missing"
+        assert confirmation.get("payment_reference"), "payment_reference missing"
+        assert isinstance(confirmation.get("total_amount"), (int, float)), "total_amount must be numeric"
+        assert confirmation["total_amount"] > 0, "total_amount must be positive"
+        assert confirmation.get("flight_number") == "SG-8194", (
+            f"Expected cheapest flight SG-8194, got {confirmation.get('flight_number')}"
+        )
+        print(f"\n✅ Confirmed: {confirmation['booking_reference']} — ${confirmation['total_amount']}")
+    else:
+        # Graceful fallback is acceptable but worth flagging
+        assert fallback_url, "Expected either confirmation or fallback_url"
+        print(f"\n⚠️  Fallback URL returned: {fallback_url}")
+
+    # ── Flight search produced real results (not fallback hardcoded flight) ──
+    flights = output.get("flight_search_result", {}).get("search_result", {}).get("flights", [])
+    assert len(flights) > 0, "Flight search returned no results"
+    assert any(f["flight_number"] == "SG-8194" for f in flights), (
+        "Expected SpiceJet SG-8194 in search results"
+    )
+
+    # ── Selected flight matches what HITL sent ───────────────────────────────
+    selected = output.get("selected_flight", {}).get("flight", {})
+    assert selected.get("flight_number") == "SG-8194", (
+        f"HITL should have selected cheapest SG-8194, got {selected.get('flight_number')}"
+    )

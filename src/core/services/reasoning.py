@@ -214,18 +214,31 @@ class ReasoningService:
             return ["high", "high", "high"]
         return ["medium", "medium", "high"]
 
-    def generate_booking_plan(self, request: ReasoningRequest) -> ReasoningResult:
+    def generate_booking_plan(self, request: ReasoningRequest, remaining_ms: int = 300_000) -> ReasoningResult:
         """Invoke Nova 2 Lite with in-service retry and dynamic escalation.
 
         Escalation ladder: attempt 1 (initial) → attempt 2 (initial) → attempt 3 (high).
         If all 3 attempts fail, raises ReasoningError for Step Functions graceful degradation.
+
+        Args:
+            remaining_ms: Milliseconds remaining in the Lambda invocation
+                          (from context.get_remaining_time_in_millis()). Used to skip
+                          attempts when insufficient time remains to avoid a hard Lambda timeout.
         """
+        _MIN_ATTEMPT_MS = 30_000  # don't start an attempt with less than 30s left
+
         initial_effort = self._determine_initial_effort(request.confidence_level, request.max_similarity)
         sequence = self._escalation_sequence(initial_effort)
         errors: list[str] = []
         start = time.monotonic()
 
         for attempt, effort in enumerate(sequence):
+            elapsed_ms = (time.monotonic() - start) * 1000
+            if remaining_ms - elapsed_ms < _MIN_ATTEMPT_MS:
+                errors.append(f"attempt {attempt + 1} ({effort}): skipped — insufficient time remaining")
+                logger.warning("reasoning_attempt_skipped", attempt=attempt + 1, effort=effort)
+                break
+
             try:
                 params = self._build_converse_params(request.user_query, request.context_text, effort)
                 response = self._client.converse(**params)

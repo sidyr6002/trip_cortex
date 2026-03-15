@@ -50,7 +50,11 @@ def get_sfn_client() -> Any:
 @lru_cache(maxsize=1)
 def get_bedrock_runtime_client() -> Any:
     config = get_config()
-    return boto3.client("bedrock-runtime", region_name=config.aws_region)
+    return boto3.client(
+        "bedrock-runtime",
+        region_name=config.aws_region,
+        config=BotocoreConfig(read_timeout=280, connect_timeout=10),
+    )
 
 
 @lru_cache(maxsize=1)

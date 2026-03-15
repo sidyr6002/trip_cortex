@@ -303,7 +303,7 @@ Resources:
       CodeUri: ../../src/
       Handler: handlers.reason_plan.handler
       Description: Invokes Nova 2 Lite with Extended Thinking to produce a BookingPlan
-      Timeout: 180
+      Timeout: 300
       VpcConfig:
         SecurityGroupIds:
           - !Ref LambdaSecurityGroupId

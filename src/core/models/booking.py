@@ -70,6 +70,17 @@ class BookingParameters(BaseModel):
 class PolicyConstraints(BaseModel):
     max_budget_usd: float = Field(..., gt=0, le=50_000)
     preferred_vendors: list[str]
+
+    @field_validator("max_budget_usd", mode="before")
+    @classmethod
+    def coerce_budget(cls, v: object) -> object:
+        """LLM returns null when policy doesn't specify a budget — use a safe cap."""
+        return v if v is not None else 10_000.0
+
+    @field_validator("preferred_vendors", mode="before")
+    @classmethod
+    def coerce_vendors(cls, v: object) -> object:
+        return v if v is not None else ["any"]
     advance_booking_days_required: int | None = None
     advance_booking_met: bool
     requires_approval: bool = False
@@ -107,6 +118,11 @@ class BookingPlan(BaseModel):
     reasoning_summary: str
     warnings: list[str] = []
     fallback_url: str | None = None
+
+    @field_validator("policy_sources", "warnings", mode="before")
+    @classmethod
+    def coerce_list(cls, v: object) -> object:
+        return v if v is not None else []
 
     @classmethod
     def strict_defaults(

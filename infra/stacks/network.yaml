@@ -10,6 +10,10 @@ Parameters:
   StackPrefix:
     Type: String
 
+Conditions:
+  UseNatGateway: !Equals [!Ref Environment, prod]
+  UseNatInstance: !Not [!Equals [!Ref Environment, prod]]
+
 Resources:
 
   # ── VPC ──────────────────────────────────────────────────────────────────────
@@ -123,6 +127,7 @@ Resources:
 
   NatGatewayEIP:
     Type: AWS::EC2::EIP
+    Condition: UseNatGateway
     DependsOn: VPCGatewayAttachment
     Properties:
       Domain: vpc
@@ -138,12 +143,69 @@ Resources:
 
   NatGateway:
     Type: AWS::EC2::NatGateway
+    Condition: UseNatGateway
     Properties:
       AllocationId: !GetAtt NatGatewayEIP.AllocationId
       SubnetId: !Ref PublicSubnetA
       Tags:
         - Key: Name
           Value: !Sub "${StackPrefix}-nat"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  # ── NAT Instance (dev/staging only) ──────────────────────────────────────────
+
+  NatInstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: UseNatInstance
+    Properties:
+      GroupDescription: Security group for NAT instance
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          CidrIp: 10.0.0.0/16
+          Description: All traffic from VPC
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: All outbound
+      Tags:
+        - Key: Name
+          Value: !Sub "${StackPrefix}-nat-instance-sg"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
+  NatInstance:
+    Type: AWS::EC2::Instance
+    Condition: UseNatInstance
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      InstanceType: t4g.nano
+      ImageId: !Sub "resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
+      SubnetId: !Ref PublicSubnetA
+      SecurityGroupIds:
+        - !Ref NatInstanceSecurityGroup
+      SourceDestCheck: false
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          yum install -y iptables-services
+          sysctl -w net.ipv4.ip_forward=1
+          echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
+          iptables -t nat -A POSTROUTING -o ens5 -j MASQUERADE
+          systemctl enable iptables
+          service iptables save
+      Tags:
+        - Key: Name
+          Value: !Sub "${StackPrefix}-nat-instance"
         - Key: Environment
           Value: !Ref Environment
         - Key: Project
@@ -199,12 +261,23 @@ Resources:
         - Key: ManagedBy
           Value: sam
 
-  PrivateRoute:
+  # PrivateRoute: kept same logical name for CloudFormation continuity; target switches by condition
+
+  PrivateRouteViaNatGateway:
     Type: AWS::EC2::Route
+    Condition: UseNatGateway
     Properties:
       RouteTableId: !Ref PrivateRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId: !Ref NatGateway
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Condition: UseNatInstance
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      InstanceId: !Ref NatInstance
 
   PrivateSubnetARouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
