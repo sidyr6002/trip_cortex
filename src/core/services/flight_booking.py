@@ -35,6 +35,8 @@ def build_booking_audit_entry(
     fallback_url_set: bool,
     warnings: list[str],
     latency_ms: float,
+    total_attempts: int = 1,
+    recovery_strategies_used: list[str] | None = None,
 ) -> dict[str, Any]:
     return {
         "auditId": f"flight-booking-{uuid4()}",
@@ -47,6 +49,8 @@ def build_booking_audit_entry(
             "total_amount": confirmation.total_amount if confirmation else None,
             "fallback_url_set": fallback_url_set,
             "warnings": warnings,
+            "total_attempts": total_attempts,
+            "recovery_strategies_used": recovery_strategies_used or [],
         },
         "latency_ms": latency_ms,
     }

@@ -114,7 +114,7 @@
         {
           "ErrorEquals": ["States.TaskFailed"],
           "IntervalSeconds": 5,
-          "MaxAttempts": 2,
+          "MaxAttempts": 1,
           "BackoffRate": 2
         }
       ],
@@ -125,7 +125,18 @@
           "Next": "NotifyUserOfError"
         }
       ],
-      "Next": "SendFlightOptions"
+      "Next": "CheckSearchResult"
+    },
+    "CheckSearchResult": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.flight_search_result.search_result.total_results",
+          "NumericEquals": 0,
+          "Next": "NotifyFallback"
+        }
+      ],
+      "Default": "SendFlightOptions"
     },
     "SendFlightOptions": {
       "Type": "Task",
@@ -178,7 +189,26 @@
           "Next": "NotifyUserOfError"
         }
       ],
-      "Next": "NotifyBookingComplete"
+      "Next": "CheckBookingResult"
+    },
+    "CheckBookingResult": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "And": [
+            {
+              "Variable": "$.booking_result.confirmation",
+              "IsPresent": false
+            },
+            {
+              "Variable": "$.booking_result.fallback_url",
+              "IsPresent": true
+            }
+          ],
+          "Next": "NotifyFallback"
+        }
+      ],
+      "Default": "NotifyBookingComplete"
     },
     "NotifyBookingComplete": {
       "Type": "Task",
@@ -190,6 +220,26 @@
         "confirmation.$": "$.booking_result.confirmation"
       },
       "ResultPath": null,
+      "End": true
+    },
+    "NotifyFallback": {
+      "Type": "Task",
+      "Resource": "${ResponseSenderFunctionArn}",
+      "Parameters": {
+        "type": "fallback",
+        "connection_id.$": "$.connection_id",
+        "booking_id.$": "$.booking_id",
+        "fallback_url.$": "$.flight_search_result.fallback_url",
+        "warnings.$": "$.flight_search_result.warnings"
+      },
+      "ResultPath": null,
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyUserOfError"
+        }
+      ],
       "End": true
     },
     "NotifyUserOfError": {

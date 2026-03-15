@@ -86,6 +86,8 @@ def build_flight_search_audit_entry(
     fallback_url_set: bool,
     warnings: list[str],
     latency_ms: float,
+    total_attempts: int = 1,
+    recovery_strategies_used: list[str] | None = None,
 ) -> dict[str, Any]:
     return {
         "auditId": f"flight-search-{uuid4()}",
@@ -98,8 +100,33 @@ def build_flight_search_audit_entry(
             "flights_returned": flights_returned,
             "fallback_url_set": fallback_url_set,
             "warnings": warnings,
+            "total_attempts": total_attempts,
+            "recovery_strategies_used": recovery_strategies_used or [],
         },
         "latency_ms": latency_ms,
+    }
+
+
+def build_recovery_audit_entry(
+    booking_id: str,
+    employee_id: str,
+    attempt: int,
+    strategy: str,
+    error_type: str,
+    success: bool,
+    latency_ms: float,
+) -> dict[str, Any]:
+    now = datetime.now(timezone.utc)
+    return {
+        "auditId": f"recovery-{uuid4()}",
+        "bookingId": booking_id,
+        "employeeId": employee_id,
+        "timestamp": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "event": "recovery_attempt",
+        "input": {"attempt": attempt, "strategy": strategy, "error_type": error_type},
+        "output": {"success": success},
+        "latency_ms": latency_ms,
+        "ttl": int(now.timestamp()) + 90 * 86400,
     }
 
 
@@ -138,4 +165,6 @@ def _to_dynamo(obj: Any) -> Any:
         return {"N": str(obj)}
     if obj is None:
         return {"NULL": True}
+    if isinstance(obj, list):
+        return {"L": [_to_dynamo(item) for item in obj]}
     return {"S": str(obj)}
