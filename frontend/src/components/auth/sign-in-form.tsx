@@ -44,9 +44,11 @@ export function SignInForm() {
     setServerError(null)
     const { error } = await signIn.password({ emailAddress: email, password })
     if (error) {
+      console.error('[SignIn] password error:', error)
       setServerError(mapError(error.code))
       return
     }
+    console.log('[SignIn] status after password:', signIn.status)
     if (signIn.status === 'complete') {
       await signIn.finalize({
         navigate: ({ decorateUrl }) => {
@@ -57,6 +59,7 @@ export function SignInForm() {
   }
 
   async function signInWithGoogle() {
+    console.log('[SignIn] initiating Google SSO')
     await signIn.sso({
       strategy: 'oauth_google',
       redirectUrl: '/sso-callback',
@@ -160,6 +163,12 @@ export function SignInForm() {
           <div role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {serverError}
           </div>
+        )}
+
+        {import.meta.env.DEV && signIn.status && (
+          <pre className="rounded bg-muted p-2 text-xs text-muted-foreground overflow-auto">
+            status: {signIn.status}
+          </pre>
         )}
 
         <Button type="submit" className="w-full" disabled={loading} size="lg">

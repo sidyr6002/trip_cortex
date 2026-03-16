@@ -17,7 +17,11 @@ declare module '@tanstack/react-router' {
 }
 
 function App() {
-  const { isSignedIn } = useAuth()
+  const { isSignedIn, isLoaded } = useAuth()
+
+  // Wait for Clerk to resolve session before rendering routes
+  if (!isLoaded) return null
+
   return (
     <RouterProvider
       router={router}

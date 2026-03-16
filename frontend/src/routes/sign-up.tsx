@@ -1,7 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { SignUpForm } from '@/components/auth/sign-up-form'
 
 export const Route = createFileRoute('/sign-up')({
+  beforeLoad: ({ context }) => {
+    if (context.isSignedIn) throw redirect({ to: '/booking' })
+  },
   component: SignUpPage,
 })
 

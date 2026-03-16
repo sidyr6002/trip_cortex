@@ -36,6 +36,7 @@ const CLERK_ERROR_MAP: Record<string, string> = {
   too_many_requests: 'Too many attempts. Please wait a moment and try again.',
   form_code_incorrect: 'Incorrect code. Please try again.',
   verification_expired: 'The code has expired. Please request a new one.',
+  session_exists: 'You are already signed in. Please sign out first.',
 }
 
 function mapError(code: string) {
@@ -71,11 +72,26 @@ export function SignUpForm() {
       lastName,
     })
     if (error) {
+      console.error('[SignUp] password error:', error)
       setServerError(mapError(error.code))
       return
     }
+    console.log('[SignUp] status after password:', signUp.status)
+
+    if (signUp.status === 'complete') {
+      // Email verification disabled — finalize immediately
+      await signUp.finalize({
+        navigate: ({ decorateUrl }) => {
+          navigate({ to: decorateUrl('/booking') as '/booking' })
+        },
+      })
+      return
+    }
+
+    // Email verification enabled — send OTP
     const { error: sendError } = await signUp.verifications.sendEmailCode()
     if (sendError) {
+      console.error('[SignUp] sendEmailCode error:', sendError)
       setServerError(mapError(sendError.code))
       return
     }
@@ -86,9 +102,11 @@ export function SignUpForm() {
     setServerError(null)
     const { error } = await signUp.verifications.verifyEmailCode({ code })
     if (error) {
+      console.error('[SignUp] verifyEmailCode error:', error)
       setServerError(mapError(error.code))
       return
     }
+    console.log('[SignUp] status after verify:', signUp.status)
     if (signUp.status === 'complete') {
       await signUp.finalize({
         navigate: ({ decorateUrl }) => {
@@ -99,6 +117,7 @@ export function SignUpForm() {
   }
 
   async function signUpWithGoogle() {
+    console.log('[SignUp] initiating Google SSO')
     await signUp.sso({
       strategy: 'oauth_google',
       redirectUrl: '/sso-callback',
