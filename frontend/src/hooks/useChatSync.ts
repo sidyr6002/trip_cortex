@@ -40,6 +40,9 @@ export function useChatSync() {
         case 'options_presented':
           addMessage({ role: 'system', type: 'flight_options' })
           break
+        case 'payment_pending':
+          addMessage({ role: 'system', type: 'payment_confirmation' })
+          break
         case 'booking':
           addMessage({
             role: 'system',

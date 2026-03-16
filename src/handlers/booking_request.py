@@ -55,6 +55,21 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         )
         return {"statusCode": 200}
 
+    if action == "confirm_payment":
+        dynamo = get_dynamo_client()
+        dynamo.update_item(
+            TableName=config.bookings_table,
+            Key={"employeeId": {"S": body["employee_id"]}, "bookingId": {"S": body["booking_id"]}},
+            UpdateExpression="SET connectionId = :c",
+            ExpressionAttributeValues={":c": {"S": connection_id}},
+        )
+        token = pop_task_token(dynamo, config.bookings_table, body["booking_id"], body["employee_id"])
+        if body.get("approved"):
+            get_sfn_client().send_task_success(taskToken=token, output="{}")
+        else:
+            get_sfn_client().send_task_failure(taskToken=token, error="UserCancelled", cause="User declined payment")
+        return {"statusCode": 200}
+
     # Initial request — guard against concurrent active bookings
     employee_id = body["employee_id"]
     booking_id = body["booking_id"]

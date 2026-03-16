@@ -21,6 +21,7 @@ type BookingStatus =
   | 'searching'
   | 'options_presented'
   | 'user_selected'
+  | 'payment_pending'
   | 'booking'
   | 'confirmed'
   | 'failed'
@@ -38,6 +39,8 @@ interface BookingState {
     totalAmount: number
     flightNumber: string
   } | null
+  paymentFlight: any | null
+  paymentPassengers: any[] | null
   error: string | null
   send: (msg: object) => void
   reset: () => void
@@ -49,6 +52,8 @@ const initialBookingState = {
   progressMessages: [],
   flightOptions: [],
   confirmation: null,
+  paymentFlight: null,
+  paymentPassengers: null,
   error: null,
 }
 

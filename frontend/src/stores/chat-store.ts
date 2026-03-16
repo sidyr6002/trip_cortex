@@ -5,6 +5,7 @@ export type ChatMessage =
   | { role: 'system'; type: 'status'; text: string }
   | { role: 'system'; type: 'progress'; text: string }
   | { role: 'system'; type: 'flight_options' }
+  | { role: 'system'; type: 'payment_confirmation' }
   | { role: 'system'; type: 'confirmed'; text: string; confirmation?: { bookingReference: string; paymentReference: string; totalAmount: number; flightNumber: string } }
   | { role: 'system'; type: 'error'; text: string }
 

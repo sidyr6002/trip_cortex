@@ -65,6 +65,14 @@ export function useWebSocket(): void {
             bookingStatus: 'options_presented',
           })
           break
+        case 'payment_confirmation':
+          setState({
+            bookingId,
+            bookingStatus: 'payment_pending',
+            paymentFlight: data.flight,
+            paymentPassengers: data.passengers,
+          })
+          break
         case 'booking_in_progress':
           setState({ bookingStatus: 'booking' })
           break

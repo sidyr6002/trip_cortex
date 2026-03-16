@@ -34,6 +34,20 @@ def handler(event: dict[str, Any], context: Any) -> None:
             "booking_id": event["booking_id"],
             "flights": event["flights"],
         }
+    elif msg_type == "payment_confirmation":
+        store_task_token(
+            get_dynamo_client(),
+            config.bookings_table,
+            event["booking_id"],
+            event["employee_id"],
+            event["task_token"],
+        )
+        payload = {
+            "type": "payment_confirmation",
+            "booking_id": event["booking_id"],
+            "flight": event["flight"],
+            "passengers": event["passengers"],
+        }
     elif msg_type == "booking_complete":
         payload = {
             "type": "booking_complete",

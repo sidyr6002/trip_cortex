@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils'
 import type { ChatMessage } from '@/stores/chat-store'
 import { FlightSelection } from './flight-selection'
 import { BookingConfirmation } from './booking-confirmation'
+import { PaymentConfirmation } from './payment-confirmation'
 
 export function ChatMessageBubble({ msg }: { msg: ChatMessage }) {
   if (msg.role === 'user') {
@@ -58,6 +59,14 @@ export function ChatMessageBubble({ msg }: { msg: ChatMessage }) {
         <div className="max-w-[85%]">
           <FlightSelection />
         </div>
+      </div>
+    )
+  }
+
+  if (msg.type === 'payment_confirmation') {
+    return (
+      <div className="flex">
+        <PaymentConfirmation />
       </div>
     )
   }

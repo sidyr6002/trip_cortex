@@ -239,6 +239,43 @@
           "Next": "NotifyUserOfError"
         }
       ],
+      "Next": "SendPaymentConfirmation"
+    },
+    "SendPaymentConfirmation": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+      "Parameters": {
+        "FunctionName": "${SendFlightOptionsFunctionArn}",
+        "Payload": {
+          "type": "payment_confirmation",
+          "task_token.$": "$$.Task.Token",
+          "connection_id.$": "$.connection_id",
+          "booking_id.$": "$.booking_id",
+          "employee_id.$": "$.employee_id",
+          "flight.$": "$.selected_flight.flight",
+          "passengers.$": "$.selected_flight.passengers"
+        }
+      },
+      "HeartbeatSeconds": 600,
+      "TimeoutSeconds": 1800,
+      "ResultPath": "$.payment_approved",
+      "Catch": [
+        {
+          "ErrorEquals": ["UserCancelled"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyUserOfError"
+        },
+        {
+          "ErrorEquals": ["States.HeartbeatTimeout", "States.Timeout"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyUserOfError"
+        },
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyUserOfError"
+        }
+      ],
       "Next": "InvokeFlightBooking"
     },
     "InvokeFlightBooking": {
