@@ -12,6 +12,8 @@ class FlightOption(BaseModel):
     stops: int = Field(..., ge=0, description="Number of stops")
     cabin_class: str = Field(..., description="Cabin class")
     duration: str | None = Field(None, description="Flight duration (e.g., 3h 30m)")
+    compliant: bool = Field(True, description="Whether flight meets policy constraints")
+    policy_notes: list[str] = Field(default_factory=list, description="Policy violation notes")
 
 
 class FlightSearchResult(BaseModel):

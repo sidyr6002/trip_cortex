@@ -110,6 +110,7 @@ const BASE_SEGMENTS = [
   // DEL ↔ BOM (more timings)
   { id: 35, airlineId: 'air_4', flightNumber: 'UK-933', from: 'apt_1', to: 'apt_2', depTime: '09:00:00', duration: 130 },
   { id: 36, airlineId: 'air_1', flightNumber: '6E-2210', from: 'apt_1', to: 'apt_2', depTime: '20:30:00', duration: 140 },
+  { id: 133, airlineId: 'air_4', flightNumber: 'UK-955', from: 'apt_1', to: 'apt_2', depTime: '14:00:00', duration: 125 },
   { id: 37, airlineId: 'air_3', flightNumber: 'SG-8170', from: 'apt_2', to: 'apt_1', depTime: '07:00:00', duration: 140 },
   { id: 38, airlineId: 'air_1', flightNumber: '6E-2290', from: 'apt_2', to: 'apt_1', depTime: '14:00:00', duration: 135 },
 
@@ -263,24 +264,30 @@ const BASE_SEGMENTS = [
 ];
 
 // Generate segments for 7 days
-export const SEGMENT_TABLE: FlightSegment[] = [];
-for (let day = 0; day < 7; day++) {
-  const dateStr = getDateString(day);
-  BASE_SEGMENTS.forEach(seg => {
-    const depTime = `${dateStr}T${seg.depTime}`;
-    const arrTime = addMinutesToTime(depTime, seg.duration);
-    SEGMENT_TABLE.push({
-      id: `seg_${seg.id}_d${day}`,
-      airlineId: seg.airlineId,
-      flightNumber: seg.flightNumber,
-      departureAirportId: seg.from,
-      arrivalAirportId: seg.to,
-      departureTime: depTime,
-      arrivalTime: arrTime,
-      durationMinutes: seg.duration,
+// NOTE: exported as a function so callers can invoke at request-time (not module-init time)
+// Cloudflare Workers freeze Date during module evaluation, so new Date() at module level returns epoch.
+export function buildSegmentTable(): FlightSegment[] {
+  const table: FlightSegment[] = [];
+  for (let day = 0; day < 7; day++) {
+    const dateStr = getDateString(day);
+    BASE_SEGMENTS.forEach(seg => {
+      const depTime = `${dateStr}T${seg.depTime}`;
+      const arrTime = addMinutesToTime(depTime, seg.duration);
+      table.push({
+        id: `seg_${seg.id}_d${day}`,
+        airlineId: seg.airlineId,
+        flightNumber: seg.flightNumber,
+        departureAirportId: seg.from,
+        arrivalAirportId: seg.to,
+        departureTime: depTime,
+        arrivalTime: arrTime,
+        durationMinutes: seg.duration,
+      });
     });
-  });
+  }
+  return table;
 }
+export const SEGMENT_TABLE: FlightSegment[] = buildSegmentTable();
 
 // ── Flights (journeys composed of segments) ────────────────────────
 
@@ -322,6 +329,7 @@ const BASE_FLIGHTS = [
   // DEL ↔ BOM
   { id: 28, from: 'apt_1', to: 'apt_2', segs: [35], duration: 130, type: 'Direct', status: 'available' },
   { id: 29, from: 'apt_1', to: 'apt_2', segs: [36], duration: 140, type: 'Direct', status: 'available' },
+  { id: 134, from: 'apt_1', to: 'apt_2', segs: [133], duration: 125, type: 'Direct', status: 'available' },
   { id: 30, from: 'apt_2', to: 'apt_1', segs: [37], duration: 140, type: 'Direct', status: 'available' },
   { id: 31, from: 'apt_2', to: 'apt_1', segs: [38], duration: 135, type: 'Direct', status: 'available' },
   // DEL ↔ BLR
@@ -647,6 +655,7 @@ const BASE_PRICING = [
   { flightId: 131, prices: [{ class: 'class_1', price: 97 }] },   // CCU → BOM
   { flightId: 132, prices: [{ class: 'class_1', price: 215 }] },  // DEL → DXB
   { flightId: 133, prices: [{ class: 'class_1', price: 290 }] },  // BLR → SIN
+  { flightId: 134, prices: [{ class: 'class_1', price: 145 }, { class: 'class_3', price: 420 }] },  // DEL → BOM (premium)
 ];
 
 // Generate pricing for all flights across 7 days

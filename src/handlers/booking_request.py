@@ -24,8 +24,21 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     body = json.loads(event.get("body") or "{}")
     connection_id = event["requestContext"]["connectionId"]
 
-    if body.get("action") == "select_flight":
+    action = body.get("action")
+
+    if action == "ping":
+        return {"statusCode": 200, "body": "pong"}
+
+    if action == "select_flight":
         # HITL resume — user selected a flight
+        dynamo = get_dynamo_client()
+        # Refresh connection ID so ResponseSender can reach the user after long Nova Act runs
+        dynamo.update_item(
+            TableName=config.bookings_table,
+            Key={"employeeId": {"S": body["employee_id"]}, "bookingId": {"S": body["booking_id"]}},
+            UpdateExpression="SET connectionId = :c",
+            ExpressionAttributeValues={":c": {"S": connection_id}},
+        )
         token = pop_task_token(
             get_dynamo_client(),
             config.bookings_table,
@@ -40,6 +53,21 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                 "search_url": body["search_url"],
             }),
         )
+        return {"statusCode": 200}
+
+    if action == "confirm_payment":
+        dynamo = get_dynamo_client()
+        dynamo.update_item(
+            TableName=config.bookings_table,
+            Key={"employeeId": {"S": body["employee_id"]}, "bookingId": {"S": body["booking_id"]}},
+            UpdateExpression="SET connectionId = :c",
+            ExpressionAttributeValues={":c": {"S": connection_id}},
+        )
+        token = pop_task_token(dynamo, config.bookings_table, body["booking_id"], body["employee_id"])
+        if body.get("approved"):
+            get_sfn_client().send_task_success(taskToken=token, output="{}")
+        else:
+            get_sfn_client().send_task_failure(taskToken=token, error="UserCancelled", cause="User declined payment")
         return {"statusCode": 200}
 
     # Initial request — guard against concurrent active bookings

@@ -26,8 +26,8 @@ from core.services.task_token import pop_task_token  # noqa: E402
 REGION = "us-east-1"
 STATE_MACHINE_ARN = "arn:aws:states:us-east-1:591618107284:stateMachine:trip-cortex-dev-booking-workflow"
 BOOKINGS_TABLE = "trip-cortex-dev-bookings"
-POLL_INTERVAL_S = 30
-TIMEOUT_S = 1200  # 20 min — ReasonAndPlan (~8 min) + 2x ACR (~5 min each) + buffer
+POLL_INTERVAL_S = 15
+TIMEOUT_S = 600  # 10 min — ReasonAndPlan (~8 min) + portal API search (instant) + buffer
 HITL_TIMEOUT_S = TIMEOUT_S - 60
 
 pytestmark = pytest.mark.e2e
@@ -77,7 +77,7 @@ def _get_flight_options_from_history(sfn_client, execution_arn: str) -> list:
             details = event.get("stateExitedEventDetails", {})
             if details.get("name") == "InvokeFlightSearch":
                 output = json.loads(details.get("output", "{}"))
-                return output.get("flight_search_result", {}).get("search_result", {}).get("flights", [])
+                return output.get("search_result", {}).get("flights", [])
     return []
 
 
@@ -176,8 +176,8 @@ def test_full_booking_workflow_del_to_bom(sfn, dynamo):
         assert fallback_url, "Expected either confirmation or fallback_url"
         print(f"\n⚠️  Fallback URL returned: {fallback_url}")
 
-    # ── Flight search produced real results (not fallback hardcoded flight) ──
-    flights = output.get("flight_search_result", {}).get("search_result", {}).get("flights", [])
+    # ── Flight search produced real results ──────────────────────────────────
+    flights = _get_flight_options_from_history(sfn, execution_arn)
     assert len(flights) > 0, "Flight search returned no results"
     assert any(f["flight_number"] == "SG-8194" for f in flights), (
         "Expected SpiceJet SG-8194 in search results"

@@ -2,6 +2,7 @@
 
 import json
 import time
+from datetime import date
 from typing import Any
 
 import structlog
@@ -23,6 +24,7 @@ SYSTEM_PROMPT = (
     "- If a parameter cannot be determined from the request or policy, set it to null.\n"
     "- Use IATA 3-letter airport codes (uppercase) for origin and destination.\n"
     "- Dates must be ISO 8601 format (YYYY-MM-DD).\n"
+    "- Today's date is {today}. Use this to resolve relative dates like 'next Monday' or 'March 18'.\n"
     "- cabin_class must be one of: economy, premium_economy, business, first.\n"
     "- Respond with ONLY the JSON object. No markdown fences, no explanation, no preamble."
 )
@@ -78,7 +80,7 @@ class ReasoningService:
         """Build kwargs for bedrock_client.converse()."""
         params: dict[str, Any] = {
             "modelId": self._model_id,
-            "system": [{"text": SYSTEM_PROMPT}],
+            "system": [{"text": SYSTEM_PROMPT.format(today=date.today().isoformat())}],
             "messages": [
                 {
                     "role": "user",
@@ -183,6 +185,9 @@ class ReasoningService:
         try:
             return BookingPlan.model_validate(data)
         except PydanticValidationError as e:
+            logger.warning("pydantic_errors", errors=e.errors(), raw_keys=list(data.keys()),
+                           params_keys=list(data.get("parameters", {}).keys()) if isinstance(data.get("parameters"), dict) else None,
+                           raw_params=data.get("parameters"))
             raise ReasoningError(
                 f"BookingPlan validation failed: {e.error_count()} errors — {e.errors()[0]['msg']}",
                 code=ErrorCode.INVALID_PLAN,

@@ -40,10 +40,8 @@ deploy_workflow() {
   echo "  ✅ $name deployed"
 }
 
-deploy_workflow "trip-cortex-flight-search" "flight_search.py"
 deploy_workflow "trip-cortex-flight-booking" "flight_booking.py"
 
 echo ""
 echo "Done. Verify with:"
-echo "  $ACT workflow show --name trip-cortex-flight-search"
 echo "  $ACT workflow show --name trip-cortex-flight-booking"

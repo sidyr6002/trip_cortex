@@ -51,9 +51,6 @@ Parameters:
     Type: String
   EmbeddingQueueUrl:
     Type: String
-  NovaActSearchAgentArn:
-    Type: String
-    Description: ACR runtime ARN for trip-cortex-flight-search
   NovaActBookingAgentArn:
     Type: String
     Description: ACR runtime ARN for trip-cortex-flight-booking
@@ -404,31 +401,11 @@ Resources:
     Properties:
       CodeUri: ../../src/
       Handler: handlers.invoke_flight_search.handler
-      Description: Invokes ACR flight search workflow
-      Timeout: 300
+      Description: Searches flights via dummy portal REST API
+      Timeout: 30
       Environment:
         Variables:
-          NOVA_ACT_SEARCH_AGENT_ARN: !Ref NovaActSearchAgentArn
           DUMMY_PORTAL_URL: !Ref DummyPortalUrl
-          NOVA_ACT_SEARCH_WORKFLOW: trip-cortex-flight-search
-          NOVA_ACT_HEADLESS: "true"
-          CIRCUIT_BREAKER_TABLE: !Ref CircuitBreakerTableName
-          AUDIT_LOG_TABLE: !Ref AuditLogTableName
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action: bedrock-agentcore:InvokeAgentRuntime
-              Resource:
-                - !Ref NovaActSearchAgentArn
-                - !Sub "${NovaActSearchAgentArn}/*"
-            - Effect: Allow
-              Action:
-                - dynamodb:GetItem
-                - dynamodb:UpdateItem
-                - dynamodb:PutItem
-              Resource:
-                - !Ref CircuitBreakerTableArn
-                - !Ref AuditLogTableArn
 
   InvokeFlightBookingFunction:
     Type: AWS::Serverless::Function

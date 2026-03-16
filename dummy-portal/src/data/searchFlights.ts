@@ -3,7 +3,7 @@ import {
   AIRPORT_TABLE,
   CLASS_TABLE,
   FLIGHT_TABLE,
-  SEGMENT_TABLE,
+  buildSegmentTable,
   PRICING_TABLE,
   AIRLINE_TABLE,
   FACILITY_TABLE,
@@ -19,6 +19,7 @@ export interface SearchParams {
 }
 
 export function searchFlights(params: SearchParams = {}): FlightListing[] {
+  const SEGMENT_TABLE = buildSegmentTable();
   const {
     originAirportCode,
     destinationAirportCode,

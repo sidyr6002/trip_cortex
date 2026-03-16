@@ -19,10 +19,15 @@ def _coerce_date(v: object) -> object:
 
 
 class PolicySource(BaseModel):
-    chunk_id: str
-    section_title: str
-    page: int
-    similarity_score: float = Field(..., ge=0.0, le=1.0)
+    chunk_id: str = ""
+    section_title: str = ""
+    page: int = 0
+    similarity_score: float = Field(default=0.0, ge=0.0, le=1.0)
+
+    @field_validator("chunk_id", "section_title", mode="before")
+    @classmethod
+    def coerce_null_str(cls, v: object) -> object:
+        return v if v is not None else ""
 
 
 class BookingParameters(BaseModel):
