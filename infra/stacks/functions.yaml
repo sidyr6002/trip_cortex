@@ -410,6 +410,7 @@ Resources:
           NOVA_ACT_SEARCH_WORKFLOW: trip-cortex-flight-search
           NOVA_ACT_HEADLESS: "true"
           CIRCUIT_BREAKER_TABLE: !Ref CircuitBreakerTableName
+          AUDIT_LOG_TABLE: !Ref AuditLogTableName
       Policies:
         - Statement:
             - Effect: Allow
@@ -422,7 +423,9 @@ Resources:
                 - dynamodb:GetItem
                 - dynamodb:UpdateItem
                 - dynamodb:PutItem
-              Resource: !Ref CircuitBreakerTableArn
+              Resource:
+                - !Ref CircuitBreakerTableArn
+                - !Ref AuditLogTableArn
 
   InvokeFlightBookingFunction:
     Type: AWS::Serverless::Function
@@ -440,6 +443,7 @@ Resources:
           PORTAL_TEST_EMAIL: !Sub "{{resolve:secretsmanager:${PortalCredentialsSecretArn}:SecretString:email}}"
           PORTAL_TEST_PASSWORD: !Sub "{{resolve:secretsmanager:${PortalCredentialsSecretArn}:SecretString:password}}"
           CIRCUIT_BREAKER_TABLE: !Ref CircuitBreakerTableName
+          AUDIT_LOG_TABLE: !Ref AuditLogTableName
       Policies:
         - Statement:
             - Effect: Allow
@@ -455,7 +459,9 @@ Resources:
                 - dynamodb:GetItem
                 - dynamodb:UpdateItem
                 - dynamodb:PutItem
-              Resource: !Ref CircuitBreakerTableArn
+              Resource:
+                - !Ref CircuitBreakerTableArn
+                - !Ref AuditLogTableArn
 
   HeartbeatFunction:
     Type: AWS::Serverless::Function

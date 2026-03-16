@@ -35,7 +35,7 @@ class CircuitBreakerService:
             )
         return CircuitBreakerState(
             circuit_id=circuit_id,
-            state=CircuitState(item["state"]["S"]),
+            state=CircuitState(item.get("state", {}).get("S", CircuitState.CLOSED.value)),
             failure_count=int(item["failureCount"]["N"]),
             last_failure_time=float(item["lastFailureTime"]["N"]),
             recovery_timeout=int(item.get("recoveryTimeout", {}).get("N", self._recovery_timeout)),
