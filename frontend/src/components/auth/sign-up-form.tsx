@@ -72,11 +72,9 @@ export function SignUpForm() {
       lastName,
     })
     if (error) {
-      console.error('[SignUp] password error:', error)
       setServerError(mapError(error.code))
       return
     }
-    console.log('[SignUp] status after password:', signUp.status)
 
     if (signUp.status === 'complete') {
       // Email verification disabled — finalize immediately
@@ -91,7 +89,6 @@ export function SignUpForm() {
     // Email verification enabled — send OTP
     const { error: sendError } = await signUp.verifications.sendEmailCode()
     if (sendError) {
-      console.error('[SignUp] sendEmailCode error:', sendError)
       setServerError(mapError(sendError.code))
       return
     }
@@ -102,11 +99,9 @@ export function SignUpForm() {
     setServerError(null)
     const { error } = await signUp.verifications.verifyEmailCode({ code })
     if (error) {
-      console.error('[SignUp] verifyEmailCode error:', error)
       setServerError(mapError(error.code))
       return
     }
-    console.log('[SignUp] status after verify:', signUp.status)
     if (signUp.status === 'complete') {
       await signUp.finalize({
         navigate: ({ decorateUrl }) => {
@@ -117,7 +112,6 @@ export function SignUpForm() {
   }
 
   async function signUpWithGoogle() {
-    console.log('[SignUp] initiating Google SSO')
     await signUp.sso({
       strategy: 'oauth_google',
       redirectUrl: '/sso-callback',
