@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useClerk, useUser } from '@clerk/react'
 import { Button } from '@/components/ui/button'
+import { useWebSocket } from '@/hooks/useWebSocket'
+import { useBookingStore } from '@/stores/booking-store'
 
 export const Route = createFileRoute('/_authed/booking')({
   component: BookingPage,
@@ -9,14 +11,20 @@ export const Route = createFileRoute('/_authed/booking')({
 function BookingPage() {
   const { signOut } = useClerk()
   const { user } = useUser()
+  useWebSocket()
+
+  const connectionStatus = useBookingStore((s) => s.connectionStatus)
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-      <p className="text-muted-foreground text-sm">
+      <p className="text-sm text-muted-foreground">
         Signed in as{' '}
         <span className="font-medium text-foreground">
           {user?.primaryEmailAddress?.emailAddress}
         </span>
+      </p>
+      <p className="text-sm text-muted-foreground">
+        WebSocket: {connectionStatus}
       </p>
       <p className="text-muted-foreground">Booking chat — Story 8.4</p>
       <Button

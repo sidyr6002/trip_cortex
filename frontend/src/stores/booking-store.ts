@@ -1,9 +1,55 @@
 import { create } from 'zustand'
 
-interface BookingState {
-  connectionStatus: 'disconnected' | 'connecting' | 'connected'
+export interface FlightOption {
+  index: number
+  airline: string
+  flightNumber: string
+  departure: string
+  arrival: string
+  duration: string
+  price: number
+  stops: number
+  cabin: string
+  compliant: boolean
+  policyNotes: string[]
 }
 
-export const useBookingStore = create<BookingState>()(() => ({
+type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
+type BookingStatus =
+  | 'idle'
+  | 'initiated'
+  | 'searching'
+  | 'options_presented'
+  | 'user_selected'
+  | 'booking'
+  | 'confirmed'
+  | 'failed'
+  | 'cancelled'
+
+interface BookingState {
+  connectionStatus: ConnectionStatus
+  bookingId: string | null
+  bookingStatus: BookingStatus
+  progressMessages: string[]
+  flightOptions: FlightOption[]
+  confirmationNumber: string | null
+  error: string | null
+  send: (msg: object) => void
+  reset: () => void
+}
+
+const initialBookingState = {
+  bookingId: null,
+  bookingStatus: 'idle' as BookingStatus,
+  progressMessages: [],
+  flightOptions: [],
+  confirmationNumber: null,
+  error: null,
+}
+
+export const useBookingStore = create<BookingState>()((set) => ({
   connectionStatus: 'disconnected',
+  ...initialBookingState,
+  send: () => {},
+  reset: () => set(initialBookingState),
 }))
