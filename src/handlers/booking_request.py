@@ -1,11 +1,22 @@
 """Lambda handler — starts booking workflow or resumes HITL on flight selection."""
 
 import json
+import re
+from datetime import datetime, timezone
 from typing import Any
 
 from core.clients import get_dynamo_client, get_sfn_client
 from core.config import get_config
+from core.errors import ErrorCode, ValidationError
+from core.services.booking_guard import check_active_booking
 from core.services.task_token import pop_task_token
+
+_SFN_NAME_RE = re.compile(r"^[a-zA-Z0-9\-_]{1,74}$")  # leaves room for "booking-" prefix (8 chars) → total ≤ 80
+
+
+def _validate_booking_id(booking_id: str) -> None:
+    if not _SFN_NAME_RE.match(booking_id):
+        raise ValidationError("Invalid booking ID format", code=ErrorCode.INVALID_REQUEST)
 
 
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
@@ -31,14 +42,67 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         )
         return {"statusCode": 200}
 
-    # Initial request — start Step Functions execution
-    get_sfn_client().start_execution(
-        stateMachineArn=config.booking_workflow_arn,
-        input=json.dumps({
-            "connection_id": connection_id,
-            "booking_id": body["booking_id"],
-            "employee_id": body["employee_id"],
-            "user_query": body["user_query"],
-        }),
+    # Initial request — guard against concurrent active bookings
+    employee_id = body["employee_id"]
+    booking_id = body["booking_id"]
+    dynamo = get_dynamo_client()
+
+    try:
+        _validate_booking_id(booking_id)
+        check_active_booking(dynamo, config.bookings_table, employee_id)
+    except ValidationError as exc:
+        return {"statusCode": 409, "body": exc.user_message}
+
+    # Write booking record with conditional put to handle race condition
+    execution_arn = ""
+    try:
+        dynamo.put_item(
+            TableName=config.bookings_table,
+            Item={
+                "employeeId": {"S": employee_id},
+                "bookingId": {"S": booking_id},
+                "status": {"S": "ACTIVE"},
+                "connectionId": {"S": connection_id},
+                "executionArn": {"S": ""},
+                "createdAt": {"S": datetime.now(timezone.utc).isoformat()},
+            },
+            ConditionExpression="attribute_not_exists(employeeId) OR #s <> :active",
+            ExpressionAttributeNames={"#s": "status"},
+            ExpressionAttributeValues={":active": {"S": "ACTIVE"}},
+        )
+    except dynamo.exceptions.ConditionalCheckFailedException:
+        return {"statusCode": 409, "body": "You already have an active booking in progress"}
+
+    # Start Step Functions execution
+    try:
+        resp = get_sfn_client().start_execution(
+            stateMachineArn=config.booking_workflow_arn,
+            name=f"booking-{booking_id}",
+            input=json.dumps({
+                "connection_id": connection_id,
+                "booking_id": booking_id,
+                "employee_id": employee_id,
+                "user_query": body["user_query"],
+            }),
+        )
+        execution_arn = resp["executionArn"]
+    except Exception:
+        # Roll back booking record so employee isn't permanently blocked
+        dynamo.update_item(
+            TableName=config.bookings_table,
+            Key={"employeeId": {"S": employee_id}, "bookingId": {"S": booking_id}},
+            UpdateExpression="SET #s = :failed",
+            ExpressionAttributeNames={"#s": "status"},
+            ExpressionAttributeValues={":failed": {"S": "FAILED"}},
+        )
+        raise
+
+    # Persist executionArn now that we have it
+    dynamo.update_item(
+        TableName=config.bookings_table,
+        Key={"employeeId": {"S": employee_id}, "bookingId": {"S": booking_id}},
+        UpdateExpression="SET executionArn = :arn",
+        ExpressionAttributeValues={":arn": {"S": execution_arn}},
     )
-    return {"statusCode": 200}
+
+    return {"statusCode": 200, "body": json.dumps({"bookingId": booking_id})}
