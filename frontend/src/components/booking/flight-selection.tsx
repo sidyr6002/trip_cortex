@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import { useBookingStore } from '@/stores/booking-store'
 import { useChatStore } from '@/stores/chat-store'
 
@@ -57,7 +58,10 @@ export function FlightSelection() {
   return (
     <div className="space-y-2 px-1">
       <p className="text-sm font-medium text-muted-foreground">
-        {flightOptions.length} flights found — select one:
+        {flightOptions.length} flights found
+        {flightOptions.some((f: any) => f.compliant === false) &&
+          ` · ${flightOptions.filter((f: any) => f.compliant !== false).length} policy-compliant`}
+        {' — select one:'}
       </p>
       <div className="space-y-2">
         {flightOptions.map((f: any, i: number) => (
@@ -68,15 +72,26 @@ export function FlightSelection() {
               'w-full rounded-lg border p-3 text-left text-sm transition-colors',
               selected === i
                 ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/50',
+                : f.compliant === false
+                  ? 'border-amber-300 bg-amber-50/50 hover:border-amber-400 dark:border-amber-700 dark:bg-amber-950/20'
+                  : 'border-border hover:border-primary/50',
             )}
           >
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex items-center gap-2">
                 <span className="font-medium">{f.airline}</span>
-                <span className="ml-2 text-muted-foreground">
+                <span className="text-muted-foreground">
                   {f.flight_number ?? f.flightNumber}
                 </span>
+                {f.compliant === false ? (
+                  <Badge variant="outline" className="border-amber-400 text-amber-600 text-[10px] px-1.5 py-0 dark:text-amber-400">
+                    Policy issue
+                  </Badge>
+                ) : f.compliant === true ? (
+                  <Badge variant="outline" className="border-green-400 text-green-600 text-[10px] px-1.5 py-0 dark:text-green-400">
+                    ✓ Compliant
+                  </Badge>
+                ) : null}
               </div>
               <span className="font-semibold text-primary">
                 ${f.price}
@@ -91,6 +106,11 @@ export function FlightSelection() {
               {' · '}
               {f.cabin_class ?? f.cabin}
             </div>
+            {f.policyNotes?.length > 0 && (
+              <div className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+                {f.policyNotes.join(' · ')}
+              </div>
+            )}
           </button>
         ))}
       </div>

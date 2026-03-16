@@ -56,7 +56,12 @@ export function useWebSocket(): void {
         case 'flight_options':
           setState({
             bookingId,
-            flightOptions: data.flights,
+            flightOptions: (data.flights ?? []).map((f: any) => ({
+              ...f,
+              flightNumber: f.flight_number,
+              policyNotes: f.policy_notes ?? [],
+              compliant: f.compliant ?? true,
+            })),
             bookingStatus: 'options_presented',
           })
           break
@@ -66,12 +71,12 @@ export function useWebSocket(): void {
         case 'booking_complete':
         case 'confirmed':
           setState({
-            confirmation: payload?.confirmation
+            confirmation: data.confirmation
               ? {
-                  bookingReference: payload.confirmation.booking_reference,
-                  paymentReference: payload.confirmation.payment_reference,
-                  totalAmount: payload.confirmation.total_amount,
-                  flightNumber: payload.confirmation.flight_number,
+                  bookingReference: data.confirmation.booking_reference,
+                  paymentReference: data.confirmation.payment_reference,
+                  totalAmount: data.confirmation.total_amount,
+                  flightNumber: data.confirmation.flight_number,
                 }
               : null,
             bookingStatus: 'confirmed',

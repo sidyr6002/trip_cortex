@@ -31,6 +31,14 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     if action == "select_flight":
         # HITL resume — user selected a flight
+        dynamo = get_dynamo_client()
+        # Refresh connection ID so ResponseSender can reach the user after long Nova Act runs
+        dynamo.update_item(
+            TableName=config.bookings_table,
+            Key={"employeeId": {"S": body["employee_id"]}, "bookingId": {"S": body["booking_id"]}},
+            UpdateExpression="SET connectionId = :c",
+            ExpressionAttributeValues={":c": {"S": connection_id}},
+        )
         token = pop_task_token(
             get_dynamo_client(),
             config.bookings_table,

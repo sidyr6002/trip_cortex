@@ -28,6 +28,9 @@ def search_flights_via_api(event: dict[str, Any], config: Config) -> dict[str, A
 
     flights = [_to_flight_option(f) for f in data["flights"]]
 
+    constraints = plan.get("policy_constraints", {})
+    flights = _apply_policy_filters(flights, constraints)
+
     result = FlightSearchOutput(
         booking_id=event["booking_id"],
         employee_id=event["employee_id"],
@@ -59,3 +62,26 @@ def _to_flight_option(f: dict[str, Any]) -> FlightOption:
         cabin_class=f["flightClass"]["name"],
         duration=f"{mins // 60}h {mins % 60}m",
     )
+
+
+def _apply_policy_filters(
+    flights: list[FlightOption], constraints: dict[str, Any]
+) -> list[FlightOption]:
+    max_budget = constraints.get("max_budget_usd")
+    vendors = [v.lower() for v in constraints.get("preferred_vendors", []) if v.lower() != "any"]
+
+    compliant: list[FlightOption] = []
+    non_compliant: list[FlightOption] = []
+
+    for f in flights:
+        notes: list[str] = []
+        if max_budget and f.price > max_budget:
+            notes.append(f"Over budget (${f.price:.0f} > ${max_budget:.0f})")
+        if vendors and f.airline.lower() not in vendors:
+            notes.append(f"Non-preferred airline ({f.airline})")
+
+        tagged = f.model_copy(update={"compliant": len(notes) == 0, "policy_notes": notes})
+        (compliant if tagged.compliant else non_compliant).append(tagged)
+
+    # Return compliant first, then non-compliant — show all so user has context
+    return compliant + non_compliant
