@@ -1,38 +1,33 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useClerk, useUser } from '@clerk/react'
-import { Button } from '@/components/ui/button'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { useBookingStore } from '@/stores/booking-store'
+import { useChatSync } from '@/hooks/useChatSync'
+import { useChatStore } from '@/stores/chat-store'
+import { ChatLayout } from '@/components/booking/chat-layout'
+import { ChatMessageBubble } from '@/components/booking/chat-message'
+import { ChatInput } from '@/components/booking/chat-input'
 
 export const Route = createFileRoute('/_authed/booking')({
   component: BookingPage,
 })
 
 function BookingPage() {
-  const { signOut } = useClerk()
-  const { user } = useUser()
   useWebSocket()
+  useChatSync()
 
-  const connectionStatus = useBookingStore((s) => s.connectionStatus)
+  const messages = useChatStore((s) => s.messages)
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-      <p className="text-sm text-muted-foreground">
-        Signed in as{' '}
-        <span className="font-medium text-foreground">
-          {user?.primaryEmailAddress?.emailAddress}
-        </span>
-      </p>
-      <p className="text-sm text-muted-foreground">
-        WebSocket: {connectionStatus}
-      </p>
-      <p className="text-muted-foreground">Booking chat — Story 8.4</p>
-      <Button
-        variant="outline"
-        onClick={() => signOut({ redirectUrl: '/sign-in' })}
-      >
-        Sign out
-      </Button>
-    </div>
+    <ChatLayout input={<ChatInput />}>
+      <div className="flex flex-col gap-3">
+        {messages.length === 0 && (
+          <p className="text-center text-sm text-muted-foreground">
+            Describe your trip and I'll handle the booking.
+          </p>
+        )}
+        {messages.map((msg, i) => (
+          <ChatMessageBubble key={i} msg={msg} />
+        ))}
+      </div>
+    </ChatLayout>
   )
 }
