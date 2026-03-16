@@ -9,7 +9,6 @@ from core.models.booking import BookingPlan
 from core.models.flight import FlightOption, FlightSearchResult
 from core.services.flight_search import (
     build_fallback_url,
-    build_filter_prompt,
     build_search_url,
     filter_by_constraints,
 )
@@ -61,18 +60,6 @@ class TestBuildSearchUrl:
         p = plan.model_copy(update={"parameters": plan.parameters.model_copy(update={"cabin_class": cabin})})
         _, params = _parse_url(build_search_url(p, BASE_URL))
         assert params["class"] == cabin
-
-
-class TestBuildFilterPrompt:
-    def test_any_returns_none(self, plan: BookingPlan) -> None:
-        assert build_filter_prompt(plan.policy_constraints) is None
-
-    def test_vendors_included_in_prompt(self, plan: BookingPlan) -> None:
-        c = plan.policy_constraints.model_copy(update={"preferred_vendors": ["IndiGo", "Air India"]})
-        prompt = build_filter_prompt(c)
-        assert prompt is not None
-        assert "IndiGo" in prompt
-        assert "Air India" in prompt
 
 
 class TestBuildFallbackUrl:

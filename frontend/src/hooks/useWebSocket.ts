@@ -39,7 +39,8 @@ export function useWebSocket(): void {
         return
       }
 
-      const { type, bookingId, payload } = data
+      const { type, booking_id, payload } = data
+      const bookingId = booking_id
 
       switch (type) {
         case 'booking_initiated':
@@ -47,13 +48,15 @@ export function useWebSocket(): void {
           break
         case 'progress':
           setState((s) => ({
+            bookingId: bookingId ?? s.bookingId,
             bookingStatus: 'searching',
             progressMessages: [...s.progressMessages, payload.message],
           }))
           break
         case 'flight_options':
           setState({
-            flightOptions: payload.options,
+            bookingId,
+            flightOptions: data.flights,
             bookingStatus: 'options_presented',
           })
           break

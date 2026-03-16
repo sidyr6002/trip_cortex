@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import type { ChatMessage } from '@/stores/chat-store'
+import { FlightSelection } from './flight-selection'
 
 export function ChatMessageBubble({ msg }: { msg: ChatMessage }) {
   if (msg.role === 'user') {
@@ -54,8 +55,8 @@ export function ChatMessageBubble({ msg }: { msg: ChatMessage }) {
   if (msg.type === 'flight_options') {
     return (
       <div className="flex">
-        <div className={cn(base, 'italic text-muted-foreground')}>
-          Flight options available — selection UI coming in Story 8.5
+        <div className="max-w-[85%]">
+          <FlightSelection />
         </div>
       </div>
     )
