@@ -497,8 +497,12 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:Query
+                - dynamodb:Scan
                 - dynamodb:UpdateItem
               Resource: !Ref BookingsTableArn
+            - Effect: Allow
+              Action: states:DescribeExecution
+              Resource: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:execution:*"
 
   CompleteBookingFunction:
     Type: AWS::Serverless::Function

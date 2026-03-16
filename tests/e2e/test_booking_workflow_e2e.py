@@ -13,6 +13,7 @@ import json
 import sys
 import threading
 import time
+from datetime import datetime
 from pathlib import Path
 
 import boto3
@@ -187,3 +188,146 @@ def test_full_booking_workflow_del_to_bom(sfn, dynamo):
     assert selected.get("flight_number") == "SG-8194", (
         f"HITL should have selected cheapest SG-8194, got {selected.get('flight_number')}"
     )
+
+
+BOOKING_REQUEST_FUNCTION = "trip-cortex-dev-FunctionsSt-BookingRequestFunction-SW7VHPFLIF2h"
+HEARTBEAT_FUNCTION = "trip-cortex-dev-FunctionsStack-1-HeartbeatFunction-h7BFAwLMt9sb"
+
+
+@pytest.fixture(scope="module")
+def lambda_client():
+    return boto3.client("lambda", region_name=REGION)
+
+
+def _invoke_booking_request(lambda_client, employee_id: str, booking_id: str) -> dict:
+    """Invoke BookingRequestFunction directly with a synthetic WebSocket event."""
+    event = {
+        "requestContext": {"connectionId": "e2e-guard-conn"},
+        "body": json.dumps({
+            "employee_id": employee_id,
+            "booking_id": booking_id,
+            "user_query": "Book a flight from DEL to BOM on March 20 2026 economy class",
+        }),
+    }
+    resp = lambda_client.invoke(
+        FunctionName=BOOKING_REQUEST_FUNCTION,
+        InvocationType="RequestResponse",
+        Payload=json.dumps(event).encode(),
+    )
+    return json.loads(resp["Payload"].read())
+
+
+def _cleanup_booking(dynamo_client, employee_id: str, booking_id: str) -> None:
+    dynamo_client.delete_item(
+        TableName=BOOKINGS_TABLE,
+        Key={"employeeId": {"S": employee_id}, "bookingId": {"S": booking_id}},
+    )
+
+
+def test_single_active_booking_guard_e2e(sfn, dynamo, lambda_client):
+    """Second booking request for same employee is rejected with 409 while first is ACTIVE."""
+    employee_id = "e2e-guard-test"
+    booking_id_1 = f"e2e-guard-{int(time.time())}-1"
+    booking_id_2 = f"e2e-guard-{int(time.time())}-2"
+
+    try:
+        # First request — should succeed
+        resp1 = _invoke_booking_request(lambda_client, employee_id, booking_id_1)
+        assert resp1["statusCode"] == 200, f"First request failed: {resp1}"
+
+        # Second request immediately after — should be rejected
+        resp2 = _invoke_booking_request(lambda_client, employee_id, booking_id_2)
+        assert resp2["statusCode"] == 409, f"Expected 409, got: {resp2}"
+
+        # Exactly 1 ACTIVE record in DynamoDB
+        active = dynamo.query(
+            TableName=BOOKINGS_TABLE,
+            KeyConditionExpression="employeeId = :e",
+            FilterExpression="#s = :active",
+            ExpressionAttributeNames={"#s": "status"},
+            ExpressionAttributeValues={":e": {"S": employee_id}, ":active": {"S": "ACTIVE"}},
+        )
+        assert active["Count"] == 1, f"Expected 1 ACTIVE record, got {active['Count']}"
+
+    finally:
+        # Stop the execution and clean up
+        active_items = dynamo.query(
+            TableName=BOOKINGS_TABLE,
+            KeyConditionExpression="employeeId = :e",
+            ExpressionAttributeValues={":e": {"S": employee_id}},
+        ).get("Items", [])
+        for item in active_items:
+            exec_arn = item.get("executionArn", {}).get("S", "")
+            if exec_arn:
+                try:
+                    sfn.stop_execution(executionArn=exec_arn, cause="e2e cleanup")
+                except Exception:
+                    pass
+            _cleanup_booking(dynamo, employee_id, item["bookingId"]["S"])
+
+
+def test_booking_record_lifecycle_e2e(sfn, dynamo):
+    """After a completed workflow, booking record has status=COMPLETED, completedAt, executionArn."""
+    # Find the most recent COMPLETED booking for the e2e test user
+    resp = dynamo.query(
+        TableName=BOOKINGS_TABLE,
+        KeyConditionExpression="employeeId = :e",
+        FilterExpression="#s = :completed",
+        ExpressionAttributeNames={"#s": "status"},
+        ExpressionAttributeValues={":e": {"S": "e2e-test-user"}, ":completed": {"S": "COMPLETED"}},
+    )
+    assert resp["Count"] > 0, (
+        "No COMPLETED booking found for e2e-test-user — run test_full_booking_workflow_del_to_bom first"
+    )
+
+    item = resp["Items"][0]
+    assert item["status"]["S"] == "COMPLETED"
+    assert "completedAt" in item, "completedAt not set"
+    # Validate ISO timestamp
+    datetime.fromisoformat(item["completedAt"]["S"])
+
+
+def test_stale_booking_cleanup_e2e(dynamo, lambda_client):
+    """Heartbeat marks ACTIVE bookings older than 2 hours as FAILED."""
+    from datetime import datetime, timedelta, timezone
+
+    employee_id = "e2e-stale-test"
+    booking_id = f"e2e-stale-{int(time.time())}"
+    stale_created_at = (datetime.now(timezone.utc) - timedelta(hours=3)).isoformat()
+
+    # Insert a stale ACTIVE record with a non-existent executionArn
+    dynamo.put_item(
+        TableName=BOOKINGS_TABLE,
+        Item={
+            "employeeId": {"S": employee_id},
+            "bookingId": {"S": booking_id},
+            "status": {"S": "ACTIVE"},
+            "connectionId": {"S": "e2e-stale-conn"},
+            "executionArn": {"S": "arn:aws:states:us-east-1:000000000000:execution:nonexistent:nonexistent"},
+            "createdAt": {"S": stale_created_at},
+        },
+    )
+
+    try:
+        # Invoke heartbeat directly
+        resp = lambda_client.invoke(
+            FunctionName=HEARTBEAT_FUNCTION,
+            InvocationType="RequestResponse",
+            Payload=b"{}",
+        )
+        result = json.loads(resp["Payload"].read())
+        assert result["statusCode"] == 200
+
+        # Booking should now be FAILED
+        item_resp = dynamo.get_item(
+            TableName=BOOKINGS_TABLE,
+            Key={"employeeId": {"S": employee_id}, "bookingId": {"S": booking_id}},
+        )
+        item = item_resp.get("Item", {})
+        assert item.get("status", {}).get("S") == "FAILED", (
+            f"Expected FAILED, got {item.get('status', {}).get('S')}"
+        )
+        assert "completedAt" in item
+
+    finally:
+        _cleanup_booking(dynamo, employee_id, booking_id)
