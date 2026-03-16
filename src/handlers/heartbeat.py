@@ -12,11 +12,15 @@ logger = logging.getLogger(__name__)
 
 
 def handler(event: dict[str, Any], context: object) -> dict[str, Any]:
-    """Ping all active connections and clean up stale ones."""
     config = get_config()
     dynamo = get_dynamo_client()
 
-    conn_result = cleanup_stale_connections(dynamo, get_apigw_client(), config.connections_table)
+    conn_result = {"active": 0, "cleaned": 0}
+    try:
+        conn_result = cleanup_stale_connections(dynamo, get_apigw_client(), config.connections_table)
+    except Exception:
+        logger.exception("cleanup_stale_connections failed")
+
     booking_result = cleanup_stale_bookings(dynamo, get_sfn_client(), config.bookings_table)
 
     logger.info(

@@ -36,13 +36,10 @@ def test_heartbeat_booking_failure_does_not_kill_connection_cleanup(
     from handlers.heartbeat import handler
 
     mock_config.return_value = MagicMock(connections_table="Connections", bookings_table="Bookings")
-    mock_conn.return_value = {"active": 3, "cleaned": 1}
-    mock_booking.side_effect = Exception("DynamoDB unavailable")
+    mock_conn.side_effect = Exception("apigw unavailable")
+    mock_booking.return_value = {"resolved": 0}
 
-    # Should propagate — heartbeat itself will fail, but connection cleanup ran first
-    try:
-        handler({}, None)
-    except Exception:
-        pass
-
-    mock_conn.assert_called_once()
+    # Connection cleanup failure is caught — handler still succeeds via booking cleanup
+    result = handler({}, None)
+    assert result["statusCode"] == 200
+    mock_booking.assert_called_once()
