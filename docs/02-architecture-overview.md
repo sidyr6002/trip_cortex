@@ -220,6 +220,7 @@ flowchart TD
   - Step Functions execution name includes `bookingId` — enables per-booking observability from day one.
   - SQS is placed between BDA completion and the embedding Lambda in the ingestion pipeline — smooths burst processing when multiple policy PDFs are uploaded simultaneously.
 - Consequence: Simpler MVP implementation. Lifting the single-booking restriction later requires only a configuration change in the Connection Manager Lambda (remove the active-execution check) and frontend updates to render multiple in-flight bookings. No data model migration needed.
+- Known limitation: The guard is implemented as a DynamoDB query (`check_active_booking`) followed by a conditional `put_item`. These are two separate operations — two simultaneous requests with *different* `bookingId`s can both pass the query and both succeed the conditional write (which only guards duplicate writes for the same `bookingId`). This means two SFN executions could start for the same employee under a race condition. Mitigations in place: (1) `ReservedConcurrentExecutions: 10` on the handler limits burst, (2) real users are unlikely to fire two simultaneous requests from a WebSocket session, (3) the stale booking cleanup resolves any orphaned `ACTIVE` records. A fully atomic fix would use a DynamoDB lock item (`bookingId=LOCK`, `attribute_not_exists(employeeId)`) but is deferred until open question #7 (concurrent bookings) is resolved with Product — if concurrent bookings are allowed, the lock becomes the wrong primitive.
 
 ### ADR-009: Python 3.12 as Runtime
 
