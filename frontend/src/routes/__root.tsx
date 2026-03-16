@@ -1,35 +1,17 @@
-import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
+import { Outlet, createRootRouteWithContext } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 
-export const Route = createRootRoute({
-  component: RootComponent,
-})
+export interface RouterContext {
+  isSignedIn: boolean
+}
 
-function RootComponent() {
-  return (
+export const Route = createRootRouteWithContext<RouterContext>()({
+  component: () => (
     <>
-      <div className="p-2 flex gap-2 text-lg">
-        <Link
-          to="/"
-          activeProps={{
-            className: 'font-bold',
-          }}
-          activeOptions={{ exact: true }}
-        >
-          Home
-        </Link>{' '}
-        <Link
-          to="/about"
-          activeProps={{
-            className: 'font-bold',
-          }}
-        >
-          About
-        </Link>
+      <div className="min-h-screen bg-background">
+        <Outlet />
       </div>
-      <hr />
-      <Outlet />
       <TanStackRouterDevtools position="bottom-right" />
     </>
-  )
-}
+  ),
+})

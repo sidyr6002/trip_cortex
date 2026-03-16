@@ -9,12 +9,30 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AboutRouteImport } from './routes/about'
+import { Route as SsoCallbackRouteImport } from './routes/sso-callback'
+import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as AuthedRouteRouteImport } from './routes/_authed/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthedBookingRouteImport } from './routes/_authed/booking'
 
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
+const SsoCallbackRoute = SsoCallbackRouteImport.update({
+  id: '/sso-callback',
+  path: '/sso-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignUpRoute = SignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthedRouteRoute = AuthedRouteRouteImport.update({
+  id: '/_authed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -22,40 +40,86 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthedBookingRoute = AuthedBookingRouteImport.update({
+  id: '/booking',
+  path: '/booking',
+  getParentRoute: () => AuthedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
+  '/sso-callback': typeof SsoCallbackRoute
+  '/booking': typeof AuthedBookingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
+  '/sso-callback': typeof SsoCallbackRoute
+  '/booking': typeof AuthedBookingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/_authed': typeof AuthedRouteRouteWithChildren
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
+  '/sso-callback': typeof SsoCallbackRoute
+  '/_authed/booking': typeof AuthedBookingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about'
+  fullPaths: '/' | '/sign-in' | '/sign-up' | '/sso-callback' | '/booking'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about'
-  id: '__root__' | '/' | '/about'
+  to: '/' | '/sign-in' | '/sign-up' | '/sso-callback' | '/booking'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authed'
+    | '/sign-in'
+    | '/sign-up'
+    | '/sso-callback'
+    | '/_authed/booking'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
+  AuthedRouteRoute: typeof AuthedRouteRouteWithChildren
+  SignInRoute: typeof SignInRoute
+  SignUpRoute: typeof SignUpRoute
+  SsoCallbackRoute: typeof SsoCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
+    '/sso-callback': {
+      id: '/sso-callback'
+      path: '/sso-callback'
+      fullPath: '/sso-callback'
+      preLoaderRoute: typeof SsoCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-up': {
+      id: '/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof SignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authed': {
+      id: '/_authed'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -65,12 +129,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authed/booking': {
+      id: '/_authed/booking'
+      path: '/booking'
+      fullPath: '/booking'
+      preLoaderRoute: typeof AuthedBookingRouteImport
+      parentRoute: typeof AuthedRouteRoute
+    }
   }
 }
 
+interface AuthedRouteRouteChildren {
+  AuthedBookingRoute: typeof AuthedBookingRoute
+}
+
+const AuthedRouteRouteChildren: AuthedRouteRouteChildren = {
+  AuthedBookingRoute: AuthedBookingRoute,
+}
+
+const AuthedRouteRouteWithChildren = AuthedRouteRoute._addFileChildren(
+  AuthedRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
+  AuthedRouteRoute: AuthedRouteRouteWithChildren,
+  SignInRoute: SignInRoute,
+  SignUpRoute: SignUpRoute,
+  SsoCallbackRoute: SsoCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
