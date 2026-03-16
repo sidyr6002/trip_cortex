@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useUser } from '@clerk/react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useBookingStore } from '@/stores/booking-store'
@@ -16,6 +17,7 @@ const TERMINAL: string[] = ['confirmed', 'failed', 'cancelled']
 
 export function ChatInput() {
   const [text, setText] = useState('')
+  const { user } = useUser()
   const { bookingStatus, connectionStatus, send } = useBookingStore()
   const { addMessage, clear } = useChatStore()
   const reset = useBookingStore((s) => s.reset)
@@ -27,9 +29,18 @@ export function ChatInput() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const msg = text.trim()
-    if (!msg || disabled) return
+    console.log('[ChatInput] submit', { msg, disabled, hasUser: !!user, connectionStatus, bookingStatus })
+    if (!msg || disabled || !user) return
+    const bookingId = crypto.randomUUID()
     addMessage({ role: 'user', type: 'request', text: msg })
-    send({ action: 'booking_request', payload: { message: msg } })
+    const payload = {
+      action: 'booking_request',
+      employee_id: user.id,
+      booking_id: bookingId,
+      user_query: msg,
+    }
+    console.log('[ChatInput] sending payload:', payload)
+    send(payload)
     setText('')
   }
 

@@ -24,7 +24,12 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     body = json.loads(event.get("body") or "{}")
     connection_id = event["requestContext"]["connectionId"]
 
-    if body.get("action") == "select_flight":
+    action = body.get("action")
+
+    if action == "ping":
+        return {"statusCode": 200, "body": "pong"}
+
+    if action == "select_flight":
         # HITL resume — user selected a flight
         token = pop_task_token(
             get_dynamo_client(),

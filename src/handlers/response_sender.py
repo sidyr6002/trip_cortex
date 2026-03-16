@@ -15,7 +15,13 @@ def handler(event: dict[str, Any], context: Any) -> None:
     config = get_config()
     msg_type = event.get("type")
 
-    if msg_type == "flight_options":
+    if msg_type == "progress":
+        payload = {
+            "type": "progress",
+            "booking_id": event.get("booking_id"),
+            "payload": {"message": event.get("message", "")},
+        }
+    elif msg_type == "flight_options":
         store_task_token(
             get_dynamo_client(),
             config.bookings_table,

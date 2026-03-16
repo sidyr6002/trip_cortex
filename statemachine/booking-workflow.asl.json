@@ -1,7 +1,19 @@
 {
   "Comment": "Trip Cortex booking workflow — EmbedAndRetrieve → ReasonAndPlan → ValidatePlan → FlightSearch → HITL → FlightBooking",
-  "StartAt": "EmbedAndRetrieve",
+  "StartAt": "NotifyStarted",
   "States": {
+    "NotifyStarted": {
+      "Type": "Task",
+      "Resource": "${ResponseSenderFunctionArn}",
+      "Parameters": {
+        "type": "progress",
+        "connection_id.$": "$.connection_id",
+        "booking_id.$": "$.booking_id",
+        "message": "Booking initiated. Retrieving travel policies..."
+      },
+      "ResultPath": null,
+      "Next": "EmbedAndRetrieve"
+    },
     "EmbedAndRetrieve": {
       "Type": "Task",
       "Resource": "${EmbedAndRetrieveFunctionArn}",
@@ -9,7 +21,7 @@
         "employee_id.$": "$.employee_id",
         "booking_id.$": "$.booking_id",
         "connection_id.$": "$.connection_id",
-        "user_query.$": "$.query"
+        "user_query.$": "$.user_query"
       },
       "ResultPath": "$.retrieval_result",
       "Retry": [
@@ -27,6 +39,18 @@
           "Next": "NotifyUserOfError"
         }
       ],
+      "Next": "NotifyAnalyzing"
+    },
+    "NotifyAnalyzing": {
+      "Type": "Task",
+      "Resource": "${ResponseSenderFunctionArn}",
+      "Parameters": {
+        "type": "progress",
+        "connection_id.$": "$.connection_id",
+        "booking_id.$": "$.booking_id",
+        "message": "Policies retrieved. Analyzing your request against travel policy..."
+      },
+      "ResultPath": null,
       "Next": "ReasonAndPlan"
     },
     "ReasonAndPlan": {
@@ -129,6 +153,18 @@
           "Next": "NotifyUserOfError"
         }
       ],
+      "Next": "NotifySearching"
+    },
+    "NotifySearching": {
+      "Type": "Task",
+      "Resource": "${ResponseSenderFunctionArn}",
+      "Parameters": {
+        "type": "progress",
+        "connection_id.$": "$.connection_id",
+        "booking_id.$": "$.booking_id",
+        "message": "Booking plan validated. Searching for flights..."
+      },
+      "ResultPath": null,
       "Next": "InvokeFlightSearch"
     },
     "InvokeFlightSearch": {
