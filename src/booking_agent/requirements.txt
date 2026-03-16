@@ -1,0 +1,8 @@
+bedrock-agentcore
+nova-act
+pyyaml
+boto3
+structlog
+python-dotenv
+pydantic
+python-dateutil

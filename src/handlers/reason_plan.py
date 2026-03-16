@@ -11,7 +11,7 @@ from core.services.audit import build_reasoning_audit_entry, write_audit_log
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     config = get_config()
     request = ReasoningRequest.model_validate(event)
-    result = get_reasoning_service().generate_booking_plan(request)
+    result = get_reasoning_service().generate_booking_plan(request, context.get_remaining_time_in_millis())
 
     write_audit_log(
         get_dynamo_client(),

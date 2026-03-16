@@ -18,6 +18,26 @@ Parameters:
     Description: ARN of Clerk secret key in Secrets Manager
     Default: ''
 
+  NovaActSearchAgentArn:
+    Type: String
+    Description: ACR runtime ARN for trip-cortex-flight-search
+    Default: ''
+
+  NovaActBookingAgentArn:
+    Type: String
+    Description: ACR runtime ARN for trip-cortex-flight-booking
+    Default: ''
+
+  PortalCredentialsSecretArn:
+    Type: String
+    Description: Secrets Manager secret ARN containing portal email/password
+    Default: ''
+
+  DummyPortalUrl:
+    Type: String
+    Description: URL of the dummy travel portal
+    Default: 'https://flysmart.dportal.workers.dev'
+
 Resources:
 
   # ── Network (VPC) ────────────────────────────────────────────────────────────
@@ -74,6 +94,8 @@ Resources:
         BookingsTableArn: !GetAtt TablesStack.Outputs.BookingsTableArn
         ConnectionsTableArn: !GetAtt TablesStack.Outputs.ConnectionsTableArn
         AuditLogTableArn: !GetAtt TablesStack.Outputs.AuditLogTableArn
+        CircuitBreakerTableName: !GetAtt TablesStack.Outputs.CircuitBreakerTableName
+        CircuitBreakerTableArn: !GetAtt TablesStack.Outputs.CircuitBreakerTableArn
         PolicyDocumentsBucketArn: !GetAtt StorageStack.Outputs.PolicyDocumentsBucketArn
         BookingsTableName: !GetAtt TablesStack.Outputs.BookingsTableName
         ConnectionsTableName: !GetAtt TablesStack.Outputs.ConnectionsTableName
@@ -89,6 +111,10 @@ Resources:
         ClerkSecretKeyArn: !Ref ClerkSecretKeyArn
         EmbeddingQueueArn: !GetAtt StorageStack.Outputs.EmbeddingQueueArn
         EmbeddingQueueUrl: !GetAtt StorageStack.Outputs.EmbeddingQueueUrl
+        NovaActSearchAgentArn: !Ref NovaActSearchAgentArn
+        NovaActBookingAgentArn: !Ref NovaActBookingAgentArn
+        PortalCredentialsSecretArn: !Ref PortalCredentialsSecretArn
+        DummyPortalUrl: !Ref DummyPortalUrl
 
   # ── API Gateway WebSocket ────────────────────────────────────────────────────
 

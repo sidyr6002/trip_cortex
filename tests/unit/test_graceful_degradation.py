@@ -10,7 +10,6 @@ from core.models.booking import ReasoningResult
 from core.services.audit import build_degradation_audit_entry
 from core.services.graceful_degradation import apply_graceful_degradation
 
-
 # ── apply_graceful_degradation ───────────────────────────────────────────────
 
 
@@ -71,7 +70,7 @@ def test_audit_entry_output_fields(degradation_entry):
 
 def test_audit_entry_no_pii(degradation_entry):
     serialized = json.dumps(degradation_entry)
-    for forbidden in ("user_query", "cabin_class", "departure_date", "\"origin\"", "\"destination\""):
+    for forbidden in ("user_query", "cabin_class", "departure_date", '"origin"', '"destination"'):
         assert forbidden not in serialized
 
 

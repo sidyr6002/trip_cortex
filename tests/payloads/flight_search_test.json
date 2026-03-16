@@ -1,0 +1,29 @@
+{
+  "AC_HANDLER_ENV": {
+    "DUMMY_PORTAL_URL": "https://flysmart.dportal.workers.dev",
+    "NOVA_ACT_SEARCH_WORKFLOW": "trip-cortex-flight-search",
+    "NOVA_ACT_HEADLESS": "true"
+  },
+  "booking_id": "acr-test-search-001",
+  "employee_id": "EMP-TEST",
+  "booking_plan": {
+    "intent": "flight_search",
+    "confidence": 0.9,
+    "parameters": {
+      "origin": "DEL",
+      "destination": "BOM",
+      "departure_date": "2026-03-20",
+      "cabin_class": "economy",
+      "passenger_count": 1
+    },
+    "policy_constraints": {
+      "max_budget_usd": 200.0,
+      "preferred_vendors": ["any"],
+      "advance_booking_days_required": null,
+      "advance_booking_met": true,
+      "requires_approval": false
+    },
+    "policy_sources": [],
+    "reasoning_summary": "ACR test invocation — flight search from DEL to BOM."
+  }
+}

@@ -99,6 +99,28 @@ Resources:
         - Key: ManagedBy
           Value: sam
 
+  CircuitBreakerTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${StackPrefix}-circuit-breaker"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: circuitId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: circuitId
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: trip-cortex
+        - Key: ManagedBy
+          Value: sam
+
 Outputs:
   BookingsTableName:
     Value: !Ref BookingsTable
@@ -112,3 +134,7 @@ Outputs:
     Value: !Ref AuditLogTable
   AuditLogTableArn:
     Value: !GetAtt AuditLogTable.Arn
+  CircuitBreakerTableName:
+    Value: !Ref CircuitBreakerTable
+  CircuitBreakerTableArn:
+    Value: !GetAtt CircuitBreakerTable.Arn

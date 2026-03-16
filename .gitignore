@@ -37,6 +37,10 @@ node_modules/
 # uv
 requirements.txt
 !src/requirements.txt
+!src/booking_agent/requirements.txt
+
+# ACR deployment staging
+.acr-stage/
 
 # Adding docs, plans and .kiro
 plans/

@@ -1,11 +1,17 @@
 {
-  "Comment": "Trip Cortex booking workflow — EmbedAndRetrieve → ReasonAndPlan → ValidatePlan",
+  "Comment": "Trip Cortex booking workflow — EmbedAndRetrieve → ReasonAndPlan → ValidatePlan → FlightSearch → HITL → FlightBooking",
   "StartAt": "EmbedAndRetrieve",
   "States": {
     "EmbedAndRetrieve": {
       "Type": "Task",
       "Resource": "${EmbedAndRetrieveFunctionArn}",
-      "ResultPath": "$",
+      "Parameters": {
+        "employee_id.$": "$.employee_id",
+        "booking_id.$": "$.booking_id",
+        "connection_id.$": "$.connection_id",
+        "user_query.$": "$.query"
+      },
+      "ResultPath": "$.retrieval_result",
       "Retry": [
         {
           "ErrorEquals": ["States.TaskFailed"],
@@ -29,12 +35,12 @@
       "Parameters": {
         "booking_id.$": "$.booking_id",
         "employee_id.$": "$.employee_id",
-        "user_query.$": "$.user_query",
-        "context_text.$": "$.context_text",
-        "confidence_level.$": "$.confidence.level",
-        "max_similarity.$": "$.confidence.max_similarity"
+        "user_query.$": "$.retrieval_result.user_query",
+        "context_text.$": "$.retrieval_result.context_text",
+        "confidence_level.$": "$.retrieval_result.confidence.level",
+        "max_similarity.$": "$.retrieval_result.confidence.max_similarity"
       },
-      "ResultPath": "$",
+      "ResultPath": "$.reasoning_result",
       "Retry": [
         {
           "ErrorEquals": ["ReasoningError", "SchemaValidationError"],
@@ -58,11 +64,11 @@
       "Parameters": {
         "booking_id.$": "$.booking_id",
         "employee_id.$": "$.employee_id",
-        "user_query.$": "$.user_query",
+        "user_query.$": "$.retrieval_result.user_query",
         "error.$": "$.error_info.Error",
         "cause.$": "$.error_info.Cause"
       },
-      "ResultPath": "$",
+      "ResultPath": "$.reasoning_result",
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
@@ -70,12 +76,52 @@
           "Next": "NotifyUserOfError"
         }
       ],
-      "Next": "ValidatePlan"
+      "Next": "CheckDegradationResult"
+    },
+    "CheckDegradationResult": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.reasoning_result.parse_failed",
+          "BooleanEquals": true,
+          "Next": "NotifyParseFailure"
+        }
+      ],
+      "Default": "ValidatePlan"
+    },
+    "NotifyParseFailure": {
+      "Type": "Task",
+      "Resource": "${ResponseSenderFunctionArn}",
+      "Parameters": {
+        "type": "error",
+        "connection_id.$": "$.connection_id",
+        "booking_id.$": "$.booking_id",
+        "message": "We couldn't understand your booking request. Please try again with origin, destination, and date — for example: 'Book a flight from DEL to BOM on March 20 2026 economy class'"
+      },
+      "ResultPath": null,
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": null,
+          "Next": "TerminalError"
+        }
+      ],
+      "End": true
     },
     "ValidatePlan": {
       "Type": "Task",
       "Resource": "${ValidatePlanFunctionArn}",
-      "ResultPath": "$",
+      "Parameters": {
+        "booking_id.$": "$.booking_id",
+        "employee_id.$": "$.employee_id",
+        "plan.$": "$.reasoning_result.plan",
+        "model_id.$": "$.reasoning_result.model_id",
+        "thinking_effort.$": "$.reasoning_result.thinking_effort",
+        "latency_ms.$": "$.reasoning_result.latency_ms",
+        "retry_count.$": "$.reasoning_result.retry_count",
+        "escalated.$": "$.reasoning_result.escalated"
+      },
+      "ResultPath": "$.validated_result",
       "Catch": [
         {
           "ErrorEquals": ["States.ALL"],
@@ -83,16 +129,220 @@
           "Next": "NotifyUserOfError"
         }
       ],
-      "Next": "NotifyUserOfError"
+      "Next": "InvokeFlightSearch"
+    },
+    "InvokeFlightSearch": {
+      "Type": "Task",
+      "Resource": "${InvokeFlightSearchFunctionArn}",
+      "Parameters": {
+        "booking_id.$": "$.booking_id",
+        "employee_id.$": "$.employee_id",
+        "plan.$": "$.validated_result.plan"
+      },
+      "ResultPath": "$.flight_search_result",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 1,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["PortalUnavailableError"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyPortalUnavailable"
+        },
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyUserOfError"
+        }
+      ],
+      "Next": "CheckSearchResult"
+    },
+    "CheckSearchResult": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.flight_search_result.search_result.total_results",
+          "NumericEquals": 0,
+          "Next": "NotifySearchFallback"
+        }
+      ],
+      "Default": "SendFlightOptions"
+    },
+    "SendFlightOptions": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+      "Parameters": {
+        "FunctionName": "${SendFlightOptionsFunctionArn}",
+        "Payload": {
+          "type": "flight_options",
+          "task_token.$": "$$.Task.Token",
+          "connection_id.$": "$.connection_id",
+          "booking_id.$": "$.booking_id",
+          "employee_id.$": "$.employee_id",
+          "flights.$": "$.flight_search_result.search_result.flights",
+          "plan.$": "$.validated_result.plan"
+        }
+      },
+      "HeartbeatSeconds": 3600,
+      "TimeoutSeconds": 7200,
+      "ResultPath": "$.selected_flight",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.HeartbeatTimeout", "States.Timeout"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyUserOfError"
+        },
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyUserOfError"
+        }
+      ],
+      "Next": "InvokeFlightBooking"
+    },
+    "InvokeFlightBooking": {
+      "Type": "Task",
+      "Resource": "${InvokeFlightBookingFunctionArn}",
+      "ResultPath": "$.booking_result",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 10,
+          "MaxAttempts": 1,
+          "BackoffRate": 1
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["PortalUnavailableError"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyPortalUnavailable"
+        },
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error_info",
+          "Next": "NotifyUserOfError"
+        }
+      ],
+      "Next": "CheckBookingResult"
+    },
+    "CheckBookingResult": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "And": [
+            {
+              "Variable": "$.booking_result.confirmation",
+              "IsPresent": false
+            },
+            {
+              "Variable": "$.booking_result.fallback_url",
+              "IsPresent": true
+            }
+          ],
+          "Next": "NotifyBookingFallback"
+        }
+      ],
+      "Default": "NotifyBookingComplete"
+    },
+    "NotifyBookingComplete": {
+      "Type": "Task",
+      "Resource": "${ResponseSenderFunctionArn}",
+      "Parameters": {
+        "type": "booking_complete",
+        "connection_id.$": "$.connection_id",
+        "booking_id.$": "$.booking_id",
+        "confirmation.$": "$.booking_result.confirmation"
+      },
+      "ResultPath": null,
+      "End": true
+    },
+    "NotifySearchFallback": {
+      "Type": "Task",
+      "Resource": "${ResponseSenderFunctionArn}",
+      "Parameters": {
+        "type": "fallback",
+        "connection_id.$": "$.connection_id",
+        "booking_id.$": "$.booking_id",
+        "fallback_url.$": "$.flight_search_result.fallback_url",
+        "warnings.$": "$.flight_search_result.warnings"
+      },
+      "ResultPath": null,
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": null,
+          "Next": "TerminalError"
+        }
+      ],
+      "End": true
+    },
+    "NotifyBookingFallback": {
+      "Type": "Task",
+      "Resource": "${ResponseSenderFunctionArn}",
+      "Parameters": {
+        "type": "fallback",
+        "connection_id.$": "$.connection_id",
+        "booking_id.$": "$.booking_id",
+        "fallback_url.$": "$.booking_result.fallback_url",
+        "warnings.$": "$.booking_result.warnings"
+      },
+      "ResultPath": null,
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": null,
+          "Next": "TerminalError"
+        }
+      ],
+      "End": true
     },
     "NotifyUserOfError": {
       "Type": "Task",
       "Resource": "${ResponseSenderFunctionArn}",
       "Parameters": {
         "type": "error",
-        "message": "Unable to process your booking request. Please try again."
+        "connection_id.$": "$.connection_id",
+        "booking_id.$": "$.booking_id",
+        "message": "Something went wrong with your booking. Please try again or contact support."
       },
       "ResultPath": null,
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": null,
+          "Next": "TerminalError"
+        }
+      ],
+      "End": true
+    },
+    "NotifyPortalUnavailable": {
+      "Type": "Task",
+      "Resource": "${ResponseSenderFunctionArn}",
+      "Parameters": {
+        "type": "portal_unavailable",
+        "connection_id.$": "$.connection_id",
+        "booking_id.$": "$.booking_id",
+        "message": "The travel portal is temporarily unavailable. Please try again later or use the direct link below.",
+        "fallback_url.$": "$.validated_result.plan.fallback_url"
+      },
+      "ResultPath": null,
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": null,
+          "Next": "TerminalError"
+        }
+      ],
+      "End": true
+    },
+    "TerminalError": {
+      "Type": "Pass",
       "End": true
     }
   }

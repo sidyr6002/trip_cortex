@@ -4,10 +4,12 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Any
 
 import boto3
+from botocore.config import Config as BotocoreConfig
 
 from core.config import get_config
 
 if TYPE_CHECKING:
+    from core.services.circuit_breaker import CircuitBreakerService
     from core.services.policy_retrieval import PolicyRetrievalService
     from core.services.query_embedding import QueryEmbeddingService
     from core.services.reasoning import ReasoningService
@@ -49,13 +51,27 @@ def get_sfn_client() -> Any:
 @lru_cache(maxsize=1)
 def get_bedrock_runtime_client() -> Any:
     config = get_config()
-    return boto3.client("bedrock-runtime", region_name=config.aws_region)
+    return boto3.client(
+        "bedrock-runtime",
+        region_name=config.aws_region,
+        config=BotocoreConfig(read_timeout=280, connect_timeout=10),
+    )
 
 
 @lru_cache(maxsize=1)
 def get_s3_client() -> Any:
     config = get_config()
     return boto3.client("s3", region_name=config.aws_region)
+
+
+@lru_cache(maxsize=1)
+def get_acr_client() -> Any:
+    config = get_config()
+    return boto3.client(
+        "bedrock-agentcore",
+        region_name=config.aws_region,
+        config=BotocoreConfig(read_timeout=580, connect_timeout=10),
+    )
 
 
 def get_query_embedding_service() -> "QueryEmbeddingService":
@@ -78,3 +94,14 @@ def get_reasoning_service() -> "ReasoningService":
 
     config = get_config()
     return ReasoningService(get_bedrock_runtime_client(), config.nova_lite_model_id)
+
+
+def get_circuit_breaker_service(
+    failure_threshold: int = 5, recovery_timeout: int = 60
+) -> "CircuitBreakerService":
+    from core.services.circuit_breaker import CircuitBreakerService
+
+    config = get_config()
+    return CircuitBreakerService(
+        get_dynamo_client(), config.circuit_breaker_table, failure_threshold, recovery_timeout
+    )

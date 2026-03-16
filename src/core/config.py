@@ -41,11 +41,21 @@ class Config(BaseModel):
     bda_project_arn: str = ""
     bda_profile_arn: str = ""
     ingestion_workflow_arn: str = ""
+    booking_workflow_arn: str = ""
     policy_bucket: str = ""
     hnsw_ef_search: int = 40
     similarity_threshold: float = 0.65
     high_confidence_threshold: float = 0.75
     retrieval_top_k: int = 5
+    dummy_portal_url: str = ""
+    nova_act_headless: bool = True
+    nova_act_search_workflow: str = ""
+    nova_act_booking_workflow: str = ""
+    portal_test_email: str = ""
+    portal_test_password: str = ""
+    nova_act_search_agent_arn: str = ""
+    nova_act_booking_agent_arn: str = ""
+    circuit_breaker_table: str = ""
 
 
 @lru_cache(maxsize=1)
@@ -70,11 +80,21 @@ def get_config() -> Config:
         bda_project_arn=environ.get("BDA_PROJECT_ARN", ""),
         bda_profile_arn=environ.get("BDA_PROFILE_ARN", ""),
         ingestion_workflow_arn=environ.get("INGESTION_WORKFLOW_ARN", ""),
+        booking_workflow_arn=environ.get("BOOKING_WORKFLOW_ARN", ""),
         policy_bucket=environ.get("POLICY_BUCKET", ""),
         hnsw_ef_search=int(environ.get("HNSW_EF_SEARCH", "40")),
         similarity_threshold=float(environ.get("SIMILARITY_THRESHOLD", "0.65")),
         high_confidence_threshold=float(environ.get("HIGH_CONFIDENCE_THRESHOLD", "0.75")),
         retrieval_top_k=int(environ.get("RETRIEVAL_TOP_K", "5")),
+        dummy_portal_url=environ.get("DUMMY_PORTAL_URL", ""),
+        nova_act_headless=environ.get("NOVA_ACT_HEADLESS", "true").lower() == "true",
+        nova_act_search_workflow=environ.get("NOVA_ACT_SEARCH_WORKFLOW", ""),
+        nova_act_booking_workflow=environ.get("NOVA_ACT_BOOKING_WORKFLOW", ""),
+        portal_test_email=environ.get("PORTAL_TEST_EMAIL", ""),
+        portal_test_password=environ.get("PORTAL_TEST_PASSWORD", ""),
+        nova_act_search_agent_arn=environ.get("NOVA_ACT_SEARCH_AGENT_ARN", ""),
+        nova_act_booking_agent_arn=environ.get("NOVA_ACT_BOOKING_AGENT_ARN", ""),
+        circuit_breaker_table=environ.get("CIRCUIT_BREAKER_TABLE", ""),
     )
 
 

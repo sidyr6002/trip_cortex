@@ -1,27 +1,5 @@
 version = 0.1
 
-[default]
-[default.global.parameters]
-stack_name = "trip-cortex-local"
-resolve_s3 = true
-s3_prefix = "trip-cortex"
-region = "us-east-1"
-confirm_changeset = true
-capabilities = "CAPABILITY_IAM"
-parameter_overrides = "Environment=local"
-
-[default.build.parameters]
-cached = true
-parallel = true
-
-[default.validate.parameters]
-lint = true
-
-[default.deploy.parameters]
-capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
-confirm_changeset = true
-resolve_s3 = true
-
 [dev]
 [dev.global.parameters]
 stack_name = "trip-cortex-dev"
@@ -31,7 +9,7 @@ region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 # ClerkSecretKeyArn injected via --parameter-overrides in deploy.yml from GitHub Secrets
-parameter_overrides = "Environment=dev ClerkSecretKeyArn=REPLACE_WITH_ACTUAL_SECRET_ARN"
+parameter_overrides = "Environment=dev"
 
 [dev.build.parameters]
 cached = true
