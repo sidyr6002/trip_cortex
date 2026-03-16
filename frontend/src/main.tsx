@@ -1,12 +1,13 @@
 import './styles.css'
 import ReactDOM from 'react-dom/client'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
+import { ClerkProvider, useAuth } from '@clerk/react'
 import { routeTree } from './routeTree.gen'
 
 const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
-  context: { isSignedIn: false }, // overridden by ClerkProvider in Task 4
+  context: { isSignedIn: false },
 })
 
 declare module '@tanstack/react-router' {
@@ -15,8 +16,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
-const rootElement = document.getElementById('app')!
-
-if (!rootElement.innerHTML) {
-  ReactDOM.createRoot(rootElement).render(<RouterProvider router={router} />)
+function App() {
+  const { isSignedIn } = useAuth()
+  return (
+    <RouterProvider
+      router={router}
+      context={{ isSignedIn: isSignedIn ?? false }}
+    />
+  )
 }
+
+ReactDOM.createRoot(document.getElementById('app')!).render(
+  <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
+    <App />
+  </ClerkProvider>,
+)

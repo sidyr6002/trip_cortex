@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { AuthenticateWithRedirectCallback } from '@clerk/react'
 
 export const Route = createFileRoute('/sso-callback')({
-  component: () => <div>Authenticating...</div>, // replaced with Clerk callback in Task 5
+  component: () => <AuthenticateWithRedirectCallback />,
 })
