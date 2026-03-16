@@ -1,10 +1,10 @@
 """Unit tests for CircuitBreakerService — mocked DynamoDB, no AWS calls."""
 
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from core.models.circuit_breaker import CircuitBreakerState, CircuitState
+from core.models.circuit_breaker import CircuitState
 from core.services.circuit_breaker import CircuitBreakerService
 
 TABLE = "TripCortexCircuitBreaker"

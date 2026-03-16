@@ -94,6 +94,8 @@ Resources:
         BookingsTableArn: !GetAtt TablesStack.Outputs.BookingsTableArn
         ConnectionsTableArn: !GetAtt TablesStack.Outputs.ConnectionsTableArn
         AuditLogTableArn: !GetAtt TablesStack.Outputs.AuditLogTableArn
+        CircuitBreakerTableName: !GetAtt TablesStack.Outputs.CircuitBreakerTableName
+        CircuitBreakerTableArn: !GetAtt TablesStack.Outputs.CircuitBreakerTableArn
         PolicyDocumentsBucketArn: !GetAtt StorageStack.Outputs.PolicyDocumentsBucketArn
         BookingsTableName: !GetAtt TablesStack.Outputs.BookingsTableName
         ConnectionsTableName: !GetAtt TablesStack.Outputs.ConnectionsTableName
