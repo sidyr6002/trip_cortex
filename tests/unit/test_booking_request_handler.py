@@ -122,8 +122,48 @@ def test_handler_rolls_back_on_sfn_failure(mock_config, mock_dynamo, mock_sfn):
     # update_item called to mark booking FAILED
     dynamo.update_item.assert_called()
     update_call = dynamo.update_item.call_args_list[0]
-    assert ":failed" in update_call[1]["ExpressionAttributeValues"]
-    assert update_call[1]["ExpressionAttributeValues"][":failed"]["S"] == "FAILED"
+    assert update_call[1]["ExpressionAttributeValues"][":status"] == {"S": "FAILED"}
+
+
+@patch("handlers.booking_request.pop_task_token")
+@patch("handlers.booking_request.get_sfn_client")
+@patch("handlers.booking_request.get_dynamo_client")
+@patch("handlers.booking_request.get_config")
+def test_handler_rejects_on_conditional_check_failure(mock_config, mock_dynamo, mock_sfn, mock_pop):
+    """Race condition: guard passes but conditional put_item fails — should return 409."""
+    from handlers.booking_request import handler
+
+    mock_config.return_value = MagicMock(bookings_table="Bookings", booking_workflow_arn="arn:aws:states:::sm")
+    dynamo = mock_dynamo.return_value
+    dynamo.query.return_value = {"Count": 0}
+    dynamo.exceptions.ConditionalCheckFailedException = Exception
+    dynamo.put_item.side_effect = Exception("ConditionalCheckFailedException")
+
+    result = handler(_make_event(), MagicMock())
+
+    assert result["statusCode"] == 409
+    mock_sfn.return_value.start_execution.assert_not_called()
+
+
+@patch("handlers.booking_request.get_sfn_client")
+@patch("handlers.booking_request.get_dynamo_client")
+@patch("handlers.booking_request.get_config")
+def test_handler_persists_execution_arn(mock_config, mock_dynamo, mock_sfn):
+    """After start_execution, executionArn is written back to the booking record."""
+    from handlers.booking_request import handler
+
+    mock_config.return_value = MagicMock(bookings_table="Bookings", booking_workflow_arn="arn:aws:states:::sm")
+    sfn = mock_sfn.return_value
+    sfn.start_execution.return_value = {"executionArn": "arn:aws:states:::exec/1"}
+    dynamo = mock_dynamo.return_value
+    dynamo.query.return_value = {"Count": 0}
+
+    handler(_make_event(), MagicMock())
+
+    # update_item should be called to persist executionArn
+    dynamo.update_item.assert_called_once()
+    call = dynamo.update_item.call_args[1]
+    assert call["ExpressionAttributeValues"][":arn"] == {"S": "arn:aws:states:::exec/1"}
 
 
 @patch("handlers.booking_request.pop_task_token")

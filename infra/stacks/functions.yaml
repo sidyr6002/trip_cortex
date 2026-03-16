@@ -112,6 +112,7 @@ Resources:
         InvokeFlightSearchFunctionArn: !GetAtt InvokeFlightSearchFunction.Arn
         SendFlightOptionsFunctionArn: !GetAtt ResponseSenderFunction.Arn
         InvokeFlightBookingFunctionArn: !GetAtt InvokeFlightBookingFunction.Arn
+        CompleteBookingFunctionArn: !GetAtt CompleteBookingFunction.Arn
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
@@ -131,6 +132,7 @@ Resources:
                 - !GetAtt ResponseSenderFunction.Arn
                 - !GetAtt InvokeFlightSearchFunction.Arn
                 - !GetAtt InvokeFlightBookingFunction.Arn
+                - !GetAtt CompleteBookingFunction.Arn
       Tags:
         Environment: !Ref Environment
         Project: trip-cortex
@@ -472,6 +474,7 @@ Resources:
       Environment:
         Variables:
           WEBSOCKET_ENDPOINT: !Ref WebSocketManagementEndpoint
+          BOOKINGS_TABLE: !Ref BookingsTableName
       Events:
         Schedule:
           Type: Schedule
@@ -490,6 +493,26 @@ Resources:
                 - dynamodb:Scan
                 - dynamodb:DeleteItem
               Resource: !Ref ConnectionsTableArn
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:UpdateItem
+              Resource: !Ref BookingsTableArn
+
+  CompleteBookingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../src/
+      Handler: handlers.complete_booking.handler
+      Description: Marks booking record COMPLETED or FAILED at workflow end
+      Environment:
+        Variables:
+          BOOKINGS_TABLE: !Ref BookingsTableName
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: dynamodb:UpdateItem
+              Resource: !Ref BookingsTableArn
 
   BdaSetupFunction:
     Type: AWS::Serverless::Function
@@ -719,3 +742,5 @@ Outputs:
     Value: !GetAtt InvokeFlightSearchFunction.Arn
   InvokeFlightBookingFunctionArn:
     Value: !GetAtt InvokeFlightBookingFunction.Arn
+  CompleteBookingFunctionArn:
+    Value: !GetAtt CompleteBookingFunction.Arn
