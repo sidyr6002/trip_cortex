@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils'
 import type { ChatMessage } from '@/stores/chat-store'
 import { FlightSelection } from './flight-selection'
+import { BookingConfirmation } from './booking-confirmation'
 
 export function ChatMessageBubble({ msg }: { msg: ChatMessage }) {
   if (msg.role === 'user') {
@@ -30,14 +31,13 @@ export function ChatMessageBubble({ msg }: { msg: ChatMessage }) {
   if (msg.type === 'confirmed') {
     return (
       <div className="flex">
-        <div
-          className={cn(
-            base,
-            'bg-green-50 text-green-800 dark:bg-green-900/40 dark:text-green-200',
-          )}
-        >
-          {msg.text}
-        </div>
+        {msg.confirmation ? (
+          <BookingConfirmation confirmation={msg.confirmation} />
+        ) : (
+          <div className={cn(base, 'bg-green-50 text-green-800 dark:bg-green-900/40 dark:text-green-200')}>
+            {msg.text}
+          </div>
+        )}
       </div>
     )
   }

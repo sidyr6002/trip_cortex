@@ -32,7 +32,12 @@ interface BookingState {
   bookingStatus: BookingStatus
   progressMessages: string[]
   flightOptions: FlightOption[]
-  confirmationNumber: string | null
+  confirmation: {
+    bookingReference: string
+    paymentReference: string
+    totalAmount: number
+    flightNumber: string
+  } | null
   error: string | null
   send: (msg: object) => void
   reset: () => void
@@ -43,7 +48,7 @@ const initialBookingState = {
   bookingStatus: 'idle' as BookingStatus,
   progressMessages: [],
   flightOptions: [],
-  confirmationNumber: null,
+  confirmation: null,
   error: null,
 }
 

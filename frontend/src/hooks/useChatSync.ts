@@ -51,9 +51,8 @@ export function useChatSync() {
           addMessage({
             role: 'system',
             type: 'confirmed',
-            text: state.confirmationNumber
-              ? `Booking confirmed! Confirmation: ${state.confirmationNumber}`
-              : 'Booking confirmed!',
+            text: 'Booking confirmed!',
+            confirmation: state.confirmation ?? undefined,
           })
           break
         case 'failed':

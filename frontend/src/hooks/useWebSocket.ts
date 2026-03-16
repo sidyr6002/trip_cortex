@@ -66,7 +66,14 @@ export function useWebSocket(): void {
         case 'booking_complete':
         case 'confirmed':
           setState({
-            confirmationNumber: payload?.confirmationNumber ?? null,
+            confirmation: payload?.confirmation
+              ? {
+                  bookingReference: payload.confirmation.booking_reference,
+                  paymentReference: payload.confirmation.payment_reference,
+                  totalAmount: payload.confirmation.total_amount,
+                  flightNumber: payload.confirmation.flight_number,
+                }
+              : null,
             bookingStatus: 'confirmed',
           })
           break
