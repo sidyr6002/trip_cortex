@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginSplatRouteImport } from './routes/login.$'
 import { Route as ConfirmationBookingIdRouteImport } from './routes/confirmation.$bookingId'
 import { Route as BookFlightIdRouteImport } from './routes/book.$flightId'
+import { Route as ApiFlightsRouteImport } from './routes/api/flights'
 
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
@@ -58,6 +59,11 @@ const BookFlightIdRoute = BookFlightIdRouteImport.update({
   path: '/book/$flightId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFlightsRoute = ApiFlightsRouteImport.update({
+  id: '/api/flights',
+  path: '/api/flights',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/deals': typeof DealsRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/api/flights': typeof ApiFlightsRoute
   '/book/$flightId': typeof BookFlightIdRoute
   '/confirmation/$bookingId': typeof ConfirmationBookingIdRoute
   '/login/$': typeof LoginSplatRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/deals': typeof DealsRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/api/flights': typeof ApiFlightsRoute
   '/book/$flightId': typeof BookFlightIdRoute
   '/confirmation/$bookingId': typeof ConfirmationBookingIdRoute
   '/login/$': typeof LoginSplatRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/deals': typeof DealsRoute
   '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
+  '/api/flights': typeof ApiFlightsRoute
   '/book/$flightId': typeof BookFlightIdRoute
   '/confirmation/$bookingId': typeof ConfirmationBookingIdRoute
   '/login/$': typeof LoginSplatRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/deals'
     | '/register'
     | '/search'
+    | '/api/flights'
     | '/book/$flightId'
     | '/confirmation/$bookingId'
     | '/login/$'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/deals'
     | '/register'
     | '/search'
+    | '/api/flights'
     | '/book/$flightId'
     | '/confirmation/$bookingId'
     | '/login/$'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/deals'
     | '/register'
     | '/search'
+    | '/api/flights'
     | '/book/$flightId'
     | '/confirmation/$bookingId'
     | '/login/$'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   DealsRoute: typeof DealsRoute
   RegisterRoute: typeof RegisterRoute
   SearchRoute: typeof SearchRoute
+  ApiFlightsRoute: typeof ApiFlightsRoute
   BookFlightIdRoute: typeof BookFlightIdRoute
   ConfirmationBookingIdRoute: typeof ConfirmationBookingIdRoute
   LoginSplatRoute: typeof LoginSplatRoute
@@ -192,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BookFlightIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/flights': {
+      id: '/api/flights'
+      path: '/api/flights'
+      fullPath: '/api/flights'
+      preLoaderRoute: typeof ApiFlightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   DealsRoute: DealsRoute,
   RegisterRoute: RegisterRoute,
   SearchRoute: SearchRoute,
+  ApiFlightsRoute: ApiFlightsRoute,
   BookFlightIdRoute: BookFlightIdRoute,
   ConfirmationBookingIdRoute: ConfirmationBookingIdRoute,
   LoginSplatRoute: LoginSplatRoute,

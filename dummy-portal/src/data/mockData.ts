@@ -263,24 +263,30 @@ const BASE_SEGMENTS = [
 ];
 
 // Generate segments for 7 days
-export const SEGMENT_TABLE: FlightSegment[] = [];
-for (let day = 0; day < 7; day++) {
-  const dateStr = getDateString(day);
-  BASE_SEGMENTS.forEach(seg => {
-    const depTime = `${dateStr}T${seg.depTime}`;
-    const arrTime = addMinutesToTime(depTime, seg.duration);
-    SEGMENT_TABLE.push({
-      id: `seg_${seg.id}_d${day}`,
-      airlineId: seg.airlineId,
-      flightNumber: seg.flightNumber,
-      departureAirportId: seg.from,
-      arrivalAirportId: seg.to,
-      departureTime: depTime,
-      arrivalTime: arrTime,
-      durationMinutes: seg.duration,
+// NOTE: exported as a function so callers can invoke at request-time (not module-init time)
+// Cloudflare Workers freeze Date during module evaluation, so new Date() at module level returns epoch.
+export function buildSegmentTable(): FlightSegment[] {
+  const table: FlightSegment[] = [];
+  for (let day = 0; day < 7; day++) {
+    const dateStr = getDateString(day);
+    BASE_SEGMENTS.forEach(seg => {
+      const depTime = `${dateStr}T${seg.depTime}`;
+      const arrTime = addMinutesToTime(depTime, seg.duration);
+      table.push({
+        id: `seg_${seg.id}_d${day}`,
+        airlineId: seg.airlineId,
+        flightNumber: seg.flightNumber,
+        departureAirportId: seg.from,
+        arrivalAirportId: seg.to,
+        departureTime: depTime,
+        arrivalTime: arrTime,
+        durationMinutes: seg.duration,
+      });
     });
-  });
+  }
+  return table;
 }
+export const SEGMENT_TABLE: FlightSegment[] = buildSegmentTable();
 
 // ── Flights (journeys composed of segments) ────────────────────────
 
