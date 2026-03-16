@@ -211,22 +211,22 @@ class TestDetermineInitialEffort:
         assert ReasoningService._determine_initial_effort("low", 0.72) == "medium"
 
     def test_low_similarity_returns_high(self):
-        assert ReasoningService._determine_initial_effort("low", 0.68) == "high"
+        assert ReasoningService._determine_initial_effort("low", 0.68) == "medium"
 
     def test_none_confidence_returns_high(self):
         assert ReasoningService._determine_initial_effort("none", 0.0) == "high"
 
     def test_boundary_at_threshold_returns_high(self):
-        # 0.70 is below threshold (< 0.70), so should be high
-        assert ReasoningService._determine_initial_effort("high", 0.69) == "high"
+        # 0.09 is below threshold (< 0.10), so should be high
+        assert ReasoningService._determine_initial_effort("high", 0.09) == "high"
 
     def test_at_exactly_threshold_returns_medium(self):
-        assert ReasoningService._determine_initial_effort("high", 0.70) == "medium"
+        assert ReasoningService._determine_initial_effort("high", 0.10) == "medium"
 
 
 class TestEscalationSequence:
     def test_from_medium(self):
-        assert ReasoningService._escalation_sequence("medium") == ["medium", "medium", "high"]
+        assert ReasoningService._escalation_sequence("medium") == ["medium", "high", "high"]
 
     def test_from_high(self):
         assert ReasoningService._escalation_sequence("high") == ["high", "high", "high"]
@@ -249,22 +249,21 @@ class TestGenerateBookingPlan:
         assert result.employee_id == "e-1"
         client.converse.assert_called_once()
 
-    def test_escalates_after_two_medium_failures(self):
+    def test_escalates_after_first_medium_failure(self):
         client = MagicMock()
-        # First two calls return invalid JSON, third returns valid.
+        # First call returns invalid JSON, second (high) returns valid.
         client.converse.side_effect = [
             _mock_converse_response("not json"),
-            _mock_converse_response("also not json"),
             _mock_converse_response(VALID_PLAN_JSON),
         ]
         svc = ReasoningService(client, "us.amazon.nova-2-lite-v1:0")
 
         result = svc.generate_booking_plan(_make_request())
 
-        assert result.retry_count == 2
+        assert result.retry_count == 1
         assert result.escalated is True
         assert result.thinking_effort == "high"
-        assert client.converse.call_count == 3
+        assert client.converse.call_count == 2
 
     def test_all_attempts_fail_raises(self):
         client = MagicMock()
@@ -281,7 +280,7 @@ class TestGenerateBookingPlan:
         client.converse.return_value = _mock_converse_response(VALID_PLAN_JSON)
         svc = ReasoningService(client, "us.amazon.nova-2-lite-v1:0")
 
-        result = svc.generate_booking_plan(_make_request(confidence_level="low", max_similarity=0.66))
+        result = svc.generate_booking_plan(_make_request(confidence_level="none", max_similarity=0.05))
 
         assert result.thinking_effort == "high"
         assert result.escalated is False  # Started at high, no escalation
@@ -317,13 +316,12 @@ class TestGenerateBookingPlan:
         result = svc.generate_booking_plan(_make_request())
 
         assert result.retry_count == 1
-        assert result.escalated is False  # Still medium on 2nd attempt
-        assert result.thinking_effort == "medium"
+        assert result.escalated is True  # 2nd attempt is already "high"
+        assert result.thinking_effort == "high"
 
     def test_high_effort_omits_inference_config_on_escalation(self):
         client = MagicMock()
         client.converse.side_effect = [
-            _mock_converse_response("bad"),
             _mock_converse_response("bad"),
             _mock_converse_response(VALID_PLAN_JSON),
         ]
@@ -331,9 +329,9 @@ class TestGenerateBookingPlan:
 
         svc.generate_booking_plan(_make_request())
 
-        # Third call should NOT have inferenceConfig
-        third_call_kwargs = client.converse.call_args_list[2][1]
-        assert "inferenceConfig" not in third_call_kwargs
-        # First call should have inferenceConfig
+        # Second call (high effort) should NOT have inferenceConfig
+        second_call_kwargs = client.converse.call_args_list[1][1]
+        assert "inferenceConfig" not in second_call_kwargs
+        # First call (medium effort) should have inferenceConfig
         first_call_kwargs = client.converse.call_args_list[0][1]
         assert "inferenceConfig" in first_call_kwargs

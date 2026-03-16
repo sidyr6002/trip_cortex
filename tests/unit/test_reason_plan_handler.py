@@ -65,8 +65,10 @@ def test_handler_calls_service_and_returns_result(mock_config, mock_dynamo, mock
     mock_config.return_value = MagicMock(audit_log_table="AuditLog")
     result = _make_result()
     mock_svc.return_value.generate_booking_plan.return_value = result
+    mock_context = MagicMock()
+    mock_context.get_remaining_time_in_millis.return_value = 300_000
 
-    output = handler(_make_event(), None)
+    output = handler(_make_event(), mock_context)
 
     mock_svc.return_value.generate_booking_plan.assert_called_once()
     assert output["booking_id"] == "b-1"
@@ -84,8 +86,10 @@ def test_handler_writes_audit_log(mock_config, mock_dynamo, mock_audit, mock_svc
 
     mock_config.return_value = MagicMock(audit_log_table="AuditLog")
     mock_svc.return_value.generate_booking_plan.return_value = _make_result()
+    mock_context = MagicMock()
+    mock_context.get_remaining_time_in_millis.return_value = 300_000
 
-    handler(_make_event(), None)
+    handler(_make_event(), mock_context)
 
     mock_audit.assert_called_once()
     call_args = mock_audit.call_args
@@ -104,6 +108,8 @@ def test_handler_propagates_reasoning_error(mock_config, mock_svc):
     mock_svc.return_value.generate_booking_plan.side_effect = ReasoningError(
         "All 3 attempts failed", code=ErrorCode.REASONING_FAILED
     )
+    mock_context = MagicMock()
+    mock_context.get_remaining_time_in_millis.return_value = 300_000
 
     with pytest.raises(ReasoningError, match="All 3 attempts failed"):
-        handler(_make_event(), None)
+        handler(_make_event(), mock_context)
