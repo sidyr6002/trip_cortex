@@ -15,9 +15,9 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
-import boto3
-import structlog
-from nova_act import (
+import boto3  # noqa: E402
+import structlog  # noqa: E402
+from nova_act import (  # noqa: E402
     ActExceededMaxStepsError,
     ActGuardrailsError,
     ActRateLimitExceededError,
@@ -31,17 +31,17 @@ try:
     from booking_agent.config import nova_act_kwargs, workflow_kwargs  # PYTHONPATH=src (local/test)
 except ModuleNotFoundError:
     from config import nova_act_kwargs, workflow_kwargs  # type: ignore[no-redef]  # ACR flat layout
-from core.config import get_config
-from core.models.booking import BookingConfirmation, BookingInput, BookingOutput
-from core.services.audit import build_recovery_audit_entry, write_audit_log
-from core.services.error_classification import RecoveryStrategy, classify_nova_act_error
-from core.services.flight_booking import (
+from core.config import get_config  # noqa: E402
+from core.models.booking import BookingConfirmation, BookingInput, BookingOutput  # noqa: E402
+from core.services.audit import build_recovery_audit_entry, write_audit_log  # noqa: E402
+from core.services.error_classification import RecoveryStrategy, classify_nova_act_error  # noqa: E402
+from core.services.flight_booking import (  # noqa: E402
     build_booking_audit_entry,
     build_booking_fallback_url,
     build_passenger_prompt,
     build_select_flight_prompt,
 )
-from core.services.nova_act_recovery import reorient, should_retry
+from core.services.nova_act_recovery import reorient, should_retry  # noqa: E402
 
 log = structlog.get_logger()
 
@@ -134,7 +134,8 @@ def main(payload: dict) -> dict:
                     latency_ms=elapsed_ms,
                 ))
 
-            if classified.strategy == RecoveryStrategy.RETRY_WITH_WAIT and should_retry(elapsed_ms, classified.wait_seconds):
+            if (classified.strategy == RecoveryStrategy.RETRY_WITH_WAIT
+                    and should_retry(elapsed_ms, classified.wait_seconds)):
                 log.info("retry_with_wait", attempt=attempt, wait_s=classified.wait_seconds, booking_id=inp.booking_id)
                 time.sleep(classified.wait_seconds)
                 continue
@@ -146,7 +147,8 @@ def main(payload: dict) -> dict:
         output = _error_output(inp, "ACT_MAX_RETRIES_EXCEEDED")
 
     latency_ms = (time.monotonic() - start) * 1000
-    log.info("flight_booking_complete", booking_id=inp.booking_id, latency_ms=round(latency_ms), attempts=len(recovery_strategies) + 1)
+    log.info("flight_booking_complete", booking_id=inp.booking_id,
+             latency_ms=round(latency_ms), attempts=len(recovery_strategies) + 1)
     if config.audit_log_table:
         write_audit_log(dynamo, config.audit_log_table, build_booking_audit_entry(
             booking_id=inp.booking_id,

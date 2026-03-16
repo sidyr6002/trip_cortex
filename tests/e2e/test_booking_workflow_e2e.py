@@ -11,8 +11,8 @@ Usage:
 
 import json
 import sys
-import time
 import threading
+import time
 from pathlib import Path
 
 import boto3

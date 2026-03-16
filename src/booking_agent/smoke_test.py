@@ -17,14 +17,14 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
-from nova_act import NovaAct, Workflow
+from nova_act import NovaAct, Workflow  # noqa: E402
 
 try:
     from booking_agent.config import nova_act_kwargs, workflow_kwargs  # PYTHONPATH=src (local/test)
 except ModuleNotFoundError:
     from config import nova_act_kwargs, workflow_kwargs  # type: ignore[no-redef]  # ACR flat layout
-from core.config import get_config
-from core.models.flight import FlightSearchResult
+from core.config import get_config  # noqa: E402
+from core.models.flight import FlightSearchResult  # noqa: E402
 
 
 def main() -> None:

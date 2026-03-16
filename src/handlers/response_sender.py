@@ -38,7 +38,10 @@ def handler(event: dict[str, Any], context: Any) -> None:
         payload = {
             "type": "fallback",
             "booking_id": event["booking_id"],
-            "message": "We couldn't complete your booking automatically. You can finish it manually using the link below.",
+            "message": (
+                "We couldn't complete your booking automatically. "
+                "You can finish it manually using the link below."
+            ),
             "fallback_url": event.get("fallback_url"),
             "warnings": event.get("warnings", []),
         }

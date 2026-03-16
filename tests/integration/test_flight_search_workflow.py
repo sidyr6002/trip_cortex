@@ -24,7 +24,6 @@ pytestmark = pytest.mark.skipif(
 @pytest.mark.integration
 def test_flight_search_workflow() -> None:
     from booking_agent.flight_search import main
-
     from core.models.booking import BookingPlan
     from core.models.flight import FlightSearchInput, FlightSearchOutput
 

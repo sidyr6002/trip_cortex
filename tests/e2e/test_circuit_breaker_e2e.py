@@ -135,7 +135,7 @@ def test_search_circuit_open_raises_portal_unavailable(dynamo, lam):
     assert result["body"].get("errorType") == "PortalUnavailableError", (
         f"Expected PortalUnavailableError, got: {result['body'].get('errorType')}"
     )
-    print(f"\n✅ OPEN circuit: PortalUnavailableError raised immediately (no ACR call)")
+    print("\n✅ OPEN circuit: PortalUnavailableError raised immediately (no ACR call)")
 
 
 # ── Test 3: circuit OPEN + timeout elapsed → HALF_OPEN → test request allowed ─────────────────
@@ -176,14 +176,14 @@ def test_booking_circuit_trips_at_threshold_3(dynamo, lam):
     assert item.get("state", {}).get("S") == "open", (
         f"Booking circuit should be OPEN after 3 failures, got: {item.get('state', {}).get('S')}"
     )
-    print(f"\n✅ Booking circuit opened at threshold=3")
+    print("\n✅ Booking circuit opened at threshold=3")
 
     # 4th invocation must be PortalUnavailableError
     result = _invoke(lam, BOOKING_FUNCTION, _BOOKING_EVENT)
     assert result["body"].get("errorType") == "PortalUnavailableError", (
         f"4th booking request should be blocked, got: {result['body'].get('errorType')}"
     )
-    print(f"✅ 4th booking request blocked by open circuit")
+    print("✅ 4th booking request blocked by open circuit")
 
 
 # ── Test 5: audit log entries created for circuit transitions ──────────────────────────────────
@@ -209,7 +209,7 @@ def test_audit_log_entries_created_on_circuit_open(dynamo, lam):
     _invoke(lam, SEARCH_FUNCTION, _SEARCH_EVENT)  # 5th failure → circuit opens
 
     # Scan audit log for circuit_breaker event (recent entries only)
-    cutoff = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")  # timestamp for context
     resp = dynamo.scan(
         TableName=AUDIT_LOG_TABLE,
         FilterExpression="#e = :ev AND #bk = :bk",
