@@ -319,12 +319,9 @@ trip_cortex/
 
 ## CI/CD
 
-GitHub Actions workflows in `.github/workflows/`:
+GitHub Actions workflow in `.github/workflows/`:
 
-- **CI** (`ci.yml`) — Lint, type check, unit tests, integration tests, SAM build validation. Runs on every push/PR.
-- **Deploy** (`deploy.yml`) — Automated deployment to dev/staging/prod based on branch.
-
-See [docs/github-actions-deploy-role.md](docs/github-actions-deploy-role.md) for IAM role setup.
+- **CI** (`ci.yml`) — Lint (ruff), type check (mypy), unit tests, integration tests (PostgreSQL + DynamoDB Local). Runs on every push to `master` and on PRs.
 
 ---
 
